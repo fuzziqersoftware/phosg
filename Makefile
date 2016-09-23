@@ -1,0 +1,40 @@
+OBJECTS=Concurrency.o Filesystem.o Image.o JSON.o Network.o Strings.o
+CXX=g++
+CXXFLAGS=-I/usr/local/include -std=c++14 -g -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -Wall -Werror
+LDFLAGS=-L/usr/local/lib -std=c++14 -lstdc++
+
+INSTALL_DIR=/usr/local
+INCLUDE_INSTALL_DIR=/usr/local/include
+
+all: libphosg.a test
+
+install: libphosg.a
+	mkdir -p $(INSTALL_DIR)/include/phosg
+	cp libphosg.a $(INSTALL_DIR)/lib/
+	cp -r *.hh $(INSTALL_DIR)/include/phosg/
+
+libphosg.a: $(OBJECTS)
+	ar rcs libphosg.a $(OBJECTS)
+
+test: LRUSetTest JSONTest FilesystemTest StringsTest
+	./LRUSetTest
+	./JSONTest
+	./FilesystemTest
+	./StringsTest
+
+LRUSetTest: LRUSetTest.o
+	$(CXX) -std=c++14 -lstdc++ $^ -o $@
+
+JSONTest: JSONTest.o JSON.o Strings.o Filesystem.o
+	$(CXX) -std=c++14 -lstdc++ $^ -o $@
+
+FilesystemTest: FilesystemTest.o Filesystem.o Strings.o
+	$(CXX) -std=c++14 -lstdc++ $^ -o $@
+
+StringsTest: StringsTest.o Strings.o
+	$(CXX) -std=c++14 -lstdc++ $^ -o $@
+
+clean:
+	rm -rf *.dSYM *.o gmon.out libphosg.a *Test
+
+.PHONY: clean
