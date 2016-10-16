@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <sys/time.h>
 
 #include "Strings.hh"
 
@@ -89,8 +90,48 @@ int main(int argc, char** argv) {
     assert(offsets == expected_offsets);
   }
 
+  {
+    string input("/* omit 01 02 */ 03 ?04? $ ##30 $ ##127 ?\"dark\"? ###-1 \'cold\' %-1.667 %%-2.667");
+    string expected_data(
+        "\x03\x04" // 03 ?04?
+        "\x00\x1E" // $ ##30 $
+        "\x7F\x00" // ##127
+        "\x64\x61\x72\x6B" // ?"dark"?
+        "\xFF\xFF\xFF\xFF" // ###-1
+        "\x63\x00\x6F\x00\x6C\x00\x64\x00" // 'cold'
+        "\x42\x60\xD5\xBF" // %-1.667
+        "\xBC\x74\x93\x18\x04\x56\x05\xC0", // %%-2.667
+        34);
+    string expected_mask("\xFF\x00\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 34);
+    string output_mask;
+    string output_data = parse_data_string(input, &output_mask);
+    assert(expected_data == output_data);
+    assert(expected_mask == output_mask);
+
+    {
+      string expected_formatted_input("03?04?001E7F00?6461726B?FFFFFFFF63006F006C0064004260D5BFBC749318045605C0");
+      string formatted_input = format_data_string(output_data, &output_mask);
+      assert(expected_formatted_input == formatted_input);
+
+      output_data = parse_data_string(input, &output_mask);
+      assert(expected_data == output_data);
+      assert(expected_mask == output_mask);
+    }
+
+    {
+      string expected_formatted_input("0304001E7F006461726BFFFFFFFF63006F006C0064004260D5BFBC749318045605C0");
+      string formatted_input = format_data_string(output_data, NULL);
+      assert(expected_formatted_input == formatted_input);
+
+      output_data = parse_data_string(input, &output_mask);
+      assert(expected_data == output_data);
+      assert(expected_mask == output_mask);
+    }
+  }
+
   // TODO: test string_vprintf
   // TODO: test log_level, set_log_level, log
+  // TODO: test get_time_string
   // TODO: test string_for_error
 
   printf("%s: all tests passed\n", argv[0]);
