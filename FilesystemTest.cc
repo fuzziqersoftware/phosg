@@ -11,6 +11,7 @@ int main(int argc, char* argv[]) {
   {
     auto results = list_directory(".");
     assert(results.count("FilesystemTest") == 1);
+    assert(results.count("the-test-will-fail-if-this-file-exists") == 0);
     assert(results.count(".") == 0);
     assert(results.count("..") == 0);
   }
