@@ -32,6 +32,8 @@ struct stat lstat(const std::string& filename);
 struct stat fstat(int fd);
 struct stat fstat(FILE* f);
 
+std::string readlink(const std::string& filename);
+
 std::string load_file(const std::string& filename);
 void save_file(const std::string& filename, const std::string& data);
 

@@ -98,6 +98,18 @@ struct stat fstat(FILE* f) {
   return fstat(fileno(f));
 }
 
+string readlink(const string& filename) {
+  string data(1024, 0);
+  ssize_t length = readlink(filename.c_str(), const_cast<char*>(data.data()),
+      data.size());
+  if (length < 0) {
+    throw cannot_stat_file(filename);
+  }
+  data.resize(length);
+  data.shrink_to_fit();
+  return data;
+}
+
 string load_file(const string& filename) {
   auto f = fopen_unique(filename.c_str(), "rb");
   size_t file_size = fstat(fileno(f.get())).st_size;
