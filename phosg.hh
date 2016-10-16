@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Concurrency.hh"
+#include "Encoding.hh"
 #include "Filesystem.hh"
 #include "Image.hh"
 #include "JSON.hh"
