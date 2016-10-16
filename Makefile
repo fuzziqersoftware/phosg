@@ -16,22 +16,26 @@ install: libphosg.a
 libphosg.a: $(OBJECTS)
 	ar rcs libphosg.a $(OBJECTS)
 
-test: LRUSetTest JSONTest FilesystemTest StringsTest
-	./LRUSetTest
-	./JSONTest
+test: EncodingTest FilesystemTest JSONTest LRUSetTest StringsTest
+	./EncodingTest
 	./FilesystemTest
+	./JSONTest
+	./LRUSetTest
 	./StringsTest
 
-LRUSetTest: LRUSetTest.o
-	$(CXX) -std=c++14 -lstdc++ $^ -o $@
-
-JSONTest: JSONTest.o JSON.o Strings.o Filesystem.o
+EncodingTest: EncodingTest.o
 	$(CXX) -std=c++14 -lstdc++ $^ -o $@
 
 FilesystemTest: FilesystemTest.o Filesystem.o Strings.o
 	$(CXX) -std=c++14 -lstdc++ $^ -o $@
 
-StringsTest: StringsTest.o Strings.o
+JSONTest: JSONTest.o JSON.o Strings.o Filesystem.o
+	$(CXX) -std=c++14 -lstdc++ $^ -o $@
+
+LRUSetTest: LRUSetTest.o
+	$(CXX) -std=c++14 -lstdc++ $^ -o $@
+
+StringsTest: StringsTest.o Strings.o Filesystem.o
 	$(CXX) -std=c++14 -lstdc++ $^ -o $@
 
 clean:
