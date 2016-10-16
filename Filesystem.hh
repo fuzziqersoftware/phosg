@@ -14,6 +14,8 @@
 std::unordered_set<std::string> list_directory(const std::string& dirname,
     std::function<bool(struct dirent*)> filter = NULL);
 
+std::string get_user_home_directory();
+
 class cannot_stat_file : virtual public std::runtime_error {
 public:
   cannot_stat_file(int fd);

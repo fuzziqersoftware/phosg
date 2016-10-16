@@ -1,8 +1,12 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <pwd.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <functional>
 #include <memory>
@@ -35,6 +39,26 @@ unordered_set<string> list_directory(const string& dirname,
 
   closedir(dir);
   return files;
+}
+
+string get_user_home_directory() {
+  const char *homedir = getenv("HOME");
+  if (homedir) {
+    return homedir;
+  }
+
+  int bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+  if (bufsize == -1) {
+    throw runtime_error("can\'t get _SC_GETPW_R_SIZE_MAX");
+  }
+
+  char buffer[bufsize];
+  struct passwd pwd, *result = NULL;
+  if (getpwuid_r(getuid(), &pwd, buffer, bufsize, &result) != 0 || !result) {
+    throw runtime_error("can\'t get home directory for current user");
+  }
+
+  return pwd.pw_dir;
 }
 
 cannot_stat_file::cannot_stat_file(int fd) :

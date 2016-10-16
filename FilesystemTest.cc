@@ -64,6 +64,8 @@ int main(int argc, char* argv[]) {
     remove(symlink_name.c_str());
   }
 
+  // TODO: test get_user_home_directory
+
   printf("%s: all tests passed\n", argv[0]);
   return 0;
 }
