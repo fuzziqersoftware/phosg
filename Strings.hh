@@ -66,8 +66,8 @@ void print_color_escape(FILE* stream, TerminalFormat color, ...);
 void print_data(FILE* stream, const void* _data, uint64_t size,
     uint64_t address = 0, const void* _prev = NULL, bool use_color = false);
 
-std::string parse_data_string(const std::string& s, std::string* mask);
-std::string format_data_string(const std::string& data, const std::string* mask);
+std::string parse_data_string(const std::string& s, std::string* mask = NULL);
+std::string format_data_string(const std::string& data, const std::string* mask = NULL);
 
 std::string format_time(struct timeval* tv = NULL);
 std::string format_size(size_t size, bool include_bytes = false);

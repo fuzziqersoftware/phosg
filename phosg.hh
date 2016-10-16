@@ -7,4 +7,5 @@
 #include "JSON.hh"
 #include "LRUSet.hh"
 #include "Network.hh"
+#include "Process.hh"
 #include "Strings.hh"
