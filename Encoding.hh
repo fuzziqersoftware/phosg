@@ -3,6 +3,10 @@
 #include <stdint.h>
 
 
+static inline uint8_t bswap8(uint8_t a) {
+  return a;
+}
+
 static inline uint64_t bswap16(uint16_t a) {
   return ((a >> 8) & 0x00FF) |
          ((a << 8) & 0xFF00);
