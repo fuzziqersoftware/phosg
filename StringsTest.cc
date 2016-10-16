@@ -129,6 +129,15 @@ int main(int argc, char** argv) {
     }
   }
 
+  {
+    assert(format_size(0) == "0 bytes");
+    assert(format_size(1000) == "1000 bytes");
+    assert(format_size(1536) == "1.50 KB");
+    assert(format_size(1536, true) == "1536 bytes (1.50 KB)");
+    assert(format_size(1073741824) == "1.00 GB");
+    assert(format_size(1073741824, true) == "1073741824 bytes (1.00 GB)");
+  }
+
   // TODO: test string_vprintf
   // TODO: test log_level, set_log_level, log
   // TODO: test get_time_string

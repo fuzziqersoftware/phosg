@@ -568,7 +568,7 @@ string format_data_string(const string& data, const string* mask) {
   return ret;
 }
 
-string get_time_string(struct timeval* tv) {
+string format_time(struct timeval* tv) {
   struct timeval local_tv;
   if (!tv) {
     tv = &local_tv;
@@ -586,4 +586,56 @@ string get_time_string(struct timeval* tv) {
      monthnames[cooked.tm_mon], cooked.tm_year + 1900,
      cooked.tm_hour, cooked.tm_min, cooked.tm_sec,
      tv->tv_usec / 1000);
+}
+
+#define KB_SIZE 1024ULL
+#define MB_SIZE (KB_SIZE * 1024ULL)
+#define GB_SIZE (MB_SIZE * 1024ULL)
+#define TB_SIZE (GB_SIZE * 1024ULL)
+#define PB_SIZE (TB_SIZE * 1024ULL)
+#define EB_SIZE (PB_SIZE * 1024ULL)
+#define ZB_SIZE (EB_SIZE * 1024ULL)
+#define YB_SIZE (ZB_SIZE * 1024ULL)
+#define HB_SIZE (YB_SIZE * 1024ULL)
+
+string format_size(size_t size, bool include_bytes) {
+
+  if (size < KB_SIZE) {
+    return string_printf("%llu bytes", size);
+  }
+  if (include_bytes) {
+    if (size < MB_SIZE) {
+      return string_printf("%llu bytes (%.02f KB)", size, (float)size / KB_SIZE);
+    }
+    if (size < GB_SIZE) {
+      return string_printf("%llu bytes (%.02f MB)", size, (float)size / MB_SIZE);
+    }
+    if (size < TB_SIZE) {
+      return string_printf("%llu bytes (%.02f GB)", size, (float)size / GB_SIZE);
+    }
+    if (size < PB_SIZE) {
+      return string_printf("%llu bytes (%.02f TB)", size, (float)size / TB_SIZE);
+    }
+    if (size < EB_SIZE) {
+      return string_printf("%llu bytes (%.02f PB)", size, (float)size / PB_SIZE);
+    }
+    return string_printf("%llu bytes (%.02f EB)", size, (float)size / EB_SIZE);
+  } else {
+    if (size < MB_SIZE) {
+      return string_printf("%.02f KB", (float)size / KB_SIZE);
+    }
+    if (size < GB_SIZE) {
+      return string_printf("%.02f MB", (float)size / MB_SIZE);
+    }
+    if (size < TB_SIZE) {
+      return string_printf("%.02f GB", (float)size / GB_SIZE);
+    }
+    if (size < PB_SIZE) {
+      return string_printf("%.02f TB", (float)size / TB_SIZE);
+    }
+    if (size < EB_SIZE) {
+      return string_printf("%.02f PB", (float)size / PB_SIZE);
+    }
+    return string_printf("%.02f EB", (float)size / EB_SIZE);
+  }
 }
