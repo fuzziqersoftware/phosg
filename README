@@ -1,0 +1,12 @@
+Phosg is a basic C++ wrapper library around some common C routines.
+
+A short summary of its contents:
+- Read-write locks and guards (C++ doesn't have these in std as of C++14)
+- Byteswapping functions
+- Directory listing, smart-pointer fopen and stat functions
+- Basic image manipulation/drawing
+- Basic JSON (de)serialization
+- LRU set implementation
+- Network helpers (IP address parsing/formatting, listen/connect sockets)
+- Process listing and name <> PID mapping
+- String helpers like printf, split, time/size formatting, etc.
