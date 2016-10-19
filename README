@@ -10,3 +10,7 @@ A short summary of its contents:
 - Network helpers (IP address parsing/formatting, listen/connect sockets)
 - Process listing and name <> PID mapping
 - String helpers like printf, split, time/size formatting, etc.
+
+Building & installing:
+1. `make`
+2. `sudo make install`
