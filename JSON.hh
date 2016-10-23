@@ -57,6 +57,7 @@ public:
 
   JSONObject();
   JSONObject(bool x);
+  JSONObject(const char* s);
   JSONObject(const std::string& x);
   JSONObject(int64_t x);
   JSONObject(double x);

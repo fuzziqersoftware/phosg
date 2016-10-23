@@ -217,6 +217,7 @@ JSONObject JSONObject::parse(const string& s, size_t offset) {
 
 JSONObject::JSONObject() : type(Null) { }
 JSONObject::JSONObject(bool x) : type(Bool), bool_data(x) { }
+JSONObject::JSONObject(const char* x) : type(String), string_data(x) { }
 JSONObject::JSONObject(const string& x) : type(String), string_data(x) { }
 JSONObject::JSONObject(int64_t x) : type(Integer), int_data(x),
     float_data(x) { }
