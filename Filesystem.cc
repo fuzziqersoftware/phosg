@@ -70,6 +70,9 @@ cannot_stat_file::cannot_stat_file(const string& filename) :
 cannot_open_file::cannot_open_file(const string& filename) :
     runtime_error("can\'t open file " + filename) {}
 
+io_error::io_error(int fd) :
+    runtime_error("io error on fd " + to_string(fd)) {}
+
 struct stat stat(const string& filename) {
   struct stat st;
   if (stat(filename.c_str(), &st)) {
@@ -108,6 +111,50 @@ string readlink(const string& filename) {
   data.resize(length);
   data.shrink_to_fit();
   return data;
+}
+
+void readx(int fd, void* data, size_t size) {
+  if (read(fd, data, size) != size) {
+    throw io_error(fd);
+  }
+}
+
+void writex(int fd, const void* data, size_t size) {
+  if (write(fd, data, size) != size) {
+    throw io_error(fd);
+  }
+}
+
+std::string readx(int fd, size_t size) {
+  string ret(size, 0);
+  readx(fd, const_cast<char*>(ret.data()), size);
+  return ret;
+}
+
+void writex(int fd, const std::string& data) {
+  writex(fd, data.data(), data.size());
+}
+
+void freadx(FILE* f, void* data, size_t size) {
+  if (fread(data, 1, size, f) != size) {
+    throw io_error(fileno(f));
+  }
+}
+
+void fwritex(FILE* f, const void* data, size_t size) {
+  if (fwrite(data, 1, size, f) != size) {
+    throw io_error(fileno(f));
+  }
+}
+
+std::string freadx(FILE* f, size_t size) {
+  string ret(size, 0);
+  freadx(f, const_cast<char*>(ret.data()), size);
+  return ret;
+}
+
+void fwritex(FILE* f, const std::string& data) {
+  fwritex(f, data.data(), data.size());
 }
 
 string load_file(const string& filename) {

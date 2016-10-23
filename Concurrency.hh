@@ -22,4 +22,3 @@ public:
   rw_guard(rw_lock& lock, bool exclusive);
   ~rw_guard();
 };
-
