@@ -37,6 +37,12 @@ struct stat lstat(const std::string& filename);
 struct stat fstat(int fd);
 struct stat fstat(FILE* f);
 
+bool isfile(const std::string& filename);
+bool isdir(const std::string& filename);
+bool lisfile(const std::string& filename);
+bool lisdir(const std::string& filename);
+bool islink(const std::string& filename);
+
 std::string readlink(const std::string& filename);
 
 void readx(int fd, void* data, size_t size);
@@ -54,3 +60,5 @@ void save_file(const std::string& filename, const std::string& data);
 
 std::unique_ptr<FILE, void(*)(FILE*)> fopen_unique(const std::string& filename,
     const std::string& mode = "rb");
+
+void unlink(const std::string& filename, bool recursive = true);

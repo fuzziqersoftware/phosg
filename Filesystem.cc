@@ -101,6 +101,46 @@ struct stat fstat(FILE* f) {
   return fstat(fileno(f));
 }
 
+bool isfile(const std::string& filename) {
+  try {
+    return (stat(filename).st_mode & S_IFMT) == S_IFREG;
+  } catch (const cannot_stat_file& e) {
+    return false;
+  }
+}
+
+bool isdir(const std::string& filename) {
+  try {
+    return (stat(filename).st_mode & S_IFMT) == S_IFDIR;
+  } catch (const cannot_stat_file& e) {
+    return false;
+  }
+}
+
+bool lisfile(const std::string& filename) {
+  try {
+    return (lstat(filename).st_mode & S_IFMT) == S_IFREG;
+  } catch (const cannot_stat_file& e) {
+    return false;
+  }
+}
+
+bool lisdir(const std::string& filename) {
+  try {
+    return (lstat(filename).st_mode & S_IFMT) == S_IFREG;
+  } catch (const cannot_stat_file& e) {
+    return false;
+  }
+}
+
+bool islink(const std::string& filename) {
+  try {
+    return (lstat(filename).st_mode & S_IFMT) == S_IFLNK;
+  } catch (const cannot_stat_file& e) {
+    return false;
+  }
+}
+
 string readlink(const string& filename) {
   string data(1024, 0);
   ssize_t length = readlink(filename.c_str(), const_cast<char*>(data.data()),
@@ -187,4 +227,24 @@ unique_ptr<FILE, void(*)(FILE*)> fopen_unique(const string& filename,
     throw cannot_open_file(filename);
   }
   return f;
+}
+
+void unlink(const std::string& filename, bool recursive) {
+  if (recursive) {
+    if (isdir(filename)) {
+      for (const string& item : list_directory(filename)) {
+        unlink(filename + "/" + item, true);
+      }
+      if (rmdir(filename.c_str()) != 0) {
+        throw runtime_error("can\'t delete directory " + filename + ": " + string_for_error(errno));
+      }
+    } else {
+      unlink(filename, false);
+    }
+
+  } else {
+    if (unlink(filename.c_str()) != 0) {
+      throw runtime_error("can\'t delete file " + filename + ": " + string_for_error(errno));
+    }
+  }
 }
