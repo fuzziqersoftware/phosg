@@ -29,3 +29,25 @@ static inline uint64_t bswap64(uint64_t a) {
          ((a << 40) & 0x00FF000000000000) |
          ((a << 56) & 0xFF00000000000000);
 }
+
+static inline float bswap32f(uint32_t a) {
+  float f;
+  *(uint32_t*)(&f) = bswap32(a);
+  return f;
+}
+
+static inline double bswap64f(uint64_t a) {
+  double d;
+  *(uint64_t*)(&d) = bswap64(a);
+  return d;
+}
+
+static inline uint32_t bswap32f(float a) {
+  uint32_t i = *(uint32_t*)(&a);
+  return bswap32(i);
+}
+
+static inline uint64_t bswap64f(double a) {
+  uint64_t i = *(uint64_t*)(&a);
+  return bswap64(i);
+}
