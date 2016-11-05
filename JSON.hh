@@ -56,16 +56,21 @@ public:
   static JSONObject parse(const std::string& s, size_t offset = 0);
 
   JSONObject();
-  JSONObject(bool x);
-  JSONObject(const char* s);
-  JSONObject(const std::string& x);
-  JSONObject(int64_t x);
-  JSONObject(double x);
-  JSONObject(const std::vector<JSONObject>& x);
-  JSONObject(const std::unordered_map<std::string, JSONObject>& x);
+  explicit JSONObject(bool x);
+  explicit JSONObject(const char* s);
+  JSONObject(const char* s, size_t size);
+  explicit JSONObject(const std::string& x);
+  JSONObject(std::string&& x);
+  explicit JSONObject(int64_t x);
+  explicit JSONObject(double x);
+  explicit JSONObject(const std::vector<JSONObject>& x);
+  JSONObject(std::vector<JSONObject>&& x);
+  explicit JSONObject(const std::unordered_map<std::string, JSONObject>& x);
+  JSONObject(std::unordered_map<std::string, JSONObject>&& x);
 
   JSONObject(const JSONObject& rhs);
-  const JSONObject& operator=(const JSONObject& rhs);
+  JSONObject(JSONObject&& rhs);
+  JSONObject& operator=(const JSONObject& rhs);
 
   ~JSONObject();
 
@@ -77,12 +82,22 @@ public:
   JSONObject& operator[](size_t index);
   const JSONObject& operator[](size_t index) const;
 
+  std::unordered_map<std::string, JSONObject>& as_dict();
   const std::unordered_map<std::string, JSONObject>& as_dict() const;
+  std::vector<JSONObject>& as_list();
   const std::vector<JSONObject>& as_list() const;
   int64_t as_int() const;
   double as_float() const;
+  std::string& as_string();
   const std::string& as_string() const;
   bool as_bool() const;
+
+  bool is_dict() const;
+  bool is_list() const;
+  bool is_int() const;
+  bool is_float() const;
+  bool is_string() const;
+  bool is_bool() const;
   bool is_null() const;
 
   int source_length() const;

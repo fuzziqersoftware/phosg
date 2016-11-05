@@ -15,19 +15,19 @@ int main(int argc, char** argv) {
   members.emplace(piecewise_construct, make_tuple("null"), make_tuple());
   members.emplace(piecewise_construct, make_tuple("true"), make_tuple(true));
   members.emplace(piecewise_construct, make_tuple("false"), make_tuple(false));
-  members.emplace(piecewise_construct, make_tuple("string0"), make_tuple(string("")));
-  members.emplace(piecewise_construct, make_tuple("string1"), make_tuple(string("no special chars")));
-  members.emplace(piecewise_construct, make_tuple("string2"), make_tuple(string("omg \"\'\\\t\n")));
+  members.emplace(piecewise_construct, make_tuple("string0"), make_tuple(""));
+  members.emplace(piecewise_construct, make_tuple("string1"), make_tuple("no special chars"));
+  members.emplace(piecewise_construct, make_tuple("string2"), make_tuple("omg \"\'\\\t\n"));
   members.emplace(piecewise_construct, make_tuple("int0"), make_tuple((int64_t)0));
   members.emplace(piecewise_construct, make_tuple("int1"), make_tuple((int64_t)134));
   members.emplace(piecewise_construct, make_tuple("int2"), make_tuple((int64_t)-3214));
   members.emplace(piecewise_construct, make_tuple("float0"), make_tuple(0.0));
   members.emplace(piecewise_construct, make_tuple("float1"), make_tuple(1.4));
   members.emplace(piecewise_construct, make_tuple("float2"), make_tuple(-10.5));
-  members.emplace(piecewise_construct, make_tuple("list0"), make_tuple(vector<JSONObject>()));
-  members.emplace(piecewise_construct, make_tuple("list1"), make_tuple(vector<JSONObject>({{(int64_t)1}})));
-  members.emplace(piecewise_construct, make_tuple("dict0"), make_tuple(unordered_map<string, JSONObject>()));
-  members.emplace(piecewise_construct, make_tuple("dict1"), make_tuple(unordered_map<string, JSONObject>({{"1", (int64_t)1}})));
+  members.emplace(piecewise_construct, make_tuple("list0"), make_tuple((vector<JSONObject>())));
+  members.emplace(piecewise_construct, make_tuple("list1"), make_tuple((vector<JSONObject>({{JSONObject((int64_t)1)}}))));
+  members.emplace(piecewise_construct, make_tuple("dict0"), make_tuple((unordered_map<string, JSONObject>())));
+  members.emplace(piecewise_construct, make_tuple("dict1"), make_tuple((unordered_map<string, JSONObject>({{"1", JSONObject((int64_t)1)}}))));
   JSONObject root(members);
 
   // make sure == works, even recursively
@@ -56,20 +56,20 @@ int main(int argc, char** argv) {
   assert(root["null"] == JSONObject());
   assert(root["true"] == JSONObject(true));
   assert(root["false"] == JSONObject(false));
-  assert(root["string0"] == JSONObject(string("")));
-  assert(root["string1"] == JSONObject(string("no special chars")));
-  assert(root["string2"] == JSONObject(string("omg \"\'\\\t\n")));
+  assert(root["string0"] == JSONObject(""));
+  assert(root["string1"] == JSONObject("no special chars"));
+  assert(root["string2"] == JSONObject("omg \"\'\\\t\n"));
   assert(root["int0"] == JSONObject((int64_t)0));
   assert(root["int1"] == JSONObject((int64_t)134));
   assert(root["int2"] == JSONObject((int64_t)-3214));
   assert(root["float0"] == JSONObject(0.0));
   assert(root["float1"] == JSONObject(1.4));
   assert(root["float2"] == JSONObject(-10.5));
-  assert(root["list0"] == JSONObject(vector<JSONObject>()));
-  assert(root["list1"] == JSONObject(vector<JSONObject>({{(int64_t)1}})));
+  assert(root["list0"] == JSONObject((vector<JSONObject>())));
+  assert(root["list1"] == JSONObject((vector<JSONObject>({{JSONObject((int64_t)1)}}))));
   assert(root["list1"][0] == JSONObject((int64_t)1));
   assert(root["dict0"] == JSONObject(unordered_map<string, JSONObject>()));
-  assert(root["dict1"] == JSONObject(unordered_map<string, JSONObject>({{"1", (int64_t)1}})));
+  assert(root["dict1"] == JSONObject(unordered_map<string, JSONObject>({{"1", JSONObject((int64_t)1)}})));
   assert(root["dict1"]["1"] == JSONObject((int64_t)1));
 
   assert(root["true"].as_bool() == true);
@@ -84,10 +84,10 @@ int main(int argc, char** argv) {
   assert(root["float1"].as_float() == 1.4);
   assert(root["float2"].as_float() == -10.5);
   assert(root["list0"].as_list() == vector<JSONObject>());
-  assert(root["list1"].as_list() == vector<JSONObject>({{(int64_t)1}}));
+  assert(root["list1"].as_list() == vector<JSONObject>({{JSONObject((int64_t)1)}}));
   assert(root["list1"][0].as_int() == 1);
   assert(root["dict0"].as_dict() == (unordered_map<string, JSONObject>()));
-  assert(root["dict1"].as_dict() == (unordered_map<string, JSONObject>({{"1", (int64_t)1}})));
+  assert(root["dict1"].as_dict() == (unordered_map<string, JSONObject>({{"1", JSONObject((int64_t)1)}})));
   assert(root["dict1"]["1"].as_int() == 1);
 
   assert(root["null"].serialize() == "null");

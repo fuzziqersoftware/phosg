@@ -218,14 +218,21 @@ JSONObject JSONObject::parse(const string& s, size_t offset) {
 JSONObject::JSONObject() : type(Null) { }
 JSONObject::JSONObject(bool x) : type(Bool), bool_data(x) { }
 JSONObject::JSONObject(const char* x) : type(String), string_data(x) { }
+JSONObject::JSONObject(const char* x, size_t size) : type(String),
+    string_data(x, size) { }
 JSONObject::JSONObject(const string& x) : type(String), string_data(x) { }
+JSONObject::JSONObject(string&& x) : type(String), string_data(move(x)) { }
 JSONObject::JSONObject(int64_t x) : type(Integer), int_data(x),
     float_data(x) { }
 JSONObject::JSONObject(double x) : type(Float), int_data(x), float_data(x) { }
 JSONObject::JSONObject(const vector<JSONObject>& x) : type(List),
     list_data(x) { }
+JSONObject::JSONObject(vector<JSONObject>&& x) : type(List),
+    list_data(move(x)) { }
 JSONObject::JSONObject(const unordered_map<string, JSONObject>& x) :
     type(Dict), dict_data(x) { }
+JSONObject::JSONObject(unordered_map<string, JSONObject>&& x) :
+    type(Dict), dict_data(move(x)) { }
 
 JSONObject::JSONObject(const JSONObject& rhs) {
   this->type = rhs.type;
@@ -238,7 +245,18 @@ JSONObject::JSONObject(const JSONObject& rhs) {
   this->bool_data = rhs.bool_data;
 }
 
-const JSONObject& JSONObject::operator=(const JSONObject& rhs) {
+JSONObject::JSONObject(JSONObject&& rhs) {
+  this->type = rhs.type;
+  this->consumed_characters = rhs.consumed_characters;
+  this->dict_data = move(rhs.dict_data);
+  this->list_data = move(rhs.list_data);
+  this->int_data = rhs.int_data;
+  this->float_data = rhs.float_data;
+  this->string_data = move(rhs.string_data);
+  this->bool_data = rhs.bool_data;
+}
+
+JSONObject& JSONObject::operator=(const JSONObject& rhs) {
   this->type = rhs.type;
   this->consumed_characters = rhs.consumed_characters;
   this->dict_data = rhs.dict_data;
@@ -316,10 +334,22 @@ const JSONObject& JSONObject::operator[](size_t index) const {
   return this->list_data[index];
 }
 
+unordered_map<string, JSONObject>& JSONObject::as_dict() {
+  if (this->type != Dict)
+    throw type_error("object cannot be accessed as a dict");
+  return this->dict_data;
+}
+
 const unordered_map<string, JSONObject>& JSONObject::as_dict() const {
   if (this->type != Dict)
     throw type_error("object cannot be accessed as a dict");
   return this->dict_data;
+}
+
+vector<JSONObject>& JSONObject::as_list() {
+  if (this->type != List)
+    throw type_error("object cannot be accessed as a list");
+  return this->list_data;
 }
 
 const vector<JSONObject>& JSONObject::as_list() const {
@@ -340,6 +370,12 @@ double JSONObject::as_float() const {
   return this->float_data;
 }
 
+string& JSONObject::as_string() {
+  if (this->type != String)
+    throw type_error("object cannot be accessed as a string");
+  return this->string_data;
+}
+
 const string& JSONObject::as_string() const {
   if (this->type != String)
     throw type_error("object cannot be accessed as a string");
@@ -350,6 +386,30 @@ bool JSONObject::as_bool() const {
   if (this->type != Bool)
     throw type_error("object cannot be accessed as a bool");
   return this->bool_data;
+}
+
+bool JSONObject::is_dict() const {
+  return this->type == Dict;
+}
+
+bool JSONObject::is_list() const {
+  return this->type == List;
+}
+
+bool JSONObject::is_int() const {
+  return this->type == Integer;
+}
+
+bool JSONObject::is_float() const {
+  return this->type == Float;
+}
+
+bool JSONObject::is_string() const {
+  return this->type == String;
+}
+
+bool JSONObject::is_bool() const {
+  return this->type == Bool;
 }
 
 bool JSONObject::is_null() const {
