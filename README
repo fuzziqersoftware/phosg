@@ -6,6 +6,7 @@ A short summary of its contents:
 - Directory listing, smart-pointer fopen and stat functions
 - Basic image manipulation/drawing
 - Basic JSON (de)serialization
+- Python Pickle (de)serialization for basic types
 - LRU set implementation
 - Network helpers (IP address parsing/formatting, listen/connect sockets)
 - Process listing and name <> PID mapping

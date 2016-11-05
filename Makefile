@@ -1,4 +1,4 @@
-OBJECTS=Concurrency.o Filesystem.o Image.o JSON.o Network.o Process.o Strings.o
+OBJECTS=Concurrency.o Filesystem.o Image.o JSONPickle.o JSON.o Network.o Process.o Strings.o
 CXX=g++
 CXXFLAGS=-I/usr/local/include -std=c++14 -g -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -Wall -Werror
 LDFLAGS=-L/usr/local/lib -std=c++14 -lstdc++
@@ -16,9 +16,10 @@ install: libphosg.a
 libphosg.a: $(OBJECTS)
 	ar rcs libphosg.a $(OBJECTS)
 
-test: EncodingTest FilesystemTest JSONTest LRUSetTest ProcessTest StringsTest
+test: EncodingTest FilesystemTest JSONPickleTest JSONTest LRUSetTest ProcessTest StringsTest
 	./EncodingTest
 	./FilesystemTest
+	./JSONPickleTest
 	./JSONTest
 	./LRUSetTest
 	./ProcessTest
@@ -28,6 +29,9 @@ EncodingTest: EncodingTest.o
 	$(CXX) -std=c++14 -lstdc++ $^ -o $@
 
 FilesystemTest: FilesystemTest.o Filesystem.o Strings.o
+	$(CXX) -std=c++14 -lstdc++ $^ -o $@
+
+JSONPickleTest: JSONPickleTest.o JSON.o Strings.o Filesystem.o JSONPickle.o
 	$(CXX) -std=c++14 -lstdc++ $^ -o $@
 
 JSONTest: JSONTest.o JSON.o Strings.o Filesystem.o
