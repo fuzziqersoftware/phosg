@@ -13,6 +13,8 @@ bool ends_with(const std::string& s, const std::string& end);
 std::string string_printf(const char* fmt, ...);
 std::string string_vprintf(const char* fmt, va_list va);
 
+uint8_t value_for_hex_char(char x);
+
 #define DEBUG 0
 #define INFO 1
 #define WARNING 2

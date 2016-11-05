@@ -48,6 +48,19 @@ string string_vprintf(const char* fmt, va_list va) {
   return ret;
 }
 
+uint8_t value_for_hex_char(char x) {
+  if (x >= '0' && x <= '9') {
+    return x - '0';
+  }
+  if (x >= 'A' && x <= 'F') {
+    return (x - 'A') + 0xA;
+  }
+  if (x >= 'a' && x <= 'f') {
+    return (x - 'a') + 0xA;
+  }
+  throw out_of_range(string_printf("invalid hex char: %c", x));
+}
+
 static int current_log_level = INFO;
 
 int log_level() {
