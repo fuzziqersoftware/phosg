@@ -83,8 +83,10 @@ template <typename K>
 bool LRUSet<K>::touch(const K& k, ssize_t new_size) {
   try {
     Item& i = this->items.at(k);
-    this->unlink_item(&i);
-    this->link_item(&i);
+    if (this->head != &i) {
+      this->unlink_item(&i);
+      this->link_item(&i);
+    }
     if (new_size >= 0) {
       this->total_size += new_size - i.size;
       i.size = new_size;
