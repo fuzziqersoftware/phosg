@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <string>
 
+#include "Filesystem.hh"
 #include "Network.hh"
 #include "Strings.hh"
 
@@ -81,16 +82,6 @@ static struct sockaddr_un make_sockaddr_un(const string& path) {
   return sa;
 }
 
-static void make_socket_nonblocking(int fd) {
-  int flags = fcntl(fd, F_GETFL, 0);
-  if (flags < 0) {
-    throw runtime_error("can\'t get socket flags: " + string_for_error(errno));
-  }
-  if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
-    throw runtime_error("can\'t set socket flags: " + string_for_error(errno));
-  }
-}
-
 int listen(const string& addr, int port, int backlog, bool nonblocking) {
 
   int fd = socket(port ? PF_INET : PF_UNIX, backlog ? SOCK_STREAM : SOCK_DGRAM,
@@ -138,7 +129,7 @@ int listen(const string& addr, int port, int backlog, bool nonblocking) {
   }
 
   if (nonblocking) {
-    make_socket_nonblocking(fd);
+    make_fd_nonblocking(fd);
   }
 
   return fd;
@@ -167,7 +158,7 @@ int connect(const string& addr, int port, bool nonblocking) {
   }
 
   if (nonblocking) {
-    make_socket_nonblocking(fd);
+    make_fd_nonblocking(fd);
   }
 
   return fd;

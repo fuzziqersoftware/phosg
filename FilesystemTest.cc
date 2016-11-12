@@ -65,6 +65,20 @@ int main(int argc, char* argv[]) {
     remove(symlink_name.c_str());
   }
 
+  {
+    auto p = pipe();
+    writex(p.second, "omg");
+    assert(readx(p.first, 3) == "omg");
+
+    Poll poll;
+    poll.add(p.first, POLLIN);
+    poll.add(p.second, POLLOUT);
+    unordered_map<int, short> expected_result({{p.second, POLLOUT}});
+    assert(poll.poll() == expected_result);
+    poll.remove(p.first, true);
+    poll.remove(p.second, true);
+  }
+
   // TODO: test get_user_home_directory
 
   printf("%s: all tests passed\n", argv[0]);

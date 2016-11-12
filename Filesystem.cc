@@ -1,6 +1,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -247,4 +248,73 @@ void unlink(const std::string& filename, bool recursive) {
       throw runtime_error("can\'t delete file " + filename + ": " + string_for_error(errno));
     }
   }
+}
+
+pair<int, int> pipe() {
+  int fds[2];
+  if (pipe(fds)) {
+    throw runtime_error("pipe failed: " + string_for_error(errno));
+  }
+  return make_pair(fds[0], fds[1]);
+}
+
+void make_fd_nonblocking(int fd) {
+  int flags = fcntl(fd, F_GETFL, 0);
+  if (flags < 0) {
+    throw runtime_error("can\'t get socket flags: " + string_for_error(errno));
+  }
+  if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+    throw runtime_error("can\'t set socket flags: " + string_for_error(errno));
+  }
+}
+
+void Poll::add(int fd, short events) {
+  auto pred = [](const struct pollfd& x, const struct pollfd& y) {
+    return x.fd < y.fd;
+  };
+
+  struct pollfd pfd;
+  pfd.fd = fd;
+  pfd.events = events;
+  auto insert_it = upper_bound(this->poll_fds.begin(), this->poll_fds.end(),
+      pfd, pred);
+  if (insert_it != this->poll_fds.end() && insert_it->fd == fd) {
+    insert_it->events = events;
+  } else {
+    this->poll_fds.insert(insert_it, pfd);
+  }
+}
+
+void Poll::remove(int fd, bool close_fd) {
+  auto pred = [](const struct pollfd& x, const struct pollfd& y) {
+    return x.fd < y.fd;
+  };
+
+  struct pollfd pfd;
+  pfd.fd = fd;
+  auto erase_it = lower_bound(this->poll_fds.begin(), this->poll_fds.end(),
+      pfd, pred);
+  if (erase_it != this->poll_fds.end() && erase_it->fd == fd) {
+    this->poll_fds.erase(erase_it);
+    if (close_fd) {
+      close(fd);
+    }
+  }
+}
+
+unordered_map<int, short> Poll::poll(int timeout_ms) {
+  if (::poll(this->poll_fds.data(), this->poll_fds.size(), timeout_ms) < 0) {
+    if (errno == EINTR) {
+      return unordered_map<int, short>();
+    }
+    throw runtime_error("poll failed: " + string_for_error(errno));
+  }
+
+  unordered_map<int, short> ret;
+  for (const auto& pfd : this->poll_fds) {
+    if (pfd.revents) {
+      ret.emplace(pfd.fd, pfd.revents);
+    }
+  }
+  return ret;
 }

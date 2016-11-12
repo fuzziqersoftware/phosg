@@ -2,13 +2,17 @@
 
 #include <dirent.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
 #include <functional>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
 
 std::unordered_set<std::string> list_directory(const std::string& dirname,
@@ -62,3 +66,21 @@ std::unique_ptr<FILE, void(*)(FILE*)> fopen_unique(const std::string& filename,
     const std::string& mode = "rb");
 
 void unlink(const std::string& filename, bool recursive = true);
+
+std::pair<int, int> pipe();
+
+void make_fd_nonblocking(int fd);
+
+class Poll {
+public:
+  Poll() = default;
+  ~Poll() = default;
+
+  void add(int fd, short events);
+  void remove(int fd, bool close_fd = false);
+
+  std::unordered_map<int, short> poll(int timeout_ms = 0);
+
+private:
+  std::vector<struct pollfd> poll_fds;
+};
