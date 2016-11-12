@@ -14,6 +14,10 @@
 
 using namespace std;
 
+
+Image::unknown_format::unknown_format(const std::string& what) : runtime_error(what) { }
+
+
 struct WindowsBitmapFileHeader {
   uint16_t magic;
   uint32_t file_size;
@@ -223,6 +227,67 @@ void Image::save(FILE* f, Image::ImageFormat format) const {
       delete[] row_data;
 
       break;
+    }
+
+    default:
+      throw runtime_error("unknown file format in Image::save()");
+  }
+}
+
+// save the image to a string in memory
+string Image::save(Image::ImageFormat format) const {
+
+  switch (format) {
+    case GrayscalePPM:
+      throw runtime_error("can\'t save grayscale ppm files");
+
+    case ColorPPM: {
+      string s = string_printf("P6 %d %d 255\n", width, height);
+      s.append((const char*)this->data, this->width * this->height * 3);
+      return s;
+    }
+
+    case WindowsBitmap: {
+
+      int row_padding_bytes = (4 - ((this->width * 3) % 4)) % 4;
+      uint8_t row_padding_data[4] = {0, 0, 0, 0};
+
+      WindowsBitmapHeader header;
+      header.file_header.magic = 0x4D42;
+      header.file_header.file_size = sizeof(WindowsBitmapHeader) + (this->width * this->height * 3) + (row_padding_bytes * this->height);
+      header.file_header.reserved[0] = 0;
+      header.file_header.reserved[1] = 0;
+      header.file_header.data_offset = sizeof(WindowsBitmapHeader);
+      header.info_header.header_size = sizeof(WindowsBitmapInfoHeader);
+      header.info_header.width = this->width;
+      header.info_header.height = this->height;
+      header.info_header.num_planes = 1;
+      header.info_header.bit_depth = 24;
+      header.info_header.compression = 0; // BI_RGB
+      header.info_header.image_size = 0; // ok for uncompressed formats
+      header.info_header.x_pixels_per_meter = 0x00000B12;
+      header.info_header.y_pixels_per_meter = 0x00000B12;
+      header.info_header.num_used_colors = 0;
+      header.info_header.num_important_colors = 0;
+
+      string s;
+      s.append((const char*)(&header), sizeof(header));
+
+      uint8_t* row_data = new uint8_t[this->width * 3];
+      for (int y = this->height - 1; y >= 0; y--) {
+        for (int x = 0; x < this->width * 3; x += 3) {
+          row_data[x] = this->data[y * this->width * 3 + x + 2];
+          row_data[x + 1] = this->data[y * this->width * 3 + x + 1];
+          row_data[x + 2] = this->data[y * this->width * 3 + x];
+        }
+        s.append((const char*)row_data, this->width * 3);
+        if (row_padding_bytes) {
+          s.append((const char*)row_padding_data, row_padding_bytes);
+        }
+      }
+      delete[] row_data;
+
+      return s;
     }
 
     default:

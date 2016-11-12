@@ -50,6 +50,7 @@ public:
 
   void save(FILE* f, ImageFormat format) const;
   void save(const char* filename, ImageFormat format) const;
+  std::string save(ImageFormat format) const;
 
   // read/write functions
   void clear(uint8_t r, uint8_t g, uint8_t b);
