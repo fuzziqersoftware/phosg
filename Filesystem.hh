@@ -41,6 +41,12 @@ struct stat lstat(const std::string& filename);
 struct stat fstat(int fd);
 struct stat fstat(FILE* f);
 
+bool isfile(const struct stat& st);
+bool isdir(const struct stat& st);
+bool lisfile(const struct stat& st);
+bool lisdir(const struct stat& st);
+bool islink(const struct stat& st);
+
 bool isfile(const std::string& filename);
 bool isdir(const std::string& filename);
 bool lisfile(const std::string& filename);

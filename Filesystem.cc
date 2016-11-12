@@ -25,7 +25,7 @@ unordered_set<string> list_directory(const string& dirname,
 
   DIR* dir = opendir(dirname.c_str());
   if (dir == NULL) {
-    throw runtime_error("Can\'t read directory " + dirname);
+    throw runtime_error("can\'t read directory " + dirname);
   }
 
   struct dirent* entry;
@@ -102,9 +102,29 @@ struct stat fstat(FILE* f) {
   return fstat(fileno(f));
 }
 
+bool isfile(const struct stat& st) {
+  return (st.st_mode & S_IFMT) == S_IFREG;
+}
+
+bool isdir(const struct stat& st) {
+  return (st.st_mode & S_IFMT) == S_IFDIR;
+}
+
+bool lisfile(const struct stat& st) {
+  return (st.st_mode & S_IFMT) == S_IFREG;
+}
+
+bool lisdir(const struct stat& st) {
+  return (st.st_mode & S_IFMT) == S_IFREG;
+}
+
+bool islink(const struct stat& st) {
+  return (st.st_mode & S_IFMT) == S_IFLNK;
+}
+
 bool isfile(const std::string& filename) {
   try {
-    return (stat(filename).st_mode & S_IFMT) == S_IFREG;
+    return isfile(stat(filename));
   } catch (const cannot_stat_file& e) {
     return false;
   }
@@ -112,7 +132,7 @@ bool isfile(const std::string& filename) {
 
 bool isdir(const std::string& filename) {
   try {
-    return (stat(filename).st_mode & S_IFMT) == S_IFDIR;
+    return isdir(stat(filename));
   } catch (const cannot_stat_file& e) {
     return false;
   }
@@ -120,7 +140,7 @@ bool isdir(const std::string& filename) {
 
 bool lisfile(const std::string& filename) {
   try {
-    return (lstat(filename).st_mode & S_IFMT) == S_IFREG;
+    return isfile(lstat(filename));
   } catch (const cannot_stat_file& e) {
     return false;
   }
@@ -128,7 +148,7 @@ bool lisfile(const std::string& filename) {
 
 bool lisdir(const std::string& filename) {
   try {
-    return (lstat(filename).st_mode & S_IFMT) == S_IFREG;
+    return isdir(lstat(filename));
   } catch (const cannot_stat_file& e) {
     return false;
   }
@@ -136,7 +156,7 @@ bool lisdir(const std::string& filename) {
 
 bool islink(const std::string& filename) {
   try {
-    return (lstat(filename).st_mode & S_IFMT) == S_IFLNK;
+    return islink(lstat(filename));
   } catch (const cannot_stat_file& e) {
     return false;
   }
