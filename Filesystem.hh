@@ -77,7 +77,7 @@ void save_file(const std::string& filename, const std::string& data);
 std::unique_ptr<FILE, void(*)(FILE*)> fopen_unique(const std::string& filename,
     const std::string& mode = "rb");
 
-void unlink(const std::string& filename, bool recursive = true);
+void unlink(const std::string& filename, bool recursive = false);
 
 std::pair<int, int> pipe();
 
