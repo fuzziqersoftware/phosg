@@ -6,9 +6,29 @@
 
 #include "JSON.hh"
 #include "JSONPickle.hh"
+#include "Process.hh"
 #include "Strings.hh"
 
 using namespace std;
+
+
+string get_python_process_output(const string& script, const string* stdin_data) {
+  auto r = run_process({"python", "-c", script}, stdin_data);
+  if (ends_with(r.stdout_contents, "\n")) {
+    r.stdout_contents.resize(r.stdout_contents.size() - 1);
+  }
+  return r.stdout_contents;
+}
+
+string get_python_repr(const string& pickle_data) {
+  return get_python_process_output("import pickle, sys; print(repr(pickle.load(sys.stdin)))",
+      &pickle_data);
+}
+
+string get_sorted_dict_python_repr(const string& pickle_data) {
+  return get_python_process_output("import pickle, sys; print(repr(sorted(pickle.load(sys.stdin).items())))",
+      &pickle_data);
+}
 
 
 int main(int argc, char** argv) {
@@ -20,6 +40,7 @@ int main(int argc, char** argv) {
     assert(parse_pickle("\x80\x02N.") == o);
     assert(serialize_pickle(o) == "\x80\x02N.");
     assert(parse_pickle(serialize_pickle(o)) == o);
+    assert(get_python_repr(serialize_pickle(o)) == "None");
   }
 
   // bools
@@ -34,6 +55,8 @@ int main(int argc, char** argv) {
     assert(serialize_pickle(f) == "\x80\x02\x89.");
     assert(parse_pickle(serialize_pickle(t)) == t);
     assert(parse_pickle(serialize_pickle(f)) == f);
+    assert(get_python_repr(serialize_pickle(t)) == "True");
+    assert(get_python_repr(serialize_pickle(f)) == "False");
   }
 
   // strings
@@ -56,6 +79,9 @@ int main(int argc, char** argv) {
     assert(parse_pickle(serialize_pickle(e)) == e);
     assert(parse_pickle(serialize_pickle(n)) == n);
     assert(parse_pickle(serialize_pickle(s)) == s);
+    assert(get_python_repr(serialize_pickle(e)) == "\'\'");
+    assert(get_python_repr(serialize_pickle(n)) == "\'no special chars\'");
+    assert(get_python_repr(serialize_pickle(s)) == "\'omg \"\\\'\\\\\\t\\n\'");
   }
 
   // integers
@@ -72,6 +98,8 @@ int main(int argc, char** argv) {
     assert(serialize_pickle(nft) == "\x80\x02Jx\xec\xff\xff.");
     assert(parse_pickle(serialize_pickle(f)) == f);
     assert(parse_pickle(serialize_pickle(nft)) == nft);
+    assert(get_python_repr(serialize_pickle(f)) == "5");
+    assert(get_python_repr(serialize_pickle(nft)) == "-5000");
   }
 
   // floats
@@ -88,6 +116,8 @@ int main(int argc, char** argv) {
     assert(serialize_pickle(nff) == string("\x80\x02G\xc0\x12\x00\x00\x00\x00\x00\x00.", 12));
     assert(parse_pickle(serialize_pickle(ot)) == ot);
     assert(parse_pickle(serialize_pickle(nff)) == nff);
+    assert(get_python_repr(serialize_pickle(ot)) == "1.2");
+    assert(get_python_repr(serialize_pickle(nff)) == "-4.5");
   }
 
   // empty lists
@@ -101,6 +131,7 @@ int main(int argc, char** argv) {
     assert(parse_pickle("\x80\x02).") == list);
     assert(serialize_pickle(list) == "\x80\x02].");
     assert(parse_pickle(serialize_pickle(list)) == list);
+    assert(get_python_repr(serialize_pickle(list)) == "[]");
   }
 
   // simple lists: [null, true, 13, 2.5, "lolz"]
@@ -111,6 +142,7 @@ int main(int argc, char** argv) {
     assert(parse_pickle("\x80\x02(N\x88K\rG@\x04\x00\x00\x00\x00\x00\x00U\x04lolzq\x01t.", 26) == list);
     assert(serialize_pickle(list) == string("\x80\x02(N\x88K\rG@\x04\x00\x00\x00\x00\x00\x00U\x04lolzl.", 24));
     assert(parse_pickle(serialize_pickle(list)) == list);
+    assert(get_python_repr(serialize_pickle(list)) == "[None, True, 13, 2.5, \'lolz\']");
   }
 
   // empty dicts
@@ -121,6 +153,7 @@ int main(int argc, char** argv) {
     assert(parse_pickle("\x80\x02}.") == dict);
     assert(serialize_pickle(dict) == "\x80\x02}.");
     assert(parse_pickle(serialize_pickle(dict)) == dict);
+    assert(get_python_repr(serialize_pickle(dict)) == "{}");
   }
 
   // simple dicts: {"null": null, "true": true, "13": 13, "2.5": 2.5, "lolz": "omg"}
@@ -139,6 +172,9 @@ int main(int argc, char** argv) {
     // because dicts are unordered, we can't rely on a static order for the
     // serialized result - just make sure it unserializes to the same value
     assert(parse_pickle(serialize_pickle(dict)) == dict);
+
+    assert(get_sorted_dict_python_repr(serialize_pickle(dict)) ==
+        "[('13', 13), ('2.5', 2.5), ('lolz', 'omg'), ('null', None), ('true', True)]");
   }
 
   // complex structures: {"1": [null, true], "2": [[13, 14], ["s1", "s2"]], "hax": {"derp": []}}
@@ -155,6 +191,9 @@ int main(int argc, char** argv) {
     assert(parse_pickle("}q\x01(U\x01\x31]q\x02(NI01\neU\x03haxq\x03}q\x04U\x04\x64\x65rpq\x05]sU\x01\x32]q\x06(]q\x07(K\rK\x0e\x65]q\x08(U\x02s1q\tU\x02s2q\neeu.") == o);
     assert(parse_pickle("\x80\x02}q\x01(U\x01\x31]q\x02(N\x88\x65U\x03haxq\x03}q\x04U\x04\x64\x65rpq\x05]sU\x01\x32]q\x06(]q\x07(K\rK\x0e\x65]q\x08(U\x02s1q\tU\x02s2q\neeu.") == o);
     assert(parse_pickle(serialize_pickle(o)) == o);
+
+    assert(get_sorted_dict_python_repr(serialize_pickle(o)) ==
+        "[('1', [None, True]), ('2', [[13, 14], ['s1', 's2']]), ('hax', {'derp': []})]");
   }
 
   printf("%s: all tests passed\n", argv[0]);

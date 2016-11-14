@@ -32,7 +32,7 @@ EncodingTest: EncodingTest.o
 FilesystemTest: FilesystemTest.o Filesystem.o Strings.o
 	$(CXX) -std=c++14 -lstdc++ $^ -o $@
 
-JSONPickleTest: JSONPickleTest.o JSON.o Strings.o Filesystem.o JSONPickle.o
+JSONPickleTest: JSONPickleTest.o JSON.o Strings.o Filesystem.o JSONPickle.o Process.o Time.o
 	$(CXX) -std=c++14 -lstdc++ $^ -o $@
 
 JSONTest: JSONTest.o JSON.o Strings.o Filesystem.o
