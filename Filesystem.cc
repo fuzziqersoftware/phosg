@@ -63,16 +63,16 @@ string get_user_home_directory() {
 }
 
 cannot_stat_file::cannot_stat_file(int fd) :
-    runtime_error("can\'t stat fd " + to_string(fd)) { }
+    runtime_error("can\'t stat fd " + to_string(fd)), error(errno) { }
 
 cannot_stat_file::cannot_stat_file(const string& filename) :
-    runtime_error("can\'t stat file " + filename) {}
+    runtime_error("can\'t stat file " + filename), error(errno) {}
 
 cannot_open_file::cannot_open_file(const string& filename) :
-    runtime_error("can\'t open file " + filename) {}
+    runtime_error("can\'t open file " + filename), error(errno) {}
 
 io_error::io_error(int fd) :
-    runtime_error("io error on fd " + to_string(fd)) {}
+    runtime_error("io error on fd " + to_string(fd)), error(errno) {}
 
 struct stat stat(const string& filename) {
   struct stat st;

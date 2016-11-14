@@ -24,16 +24,22 @@ class cannot_stat_file : virtual public std::runtime_error {
 public:
   cannot_stat_file(int fd);
   cannot_stat_file(const std::string& filename);
+
+  int error;
 };
 
 class cannot_open_file : virtual public std::runtime_error {
 public:
   cannot_open_file(const std::string& filename);
+
+  int error;
 };
 
 class io_error : virtual public std::runtime_error {
 public:
   io_error(int fd);
+
+  int error;
 };
 
 struct stat stat(const std::string& filename);
