@@ -344,7 +344,8 @@ SubprocessResult run_process(const vector<string>& cmd, const string* stdin_data
   }
 
   if (check && sp.wait()) {
-    throw runtime_error(string_printf("command returned code %d", sp.wait()));
+    throw runtime_error(string_printf("command returned code %d\nstdout:\n%s\nstderr:\n%s",
+        sp.wait(), ret.stdout_contents.c_str(), ret.stderr_contents.c_str()));
   }
 
   return ret;
