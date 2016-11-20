@@ -26,3 +26,10 @@ string format_time(uint64_t t) {
   ret.resize(len);
   return ret;
 }
+
+struct timeval usecs_to_timeval(uint64_t usecs) {
+  struct timeval tv;
+  tv.tv_sec = usecs / 1000000;
+  tv.tv_usec = usecs % 1000000;
+  return tv;
+}
