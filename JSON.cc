@@ -207,8 +207,9 @@ JSONObject JSONObject::parse(const string& s, size_t offset) {
     ret.type = Null;
     offset += 4;
 
-  } else
+  } else {
     throw parse_error("unknown sentinel or garbage at beginning of string; pos=" + to_string(offset));
+  }
 
   ret.consumed_characters = offset - start_offset;
 
