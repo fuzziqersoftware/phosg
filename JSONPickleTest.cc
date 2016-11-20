@@ -129,6 +129,8 @@ vector<TestCase> test_cases({
                         {"hax", JSONObject(unordered_map<string, JSONObject>({
                           {"derp", JSONObject(vector<JSONObject>())}}))}
                       }))},
+
+  // TODO: test advanced opcodes like 2-tuple, 3-tuple etc.
 });
 
 int main(int argc, char** argv) {

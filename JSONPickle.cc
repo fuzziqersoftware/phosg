@@ -413,6 +413,7 @@ JSONObject parse_pickle(const void* data, size_t size) {
         tup.emplace_back(move(stk[stk.size() - 1]));
         stk.resize(stk.size() - 2);
         stk.emplace_back(move(tup));
+        break;
       }
 
       case '\x87': { // TUPLE3          - build 3-tuple from three topmost stack items
@@ -425,6 +426,7 @@ JSONObject parse_pickle(const void* data, size_t size) {
         tup.emplace_back(move(stk[stk.size() - 1]));
         stk.resize(stk.size() - 3);
         stk.emplace_back(move(tup));
+        break;
       }
 
       case '\x88': // NEWTRUE         - push True
