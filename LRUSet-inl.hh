@@ -41,7 +41,7 @@ bool LRUSet<K>::emplace(K&& key, size_t size) {
   bool ret = this->erase(key);
 
   auto emplace_ret = this->items.emplace(std::piecewise_construct,
-      std::make_tuple(move(key)), std::make_tuple(size));
+      std::forward_as_tuple(std::move(key)), std::forward_as_tuple(size));
   auto& k = emplace_ret.first->first;
   auto& i = emplace_ret.first->second;
 
