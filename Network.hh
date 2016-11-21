@@ -36,3 +36,5 @@ void get_socket_addresses(int fd, struct sockaddr_in* local,
     struct sockaddr_in* remote);
 
 std::string render_netloc(const std::string& addr, int port);
+
+std::string gethostname();

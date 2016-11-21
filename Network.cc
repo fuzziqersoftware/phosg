@@ -192,3 +192,12 @@ string render_netloc(const string& addr, int port) {
     }
   }
 }
+
+string gethostname() {
+  string buf(sysconf(_SC_HOST_NAME_MAX) + 1, 0);
+  if (gethostname(const_cast<char*>(buf.data()), buf.size())) {
+    throw runtime_error("can\'t get hostname");
+  }
+  buf.resize(strlen(buf.c_str()));
+  return buf;
+}
