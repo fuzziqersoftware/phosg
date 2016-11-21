@@ -21,7 +21,7 @@ using namespace std;
 
 
 unordered_set<string> list_directory(const string& dirname,
-    std::function<bool(struct dirent*)> filter) {
+    function<bool(struct dirent*)> filter) {
 
   DIR* dir = opendir(dirname.c_str());
   if (dir == NULL) {
@@ -126,7 +126,7 @@ bool islink(const struct stat& st) {
   return (st.st_mode & S_IFMT) == S_IFLNK;
 }
 
-bool isfile(const std::string& filename) {
+bool isfile(const string& filename) {
   try {
     return isfile(stat(filename));
   } catch (const cannot_stat_file& e) {
@@ -134,7 +134,7 @@ bool isfile(const std::string& filename) {
   }
 }
 
-bool isdir(const std::string& filename) {
+bool isdir(const string& filename) {
   try {
     return isdir(stat(filename));
   } catch (const cannot_stat_file& e) {
@@ -142,7 +142,7 @@ bool isdir(const std::string& filename) {
   }
 }
 
-bool lisfile(const std::string& filename) {
+bool lisfile(const string& filename) {
   try {
     return isfile(lstat(filename));
   } catch (const cannot_stat_file& e) {
@@ -150,7 +150,7 @@ bool lisfile(const std::string& filename) {
   }
 }
 
-bool lisdir(const std::string& filename) {
+bool lisdir(const string& filename) {
   try {
     return isdir(lstat(filename));
   } catch (const cannot_stat_file& e) {
@@ -158,7 +158,7 @@ bool lisdir(const std::string& filename) {
   }
 }
 
-bool islink(const std::string& filename) {
+bool islink(const string& filename) {
   try {
     return islink(lstat(filename));
   } catch (const cannot_stat_file& e) {
@@ -238,14 +238,36 @@ void writex(int fd, const void* data, size_t size) {
   }
 }
 
-std::string readx(int fd, size_t size) {
+string readx(int fd, size_t size) {
   string ret(size, 0);
   readx(fd, const_cast<char*>(ret.data()), size);
   return ret;
 }
 
-void writex(int fd, const std::string& data) {
+void writex(int fd, const string& data) {
   writex(fd, data.data(), data.size());
+}
+
+void preadx(int fd, void* data, size_t size, off_t offset) {
+  if (pread(fd, data, size, offset) != size) {
+    throw io_error(fd);
+  }
+}
+
+void pwritex(int fd, const void* data, size_t size, off_t offset) {
+  if (pwrite(fd, data, size, offset) != size) {
+    throw io_error(fd);
+  }
+}
+
+string preadx(int fd, size_t size, off_t offset) {
+  string ret(size, 0);
+  preadx(fd, const_cast<char*>(ret.data()), size, offset);
+  return ret;
+}
+
+void pwritex(int fd, const string& data, off_t offset) {
+  pwritex(fd, data.data(), data.size(), offset);
 }
 
 void freadx(FILE* f, void* data, size_t size) {
@@ -260,13 +282,13 @@ void fwritex(FILE* f, const void* data, size_t size) {
   }
 }
 
-std::string freadx(FILE* f, size_t size) {
+string freadx(FILE* f, size_t size) {
   string ret(size, 0);
   freadx(f, const_cast<char*>(ret.data()), size);
   return ret;
 }
 
-void fwritex(FILE* f, const std::string& data) {
+void fwritex(FILE* f, const string& data) {
   fwritex(f, data.data(), data.size());
 }
 
@@ -302,7 +324,7 @@ unique_ptr<FILE, void(*)(FILE*)> fopen_unique(const string& filename,
   return f;
 }
 
-void unlink(const std::string& filename, bool recursive) {
+void unlink(const string& filename, bool recursive) {
   if (recursive) {
     if (isdir(filename)) {
       for (const string& item : list_directory(filename)) {

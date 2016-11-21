@@ -89,6 +89,11 @@ void writex(int fd, const void* data, size_t size);
 std::string readx(int fd, size_t size);
 void writex(int fd, const std::string& data);
 
+void preadx(int fd, void* data, size_t size, off_t offset);
+void pwritex(int fd, const void* data, size_t size, off_t offset);
+std::string preadx(int fd, size_t size, off_t offset);
+void pwritex(int fd, const std::string& data, off_t offset);
+
 void freadx(FILE* f, void* data, size_t size);
 void fwritex(FILE* f, const void* data, size_t size);
 std::string freadx(FILE* f, size_t size);
