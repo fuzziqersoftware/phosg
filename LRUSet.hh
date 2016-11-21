@@ -29,8 +29,8 @@ public:
   LRUSet();
   virtual ~LRUSet();
 
-  bool insert(const K& k, size_t size);
-  bool emplace(K&& k, size_t size);
+  bool insert(const K& k, size_t size = 0);
+  bool emplace(K&& k, size_t size = 0);
 
   bool erase(const K& k);
 
