@@ -61,6 +61,29 @@ bool islink(const std::string& filename);
 
 std::string readlink(const std::string& filename);
 
+class scoped_fd {
+public:
+  scoped_fd();
+  explicit scoped_fd(int fd);
+  scoped_fd(const char* filename, int mode, mode_t perm = 0755);
+  scoped_fd(const std::string& filename, int mode, mode_t perm = 0755);
+  scoped_fd(const scoped_fd&) = delete;
+  scoped_fd(scoped_fd&&);
+  ~scoped_fd();
+  scoped_fd& operator=(scoped_fd& other) = delete;
+
+  operator int() const;
+
+  void open(const char* filename, int mode, mode_t perm = 0755);
+  void open(const std::string& filename, int mode, mode_t perm = 0755);
+  void close();
+
+  bool is_open();
+
+private:
+  int fd;
+};
+
 void readx(int fd, void* data, size_t size);
 void writex(int fd, const void* data, size_t size);
 std::string readx(int fd, size_t size);

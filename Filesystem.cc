@@ -178,6 +178,54 @@ string readlink(const string& filename) {
   return data;
 }
 
+scoped_fd::scoped_fd() : fd(-1) { }
+
+scoped_fd::scoped_fd(int fd) : fd(fd) { }
+
+scoped_fd::scoped_fd(const char* filename, int mode, mode_t perm) {
+  this->open(filename, mode, perm);
+}
+
+scoped_fd::scoped_fd(const string& filename, int mode, mode_t perm) {
+  this->open(filename.c_str(), mode, perm);
+}
+
+scoped_fd::scoped_fd(scoped_fd&& other) : fd(other.fd) {
+  other.fd = -1;
+}
+
+scoped_fd::~scoped_fd() {
+  if (this->fd >= 0) {
+    ::close(this->fd);
+  }
+}
+
+scoped_fd::operator int() const {
+  return this->fd;
+}
+
+void scoped_fd::open(const char* filename, int mode, mode_t perm) {
+  this->fd = ::open(filename, mode, perm);
+  if (this->fd < 0) {
+    throw cannot_open_file(filename);
+  }
+}
+
+void scoped_fd::open(const string& filename, int mode, mode_t perm) {
+  this->open(filename.c_str(), mode, perm);
+}
+
+void scoped_fd::close() {
+  if (this->fd >= 0) {
+    ::close(this->fd);
+    this->fd = -1;
+  }
+}
+
+bool scoped_fd::is_open() {
+  return this->fd >= 0;
+}
+
 void readx(int fd, void* data, size_t size) {
   if (read(fd, data, size) != size) {
     throw io_error(fd);
