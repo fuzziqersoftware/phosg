@@ -135,13 +135,26 @@ vector<string> split_context(const string& s, char delim) {
     }
   }
 
-  if (i >= last_start)
+  if (i >= last_start) {
     elems.push_back(s.substr(last_start, i));
+  }
 
-  if (paren_stack.size())
+  if (paren_stack.size()) {
     throw runtime_error("Unbalanced parenthesis in split");
+  }
 
   return elems;
+}
+
+string join(const vector<string>& items, const string& delim) {
+  string ret;
+  for (const string& item : items) {
+    if (!ret.empty()) {
+      ret += delim;
+    }
+    ret += item;
+  }
+  return ret;
 }
 
 size_t skip_whitespace(const string& s, size_t offset) {

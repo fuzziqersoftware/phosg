@@ -26,6 +26,8 @@ void log(int level, const char* fmt, ...);
 
 std::vector<std::string> split(const std::string& s, char delim);
 std::vector<std::string> split_context(const std::string& s, char delim);
+std::string join(const std::vector<std::string>& items,
+    const std::string& delim);
 
 size_t skip_whitespace(const std::string& s, size_t offset);
 size_t skip_whitespace(const char* s, size_t offset);
