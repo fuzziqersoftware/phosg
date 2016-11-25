@@ -71,6 +71,7 @@ public:
   scoped_fd(scoped_fd&&);
   ~scoped_fd();
   scoped_fd& operator=(scoped_fd& other) = delete;
+  scoped_fd& operator=(int other);
 
   operator int() const;
 

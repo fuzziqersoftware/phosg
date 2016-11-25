@@ -200,6 +200,14 @@ scoped_fd::~scoped_fd() {
   }
 }
 
+scoped_fd& scoped_fd::operator=(int other) {
+  if (this->fd >= 0) {
+    ::close(this->fd);
+  }
+  this->fd = other;
+  return *this;
+}
+
 scoped_fd::operator int() const {
   return this->fd;
 }
