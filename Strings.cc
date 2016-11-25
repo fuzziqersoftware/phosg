@@ -1,3 +1,5 @@
+#include <stdarg.h>
+#include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
 
@@ -239,12 +241,12 @@ void print_data(FILE* stream, const void* _data, uint64_t size,
 
   // if nonzero, print the address here (the loop won't do it for the 1st line)
   if (start_offset) {
-    fprintf(stream, "%016llX | ", address);
+    fprintf(stream, "%016llX | ", (unsigned long long)address);
   }
 
   // print initial spaces, if any
   unsigned long long x, y;
-  for (x = 0; x < start_offset; x++) {
+  for (x = 0; x < (unsigned)start_offset; x++) {
     fputs("   ", stream);
     data_ascii[x] = ' ';
     prev_ascii[x] = ' ';

@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <vector>
 #include <unordered_map>
@@ -128,7 +129,7 @@ JSONObject parse_pickle(const void* data, size_t size) {
 
       case 'L':    // LONG            - push long; decimal string argument
         char* endptr;
-        stk.emplace_back(strtoll(&buffer[offset], &endptr, 10));
+        stk.emplace_back((int64_t)strtoll(&buffer[offset], &endptr, 10));
         if (endptr == &buffer[offset]) {
           throw JSONObject::parse_error("blank long value");
         }
@@ -244,7 +245,7 @@ JSONObject parse_pickle(const void* data, size_t size) {
         if (stk.size() < 2) {
           throw JSONObject::parse_error("not enough items on stack for append");
         }
-        JSONObject j = move(stk.back());
+        shared_ptr<JSONObject> j(new JSONObject(move(stk.back())));
         stk.pop_back();
         stk.back().as_list().emplace_back(move(j));
         break;
@@ -297,7 +298,7 @@ JSONObject parse_pickle(const void* data, size_t size) {
         auto& l = list.as_list();
 
         for (size_t x = mark; x < stk.size(); x++) {
-          l.emplace_back(move(stk[x]));
+          l.emplace_back(new JSONObject(move(stk[x])));
         }
         stk.resize(mark);
         break;
@@ -340,7 +341,7 @@ JSONObject parse_pickle(const void* data, size_t size) {
         if (!k.is_string()) {
           throw JSONObject::parse_error("setitem with non-string key");
         }
-        d.as_dict().emplace(k.as_string(), move(v));
+        d.as_dict().emplace(k.as_string(), shared_ptr<JSONObject>(new JSONObject(move(v))));
         stk.pop_back();
         stk.pop_back();
         break;
@@ -370,7 +371,7 @@ JSONObject parse_pickle(const void* data, size_t size) {
           if (!stk.back().is_string()) {
             throw JSONObject::parse_error("setitems with non-string key");
           }
-          d.emplace(stk.back().as_string(), move(value));
+          d.emplace(stk.back().as_string(), shared_ptr<JSONObject>(new JSONObject(move(value))));
           stk.pop_back();
         }
         break;
@@ -537,7 +538,7 @@ void serialize_pickle_recursive(string& buffer, const JSONObject& o) {
     } else {
       buffer += "("; // mark
       for (const auto& i : o.as_list()) {
-        serialize_pickle_recursive(buffer, i);
+        serialize_pickle_recursive(buffer, *i);
       }
       buffer += "l";
     }
@@ -550,7 +551,7 @@ void serialize_pickle_recursive(string& buffer, const JSONObject& o) {
       buffer += "("; // mark
       for (const auto& i : o.as_dict()) {
         serialize_pickle_recursive(buffer, JSONObject(i.first));
-        serialize_pickle_recursive(buffer, i.second);
+        serialize_pickle_recursive(buffer, *i.second);
       }
       buffer += "d";
     }

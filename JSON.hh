@@ -50,24 +50,42 @@ public:
     Dict,
   };
 
-  static JSONObject load(const std::string& filename);
+  static std::shared_ptr<JSONObject> load(const std::string& filename);
   void save(const std::string& filename, bool format = false) const;
 
-  static JSONObject parse(const std::string& s, size_t offset = 0);
+  static std::shared_ptr<JSONObject> parse(const std::string& s, size_t offset = 0);
 
+  // null
   JSONObject();
+
+  // true/false
   explicit JSONObject(bool x);
+
+  // string
   explicit JSONObject(const char* s);
   JSONObject(const char* s, size_t size);
   explicit JSONObject(const std::string& x);
   JSONObject(std::string&& x);
+
+  // integer
   explicit JSONObject(int64_t x);
+
+  // float
   explicit JSONObject(double x);
+
+  // list
   explicit JSONObject(const std::vector<JSONObject>& x);
   JSONObject(std::vector<JSONObject>&& x);
+  explicit JSONObject(const std::vector<std::shared_ptr<JSONObject>>& x);
+  JSONObject(std::vector<std::shared_ptr<JSONObject>>&& x);
+
+  // dict
   explicit JSONObject(const std::unordered_map<std::string, JSONObject>& x);
   JSONObject(std::unordered_map<std::string, JSONObject>&& x);
+  explicit JSONObject(const std::unordered_map<std::string, std::shared_ptr<JSONObject>>& x);
+  JSONObject(std::unordered_map<std::string, std::shared_ptr<JSONObject>>&& x);
 
+  // copy/move
   JSONObject(const JSONObject& rhs);
   JSONObject(JSONObject&& rhs);
   JSONObject& operator=(const JSONObject& rhs);
@@ -77,15 +95,15 @@ public:
   bool operator==(const JSONObject& other) const;
   bool operator!=(const JSONObject& other) const;
 
-  JSONObject& operator[](const std::string& key);
-  const JSONObject& operator[](const std::string& key) const;
-  JSONObject& operator[](size_t index);
-  const JSONObject& operator[](size_t index) const;
+  std::shared_ptr<JSONObject> operator[](const std::string& key);
+  const std::shared_ptr<JSONObject> operator[](const std::string& key) const;
+  std::shared_ptr<JSONObject> operator[](size_t index);
+  const std::shared_ptr<JSONObject> operator[](size_t index) const;
 
-  std::unordered_map<std::string, JSONObject>& as_dict();
-  const std::unordered_map<std::string, JSONObject>& as_dict() const;
-  std::vector<JSONObject>& as_list();
-  const std::vector<JSONObject>& as_list() const;
+  std::unordered_map<std::string, std::shared_ptr<JSONObject>>& as_dict();
+  const std::unordered_map<std::string, std::shared_ptr<JSONObject>>& as_dict() const;
+  std::vector<std::shared_ptr<JSONObject>>& as_list();
+  const std::vector<std::shared_ptr<JSONObject>>& as_list() const;
   int64_t as_int() const;
   double as_float() const;
   std::string& as_string();
@@ -111,8 +129,8 @@ private:
 
   // TODO: really there should be a subclass for each type, but this isn't used
   // in performance-critical code right now
-  std::unordered_map<std::string, JSONObject> dict_data;
-  std::vector<JSONObject> list_data;
+  std::unordered_map<std::string, std::shared_ptr<JSONObject>> dict_data;
+  std::vector<std::shared_ptr<JSONObject>> list_data;
   int64_t int_data;
   double float_data;
   std::string string_data;

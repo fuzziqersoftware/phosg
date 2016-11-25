@@ -15,7 +15,7 @@ JSONObject::key_error::key_error(const string& what) : runtime_error(what) { }
 JSONObject::index_error::index_error(const string& what) : runtime_error(what) { }
 JSONObject::file_error::file_error(const string& what) : runtime_error(what) { }
 
-JSONObject JSONObject::load(const string& filename) {
+shared_ptr<JSONObject> JSONObject::load(const string& filename) {
   try {
     return JSONObject::parse(load_file(filename));
   } catch (const runtime_error& e) {
@@ -32,7 +32,7 @@ void JSONObject::save(const string& filename, bool format) const {
   }
 }
 
-JSONObject JSONObject::parse(const string& s, size_t offset) {
+shared_ptr<JSONObject> JSONObject::parse(const string& s, size_t offset) {
   if (s.empty()) {
     throw parse_error("empty string");
   }
@@ -40,44 +40,48 @@ JSONObject JSONObject::parse(const string& s, size_t offset) {
   int start_offset = offset;
   string remaining = s.substr(offset);
 
-  JSONObject ret;
+  shared_ptr<JSONObject> ret(new JSONObject());
 
   if (s[offset] == '{') {
-    ret.type = Dict;
+    ret->type = Dict;
 
     char expected_separator = '{';
     while (offset < s.length() && s[offset] != '}') {
-      if (s[offset] != expected_separator)
+      if (s[offset] != expected_separator) {
         throw parse_error("string is not a dictionary; pos=" + to_string(offset));
+      }
       expected_separator = ',';
 
       offset++;
       offset = skip_whitespace(s, offset);
-      if (offset >= s.length() || s[offset] == '}')
+      if (offset >= s.length() || s[offset] == '}') {
         break;
+      }
 
-      JSONObject key = JSONObject::parse(s, offset);
-      offset += key.source_length();
+      shared_ptr<JSONObject> key = JSONObject::parse(s, offset);
+      offset += key->source_length();
       offset = skip_whitespace(s, offset);
 
-      if (offset >= s.length() || s[offset] != ':')
+      if (offset >= s.length() || s[offset] != ':') {
         throw parse_error("dictionary does not contain key/value pairs; pos=" + to_string(offset));
+      }
       offset++;
       offset = skip_whitespace(s, offset);
 
-      ret.dict_data.emplace(piecewise_construct, make_tuple(key.as_string()),
+      ret->dict_data.emplace(piecewise_construct, make_tuple(key->as_string()),
           make_tuple(JSONObject::parse(s, offset)));
-      offset += ret.dict_data[key.as_string()].source_length();
+      offset += ret->dict_data[key->as_string()]->source_length();
       offset = skip_whitespace(s, offset);
     }
 
-    if (offset >= s.length())
+    if (offset >= s.length()) {
       throw parse_error("incomplete dictionary definition; pos=" + to_string(offset));
+    }
 
     offset++;
 
   } else if (s[offset] == '[') {
-    ret.type = List;
+    ret->type = List;
 
     char expected_separator = '[';
     while (offset < s.length() && s[offset] != ']') {
@@ -89,8 +93,8 @@ JSONObject JSONObject::parse(const string& s, size_t offset) {
       if (offset >= s.length() || s[offset] == ']')
         break;
 
-      ret.list_data.emplace_back(JSONObject::parse(s, offset));
-      offset += ret.list_data.back().source_length();
+      ret->list_data.emplace_back(JSONObject::parse(s, offset));
+      offset += ret->list_data.back()->source_length();
       offset = skip_whitespace(s, offset);
     }
 
@@ -100,7 +104,7 @@ JSONObject JSONObject::parse(const string& s, size_t offset) {
     offset++;
 
   } else if (s[offset] == '-' || s[offset] == '+' || isdigit(s[offset])) {
-    ret.type = Integer;
+    ret->type = Integer;
 
     bool negative = false;
     if (s[offset] == '-') {
@@ -108,18 +112,18 @@ JSONObject JSONObject::parse(const string& s, size_t offset) {
       offset++;
     }
 
-    ret.int_data = 0;
+    ret->int_data = 0;
     for (; isdigit(s[offset]); offset++) {
-      ret.int_data = ret.int_data * 10 + (s[offset] - '0');
+      ret->int_data = ret->int_data * 10 + (s[offset] - '0');
     }
 
     double this_place = 0.1;
-    ret.float_data = ret.int_data;
+    ret->float_data = ret->int_data;
     if (s[offset] == '.') {
-      ret.type = Float;
+      ret->type = Float;
       offset++;
       for (; isdigit(s[offset]); offset++) {
-        ret.float_data += (s[offset] - '0') * this_place;
+        ret->float_data += (s[offset] - '0') * this_place;
         this_place *= 0.1;
       }
     }
@@ -136,54 +140,54 @@ JSONObject JSONObject::parse(const string& s, size_t offset) {
 
       if (e_negative) {
         for (; e > 0; e--) {
-          ret.int_data *= 0.1;
-          ret.float_data *= 0.1;
+          ret->int_data *= 0.1;
+          ret->float_data *= 0.1;
         }
       } else {
         for (; e > 0; e--)
-          ret.float_data *= 10;
-        ret.int_data = ret.float_data;
+          ret->float_data *= 10;
+        ret->int_data = ret->float_data;
       }
     }
 
     if (negative) {
-      ret.int_data = -ret.int_data;
-      ret.float_data = -ret.float_data;
+      ret->int_data = -ret->int_data;
+      ret->float_data = -ret->float_data;
     }
 
   } else if (s[offset] == '\"') {
-    ret.type = String;
+    ret->type = String;
 
     offset++;
 
-    ret.string_data = "";
+    ret->string_data = "";
     while (offset < s.length() && s[offset] != '\"') {
       if (s[offset] == '\\') {
         if (offset == s.length() - 1)
           throw parse_error("incomplete string; pos=" + to_string(offset));
         offset++;
         if (s[offset] == '\"')
-          ret.string_data.push_back('\"');
+          ret->string_data.push_back('\"');
         else if (s[offset] == '\\')
-          ret.string_data.push_back('\\');
+          ret->string_data.push_back('\\');
         else if (s[offset] == '/')
-          ret.string_data.push_back('/');
+          ret->string_data.push_back('/');
         else if (s[offset] == 'b')
-          ret.string_data.push_back('\b');
+          ret->string_data.push_back('\b');
         else if (s[offset] == 'f')
-          ret.string_data.push_back('\f');
+          ret->string_data.push_back('\f');
         else if (s[offset] == 'n')
-          ret.string_data.push_back('\n');
+          ret->string_data.push_back('\n');
         else if (s[offset] == 'r')
-          ret.string_data.push_back('\r');
+          ret->string_data.push_back('\r');
         else if (s[offset] == 't')
-          ret.string_data.push_back('\t');
+          ret->string_data.push_back('\t');
         else if (s[offset] == 'x')
           throw parse_error("unicode escape sequence in string; pos=" + to_string(offset));
         else
           throw parse_error("invalid escape sequence in string; pos=" + to_string(offset));
       } else {
-        ret.string_data.push_back(s[offset]);
+        ret->string_data.push_back(s[offset]);
       }
       offset++;
     }
@@ -194,24 +198,24 @@ JSONObject JSONObject::parse(const string& s, size_t offset) {
     offset++;
 
   } else if (!strncmp(s.c_str() + offset, "true", 4)) {
-    ret.type = Bool;
-    ret.bool_data = true;
+    ret->type = Bool;
+    ret->bool_data = true;
     offset += 4;
 
   } else if (!strncmp(s.c_str() + offset, "false", 5)) {
-    ret.type = Bool;
-    ret.bool_data = false;
+    ret->type = Bool;
+    ret->bool_data = false;
     offset += 5;
 
   } else if (!strncmp(s.c_str() + offset, "null", 4)) {
-    ret.type = Null;
+    ret->type = Null;
     offset += 4;
 
   } else {
     throw parse_error("unknown sentinel or garbage at beginning of string; pos=" + to_string(offset));
   }
 
-  ret.consumed_characters = offset - start_offset;
+  ret->consumed_characters = offset - start_offset;
 
   return ret;
 }
@@ -226,14 +230,39 @@ JSONObject::JSONObject(string&& x) : type(String), string_data(move(x)) { }
 JSONObject::JSONObject(int64_t x) : type(Integer), int_data(x),
     float_data(x) { }
 JSONObject::JSONObject(double x) : type(Float), int_data(x), float_data(x) { }
-JSONObject::JSONObject(const vector<JSONObject>& x) : type(List),
+JSONObject::JSONObject(const vector<shared_ptr<JSONObject>>& x) : type(List),
     list_data(x) { }
-JSONObject::JSONObject(vector<JSONObject>&& x) : type(List),
+JSONObject::JSONObject(vector<shared_ptr<JSONObject>>&& x) : type(List),
     list_data(move(x)) { }
-JSONObject::JSONObject(const unordered_map<string, JSONObject>& x) :
+JSONObject::JSONObject(const unordered_map<string, shared_ptr<JSONObject>>& x) :
     type(Dict), dict_data(x) { }
-JSONObject::JSONObject(unordered_map<string, JSONObject>&& x) :
+JSONObject::JSONObject(unordered_map<string, shared_ptr<JSONObject>>&& x) :
     type(Dict), dict_data(move(x)) { }
+
+// non-shared_ptr constructors
+JSONObject::JSONObject(const vector<JSONObject>& x) : type(List) {
+  for (const auto& it : x) {
+    this->list_data.emplace_back(new JSONObject(it));
+  }
+}
+
+JSONObject::JSONObject(vector<JSONObject>&& x) : type(List) {
+  for (auto& it : x) {
+    this->list_data.emplace_back(new JSONObject(move(it)));
+  }
+}
+
+JSONObject::JSONObject(const unordered_map<string, JSONObject>& x) : type(Dict) {
+  for (auto& it : x) {
+    this->dict_data.emplace(it.first, shared_ptr<JSONObject>(new JSONObject(it.second)));
+  }
+}
+
+JSONObject::JSONObject(unordered_map<string, JSONObject>&& x) : type(Dict) {
+  for (auto& it : x) {
+    this->dict_data.emplace(it.first, shared_ptr<JSONObject>(new JSONObject(move(it.second))));
+  }
+}
 
 JSONObject::JSONObject(const JSONObject& rhs) {
   this->type = rhs.type;
@@ -278,18 +307,41 @@ bool JSONObject::operator==(const JSONObject& other) const {
   switch (this->type) {
     case Null:
       return true; // no data to compare
-    case Dict:
-      return this->dict_data == other.dict_data;
-    case List:
-      return this->list_data == other.list_data;
+    case Bool:
+      return this->bool_data == other.bool_data;
     case Integer:
       return this->int_data == other.int_data;
     case Float:
       return this->float_data == other.float_data;
     case String:
       return this->string_data == other.string_data;
-    case Bool:
-      return this->bool_data == other.bool_data;
+
+    case Dict:
+      if (this->dict_data.size() != other.dict_data.size()) {
+        return false;
+      }
+      for (const auto& it : this->dict_data) {
+        try {
+          if (*other.dict_data.at(it.first) != *it.second) {
+            return false;
+          }
+        } catch (const out_of_range& e) {
+          return false;
+        }
+      }
+      return true;
+
+    case List:
+      if (this->list_data.size() != other.list_data.size()) {
+        return false;
+      }
+      for (size_t x = 0; x < this->list_data.size(); x++) {
+        if (*this->list_data[x] != *other.list_data[x]) {
+          return false;
+        }
+      }
+      return true;
+
     default:
       throw type_error("unknown type in operator==");
   }
@@ -299,7 +351,7 @@ bool JSONObject::operator!=(const JSONObject& other) const {
   return !(this->operator==(other));
 }
 
-JSONObject& JSONObject::operator[](const string& key) {
+shared_ptr<JSONObject> JSONObject::operator[](const string& key) {
   if (this->type != Dict)
     throw type_error("object cannot be accessed as a dict");
   try {
@@ -309,7 +361,7 @@ JSONObject& JSONObject::operator[](const string& key) {
   }
 }
 
-const JSONObject& JSONObject::operator[](const string& key) const {
+const shared_ptr<JSONObject> JSONObject::operator[](const string& key) const {
   if (this->type != Dict)
     throw type_error("object cannot be accessed as a dict");
   try {
@@ -319,7 +371,7 @@ const JSONObject& JSONObject::operator[](const string& key) const {
   }
 }
 
-JSONObject& JSONObject::operator[](size_t index) {
+shared_ptr<JSONObject> JSONObject::operator[](size_t index) {
   if (this->type != List)
     throw type_error("object cannot be accessed as a list");
   if (index >= this->list_data.size())
@@ -327,7 +379,7 @@ JSONObject& JSONObject::operator[](size_t index) {
   return this->list_data[index];
 }
 
-const JSONObject& JSONObject::operator[](size_t index) const {
+const shared_ptr<JSONObject> JSONObject::operator[](size_t index) const {
   if (this->type != List)
     throw type_error("object cannot be accessed as a list");
   if (index >= this->list_data.size())
@@ -335,25 +387,25 @@ const JSONObject& JSONObject::operator[](size_t index) const {
   return this->list_data[index];
 }
 
-unordered_map<string, JSONObject>& JSONObject::as_dict() {
+unordered_map<string, shared_ptr<JSONObject>>& JSONObject::as_dict() {
   if (this->type != Dict)
     throw type_error("object cannot be accessed as a dict");
   return this->dict_data;
 }
 
-const unordered_map<string, JSONObject>& JSONObject::as_dict() const {
+const unordered_map<string, shared_ptr<JSONObject>>& JSONObject::as_dict() const {
   if (this->type != Dict)
     throw type_error("object cannot be accessed as a dict");
   return this->dict_data;
 }
 
-vector<JSONObject>& JSONObject::as_list() {
+vector<shared_ptr<JSONObject>>& JSONObject::as_list() {
   if (this->type != List)
     throw type_error("object cannot be accessed as a list");
   return this->list_data;
 }
 
-const vector<JSONObject>& JSONObject::as_list() const {
+const vector<shared_ptr<JSONObject>>& JSONObject::as_list() const {
   if (this->type != List)
     throw type_error("object cannot be accessed as a list");
   return this->list_data;
@@ -468,10 +520,11 @@ string JSONObject::serialize() const {
 
     case List: {
       string ret = "[";
-      for (const JSONObject& o : this->list_data) {
-        if (ret.size() > 1)
+      for (const std::shared_ptr<JSONObject>& o : this->list_data) {
+        if (ret.size() > 1) {
           ret += ',';
-        ret += o.serialize();
+        }
+        ret += o->serialize();
       }
       return ret + "]";
     }
@@ -481,11 +534,13 @@ string JSONObject::serialize() const {
       for (const auto& o : this->dict_data) {
         if (ret.size() > 1)
           ret += ',';
-        ret += "\"" + escape_string(o.first) + "\":" + o.second.serialize();
+        ret += "\"" + escape_string(o.first) + "\":" + o.second->serialize();
       }
       return ret + "}";
     }
   }
+
+  throw JSONObject::parse_error("unknown object type");
 }
 
 string JSONObject::format(size_t indent) const {
@@ -503,10 +558,11 @@ string JSONObject::format(size_t indent) const {
       }
 
       string ret = "[";
-      for (const JSONObject& o : this->list_data) {
-        if (ret.size() > 1)
+      for (const std::shared_ptr<JSONObject>& o : this->list_data) {
+        if (ret.size() > 1) {
           ret += ',';
-        ret += '\n' + string(indent + 2, ' ') + o.format(indent + 2);
+        }
+        ret += '\n' + string(indent + 2, ' ') + o->format(indent + 2);
       }
       return ret + '\n' + string(indent, ' ') + "]";
     }
@@ -518,11 +574,14 @@ string JSONObject::format(size_t indent) const {
 
       string ret = "{";
       for (const auto& o : this->dict_data) {
-        if (ret.size() > 1)
+        if (ret.size() > 1) {
           ret += ',';
-        ret += '\n' + string(indent + 2, ' ') + "\"" + escape_string(o.first) + "\": " + o.second.format(indent + 2);
+        }
+        ret += '\n' + string(indent + 2, ' ') + "\"" + escape_string(o.first) + "\": " + o.second->format(indent + 2);
       }
       return ret + '\n' + string(indent, ' ') + "}";
     }
   }
+
+  throw JSONObject::parse_error("unknown object type");
 }

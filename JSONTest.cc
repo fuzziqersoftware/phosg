@@ -36,106 +36,107 @@ int main(int argc, char** argv) {
   assert(root != JSONObject(members));
 
   // make sure retrievals work
-  assert(root["null"].is_null() == true);
-  assert(root["true"].is_null() == false);
-  assert(root["false"].is_null() == false);
-  assert(root["string0"].is_null() == false);
-  assert(root["string1"].is_null() == false);
-  assert(root["string2"].is_null() == false);
-  assert(root["int0"].is_null() == false);
-  assert(root["int1"].is_null() == false);
-  assert(root["int2"].is_null() == false);
-  assert(root["float0"].is_null() == false);
-  assert(root["float1"].is_null() == false);
-  assert(root["float2"].is_null() == false);
-  assert(root["list0"].is_null() == false);
-  assert(root["list1"].is_null() == false);
-  assert(root["dict0"].is_null() == false);
-  assert(root["dict1"].is_null() == false);
+  assert(root["null"]->is_null() == true);
+  assert(root["true"]->is_null() == false);
+  assert(root["false"]->is_null() == false);
+  assert(root["string0"]->is_null() == false);
+  assert(root["string1"]->is_null() == false);
+  assert(root["string2"]->is_null() == false);
+  assert(root["int0"]->is_null() == false);
+  assert(root["int1"]->is_null() == false);
+  assert(root["int2"]->is_null() == false);
+  assert(root["float0"]->is_null() == false);
+  assert(root["float1"]->is_null() == false);
+  assert(root["float2"]->is_null() == false);
+  assert(root["list0"]->is_null() == false);
+  assert(root["list1"]->is_null() == false);
+  assert(root["dict0"]->is_null() == false);
+  assert(root["dict1"]->is_null() == false);
 
-  assert(root["null"] == JSONObject());
-  assert(root["true"] == JSONObject(true));
-  assert(root["false"] == JSONObject(false));
-  assert(root["string0"] == JSONObject(""));
-  assert(root["string1"] == JSONObject("no special chars"));
-  assert(root["string2"] == JSONObject("omg \"\'\\\t\n"));
-  assert(root["int0"] == JSONObject((int64_t)0));
-  assert(root["int1"] == JSONObject((int64_t)134));
-  assert(root["int2"] == JSONObject((int64_t)-3214));
-  assert(root["float0"] == JSONObject(0.0));
-  assert(root["float1"] == JSONObject(1.4));
-  assert(root["float2"] == JSONObject(-10.5));
-  assert(root["list0"] == JSONObject((vector<JSONObject>())));
-  assert(root["list1"] == JSONObject((vector<JSONObject>({{JSONObject((int64_t)1)}}))));
-  assert(root["list1"][0] == JSONObject((int64_t)1));
-  assert(root["dict0"] == JSONObject(unordered_map<string, JSONObject>()));
-  assert(root["dict1"] == JSONObject(unordered_map<string, JSONObject>({{"1", JSONObject((int64_t)1)}})));
-  assert(root["dict1"]["1"] == JSONObject((int64_t)1));
+  assert(*root["null"] == JSONObject());
+  assert(*root["true"] == JSONObject(true));
+  assert(*root["false"] == JSONObject(false));
+  assert(*root["string0"] == JSONObject(""));
+  assert(*root["string1"] == JSONObject("no special chars"));
+  assert(*root["string2"] == JSONObject("omg \"\'\\\t\n"));
+  assert(*root["int0"] == JSONObject((int64_t)0));
+  assert(*root["int1"] == JSONObject((int64_t)134));
+  assert(*root["int2"] == JSONObject((int64_t)-3214));
+  assert(*root["float0"] == JSONObject(0.0));
+  assert(*root["float1"] == JSONObject(1.4));
+  assert(*root["float2"] == JSONObject(-10.5));
+  assert(*root["list0"] == JSONObject((vector<JSONObject>())));
+  assert(*root["list1"] == JSONObject((vector<JSONObject>({{JSONObject((int64_t)1)}}))));
+  assert(*(*root["list1"])[0] == JSONObject((int64_t)1));
+  assert(*root["dict0"] == JSONObject(unordered_map<string, JSONObject>()));
+  assert(*root["dict1"] == JSONObject(unordered_map<string, JSONObject>({{"1", JSONObject((int64_t)1)}})));
+  assert(*(*root["dict1"])["1"] == JSONObject((int64_t)1));
 
-  assert(root["true"].as_bool() == true);
-  assert(root["false"].as_bool() == false);
-  assert(root["string0"].as_string() == "");
-  assert(root["string1"].as_string() == "no special chars");
-  assert(root["string2"].as_string() == "omg \"\'\\\t\n");
-  assert(root["int0"].as_int() == 0);
-  assert(root["int1"].as_int() == 134);
-  assert(root["int2"].as_int() == -3214);
-  assert(root["float0"].as_float() == 0.0);
-  assert(root["float1"].as_float() == 1.4);
-  assert(root["float2"].as_float() == -10.5);
-  assert(root["list0"].as_list() == vector<JSONObject>());
-  assert(root["list1"].as_list() == vector<JSONObject>({{JSONObject((int64_t)1)}}));
-  assert(root["list1"][0].as_int() == 1);
-  assert(root["dict0"].as_dict() == (unordered_map<string, JSONObject>()));
-  assert(root["dict1"].as_dict() == (unordered_map<string, JSONObject>({{"1", JSONObject((int64_t)1)}})));
-  assert(root["dict1"]["1"].as_int() == 1);
+  assert(root["true"]->as_bool() == true);
+  assert(root["false"]->as_bool() == false);
+  assert(root["string0"]->as_string() == "");
+  assert(root["string1"]->as_string() == "no special chars");
+  assert(root["string2"]->as_string() == "omg \"\'\\\t\n");
+  assert(root["int0"]->as_int() == 0);
+  assert(root["int1"]->as_int() == 134);
+  assert(root["int2"]->as_int() == -3214);
+  assert(root["float0"]->as_float() == 0.0);
+  assert(root["float1"]->as_float() == 1.4);
+  assert(root["float2"]->as_float() == -10.5);
+  assert(root["list0"]->as_list() == vector<shared_ptr<JSONObject>>());
+  assert(*(*root["list1"])[0] == JSONObject((int64_t)1));
+  assert(root["list1"]->as_list().size() == 1);
+  assert((*root["list1"])[0]->as_int() == 1);
+  assert(root["dict0"]->as_dict().size() == 0);
+  assert((*root["dict1"])["1"]->as_int() == 1);
+  assert(root["dict1"]->as_dict().size() == 1);
 
-  assert(root["null"].serialize() == "null");
-  assert(root["true"].serialize() == "true");
-  assert(root["false"].serialize() == "false");
-  assert(root["string0"].serialize() == "\"\"");
-  assert(root["string1"].serialize() == "\"no special chars\"");
-  assert(root["string2"].serialize() == "\"omg \\\"\'\\\\\\t\\n\"");
-  assert(root["int0"].serialize() == "0");
-  assert(root["int1"].serialize() == "134");
-  assert(root["int2"].serialize() == "-3214");
-  assert(root["float0"].serialize() == "0.0");
-  assert(root["float1"].serialize() == "1.4");
-  assert(root["float2"].serialize() == "-10.5");
-  assert(root["list0"].serialize() == "[]");
-  assert(root["list1"].serialize() == "[1]");
-  assert(root["dict0"].serialize() == "{}");
-  assert(root["dict1"].serialize() == "{\"1\":1}");
+  assert(root["null"]->serialize() == "null");
+  assert(root["true"]->serialize() == "true");
+  assert(root["false"]->serialize() == "false");
+  assert(root["string0"]->serialize() == "\"\"");
+  assert(root["string1"]->serialize() == "\"no special chars\"");
+  assert(root["string2"]->serialize() == "\"omg \\\"\'\\\\\\t\\n\"");
+  assert(root["int0"]->serialize() == "0");
+  assert(root["int1"]->serialize() == "134");
+  assert(root["int2"]->serialize() == "-3214");
+  assert(root["float0"]->serialize() == "0.0");
+  assert(root["float1"]->serialize() == "1.4");
+  assert(root["float2"]->serialize() == "-10.5");
+  assert(root["list0"]->serialize() == "[]");
+  assert(root["list1"]->serialize() == "[1]");
+  assert(root["dict0"]->serialize() == "{}");
+  assert(root["dict1"]->serialize() == "{\"1\":1}");
 
-  assert(root["null"] == JSONObject::parse("null"));
-  assert(root["true"] == JSONObject::parse("true"));
-  assert(root["false"] == JSONObject::parse("false"));
-  assert(root["string0"] == JSONObject::parse("\"\""));
-  assert(root["string1"] == JSONObject::parse("\"no special chars\""));
-  assert(root["string2"] == JSONObject::parse("\"omg \\\"\'\\\\\\t\\n\""));
-  assert(root["int0"] == JSONObject::parse("0"));
-  assert(root["int1"] == JSONObject::parse("134"));
-  assert(root["int2"] == JSONObject::parse("-3214"));
-  assert(root["float0"] == JSONObject::parse("0.0"));
-  assert(root["float1"] == JSONObject::parse("1.4"));
-  assert(root["float2"] == JSONObject::parse("-10.5"));
-  assert(root["list0"] == JSONObject::parse("[]"));
-  assert(root["list1"] == JSONObject::parse("[1]"));
-  assert(root["dict0"] == JSONObject::parse("{}"));
-  assert(root["dict1"] == JSONObject::parse("{\"1\":1}"));
+  assert(*root["null"] == *JSONObject::parse("null"));
+  assert(*root["true"] == *JSONObject::parse("true"));
+  assert(*root["false"] == *JSONObject::parse("false"));
+  assert(*root["string0"] == *JSONObject::parse("\"\""));
+  assert(*root["string1"] == *JSONObject::parse("\"no special chars\""));
+  assert(*root["string2"] == *JSONObject::parse("\"omg \\\"\'\\\\\\t\\n\""));
+  assert(*root["int0"] == *JSONObject::parse("0"));
+  assert(*root["int1"] == *JSONObject::parse("134"));
+  assert(*root["int2"] == *JSONObject::parse("-3214"));
+  assert(*root["float0"] == *JSONObject::parse("0.0"));
+  assert(*root["float1"] == *JSONObject::parse("1.4"));
+  assert(*root["float2"] == *JSONObject::parse("-10.5"));
+  assert(*root["list0"] == *JSONObject::parse("[]"));
+  assert(*root["list1"] == *JSONObject::parse("[1]"));
+  assert(*root["dict0"] == *JSONObject::parse("{}"));
+  assert(*root["dict1"] == *JSONObject::parse("{\"1\":1}"));
 
   // make sure serialize/deserialize result in the same object
-  assert(JSONObject::parse(root.serialize(), 0) == root);
-  assert(JSONObject::parse(root.format(), 0) == root);
+  assert(*JSONObject::parse(root.serialize(), 0) == root);
+  assert(*JSONObject::parse(root.format(), 0) == root);
 
   // make sure save/load result in the same object
   string temp_filename = string(argv[0]) + "-data.json";
   root.save(temp_filename);
-  assert(JSONObject::load(temp_filename) == root);
+  assert(*JSONObject::load(temp_filename) == root);
   unlink(temp_filename.c_str());
 
   root.save(temp_filename, true);
-  assert(JSONObject::load(temp_filename) == root);
+  assert(*JSONObject::load(temp_filename) == root);
   unlink(temp_filename.c_str());
 
   // make sure the right exceptions are thrown
@@ -148,7 +149,7 @@ int main(int argc, char** argv) {
   }
 
   try {
-    root["list1"][2];
+    (*root["list1"])[2];
     assert(false);
   } catch (const JSONObject::index_error& e) {
   } catch (...) {
@@ -156,7 +157,7 @@ int main(int argc, char** argv) {
   }
 
   try {
-    root["list1"].as_dict();
+    root["list1"]->as_dict();
     assert(false);
   } catch (const JSONObject::type_error& e) {
   } catch (...) {

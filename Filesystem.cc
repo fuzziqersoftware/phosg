@@ -5,10 +5,12 @@
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <string>
@@ -235,13 +237,13 @@ bool scoped_fd::is_open() {
 }
 
 void readx(int fd, void* data, size_t size) {
-  if (read(fd, data, size) != size) {
+  if (read(fd, data, size) != (ssize_t)size) {
     throw io_error(fd);
   }
 }
 
 void writex(int fd, const void* data, size_t size) {
-  if (write(fd, data, size) != size) {
+  if (write(fd, data, size) != (ssize_t)size) {
     throw io_error(fd);
   }
 }
@@ -257,13 +259,13 @@ void writex(int fd, const string& data) {
 }
 
 void preadx(int fd, void* data, size_t size, off_t offset) {
-  if (pread(fd, data, size, offset) != size) {
+  if (pread(fd, data, size, offset) != (ssize_t)size) {
     throw io_error(fd);
   }
 }
 
 void pwritex(int fd, const void* data, size_t size, off_t offset) {
-  if (pwrite(fd, data, size, offset) != size) {
+  if (pwrite(fd, data, size, offset) != (ssize_t)size) {
     throw io_error(fd);
   }
 }
