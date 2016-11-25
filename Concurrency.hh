@@ -22,9 +22,10 @@ private:
 
 public:
   rw_guard() = delete;
+  rw_guard(rw_lock& lock, bool exclusive);
+  rw_guard(pthread_rwlock_t* lock, bool exclusive);
   rw_guard(const rw_guard& g) = delete;
   rw_guard(rw_guard&& g);
-  rw_guard(rw_lock& lock, bool exclusive);
   ~rw_guard();
 
   rw_guard& operator=(const rw_guard& g) = delete;
@@ -45,5 +46,6 @@ public:
 
   void add(rw_guard&& g);
   void add(rw_lock& lock, bool exclusive);
+  void add(pthread_rwlock_t* lock, bool exclusive);
   void unlock_latest();
 };
