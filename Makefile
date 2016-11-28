@@ -1,7 +1,8 @@
+ARCH?=64
 OBJECTS=Concurrency.o Filesystem.o Image.o JSONPickle.o JSON.o Network.o Process.o Strings.o Time.o UnitTest.o
 CXX=g++
-CXXFLAGS=-I/usr/local/include -std=c++14 -g -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -Wall -Werror
-LDFLAGS=-L/usr/local/lib -std=c++14 -lstdc++
+CXXFLAGS=-I/usr/local/include -std=c++14 -g -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -Wall -Werror -m$(ARCH) -DARCH=$(ARCH)
+LDFLAGS=-L/usr/local/lib -std=c++14 -lstdc++ -m$(ARCH)
 
 INSTALL_DIR=/usr/local
 INCLUDE_INSTALL_DIR=/usr/local/include
@@ -28,7 +29,7 @@ test: EncodingTest FilesystemTest JSONPickleTest JSONTest LRUSetTest ProcessTest
 	./UnitTestTest
 
 %Test: %Test.o libphosg.a
-	$(CXX) -std=c++14 -lstdc++ $^ -o $@
+	$(CXX) $(LDFLAGS) $^ -o $@
 
 clean:
 	rm -rf *.dSYM *.o gmon.out libphosg.a *Test
