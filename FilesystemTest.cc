@@ -35,23 +35,23 @@ int main(int argc, char* argv[]) {
       save_file(filename, data);
       expect_eq("0123456789", load_file(filename));
 
-      expect_eq(data.size(), stat(filename).st_size);
-      expect_eq(data.size(), lstat(filename).st_size);
+      expect_eq(data.size(), (size_t)stat(filename).st_size);
+      expect_eq(data.size(), (size_t)lstat(filename).st_size);
 
       symlink(filename.c_str(), symlink_name.c_str());
 
-      expect_eq(data.size(), stat(symlink_name).st_size);
-      expect_eq(filename.size(), lstat(symlink_name).st_size);
+      expect_eq(data.size(), (size_t)stat(symlink_name).st_size);
+      expect_eq(filename.size(), (size_t)lstat(symlink_name).st_size);
 
       {
         auto f = fopen_unique(filename, "r+b");
-        expect_eq(data.size(), fstat(f.get()).st_size);
-        expect_eq(data.size(), fstat(fileno(f.get())).st_size);
+        expect_eq(data.size(), (size_t)fstat(f.get()).st_size);
+        expect_eq(data.size(), (size_t)fstat(fileno(f.get())).st_size);
         fseek(f.get(), 5, SEEK_SET);
         fwrite(data.data(), 1, data.size(), f.get());
       }
 
-      expect_eq(data.size() + 5, stat(symlink_name).st_size);
+      expect_eq(data.size() + 5, (size_t)stat(symlink_name).st_size);
       expect_eq(data.substr(0, 5) + data, load_file(symlink_name));
 
     } catch (...) {

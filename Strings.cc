@@ -198,7 +198,7 @@ size_t skip_word(const char* s, size_t offset) {
 }
 
 std::string string_for_error(int error) {
-  char buffer[1024];
+  char buffer[1024] = "Unknown error";
   strerror_r(error, buffer, sizeof(buffer));
   return string_printf("%d (%s)", error, buffer);
 }

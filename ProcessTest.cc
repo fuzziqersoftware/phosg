@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
 
@@ -15,13 +16,13 @@ int main(int argc, char** argv) {
     const char* data = "0123456789";
     size_t data_size = strlen(data);
 
-    auto f = popen_unique("cat", "r+");
+    auto f = popen_unique("echo 0123456789", "r");
     fwrite(data, data_size, 1, f.get());
     fflush(f.get());
 
     char buffer[data_size];
-    expect_eq(1, fread(buffer, 10, 1, f.get()));
-    expect_eq(0, memcmp(buffer, data, 10));
+    expect_eq(1, fread(buffer, data_size, 1, f.get()));
+    expect_eq(0, memcmp(buffer, data, data_size));
   }
 
   {
@@ -56,7 +57,7 @@ int main(int argc, char** argv) {
   {
     auto ret = run_process({"ls", string(argv[0]) + "_this_file_should_not_exist"}, NULL, false);
     expect(WIFEXITED(ret.exit_status));
-    expect_eq(1, WEXITSTATUS(ret.exit_status));
+    expect_ne(0, WEXITSTATUS(ret.exit_status));
     expect_eq("", ret.stdout_contents);
     expect_ne(string::npos, ret.stderr_contents.find("No such file or directory"));
   }
