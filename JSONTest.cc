@@ -172,6 +172,13 @@ int main(int argc, char** argv) {
     assert(false);
   }
 
+  // make sure comments work
+  assert(JSONObject() == *JSONObject::parse("// this is null\nnull"));
+  assert(JSONObject((vector<JSONObject>())) == *JSONObject::parse(
+      "[\n// empty list\n]"));
+  assert(JSONObject(unordered_map<string, JSONObject>()) == *JSONObject::parse(
+      "{\n// empty dict\n}"));
+
   printf("%s: all tests passed\n", argv[0]);
   return 0;
 }
