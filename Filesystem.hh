@@ -30,6 +30,7 @@ public:
 
 class cannot_open_file : virtual public std::runtime_error {
 public:
+  cannot_open_file(int fd);
   cannot_open_file(const std::string& filename);
 
   int error;
@@ -105,6 +106,11 @@ void save_file(const std::string& filename, const std::string& data);
 
 std::unique_ptr<FILE, void(*)(FILE*)> fopen_unique(const std::string& filename,
     const std::string& mode = "rb");
+std::unique_ptr<FILE, void(*)(FILE*)> fdopen_unique(int fd,
+    const std::string& mode = "rb");
+std::shared_ptr<FILE> fopen_shared(const std::string& filename,
+    const std::string& mode = "rb");
+std::shared_ptr<FILE> fdopen_shared(int fd, const std::string& mode = "rb");
 
 void unlink(const std::string& filename, bool recursive = false);
 

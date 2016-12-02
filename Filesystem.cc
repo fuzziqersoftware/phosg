@@ -72,6 +72,10 @@ cannot_stat_file::cannot_stat_file(const string& filename) :
     runtime_error("can\'t stat file " + filename + ": " + string_for_error(errno)),
     error(errno) {}
 
+cannot_open_file::cannot_open_file(int fd) :
+    runtime_error("can\'t open fd " + to_string(fd) + ": " + string_for_error(errno)),
+    error(errno) {}
+
 cannot_open_file::cannot_open_file(const string& filename) :
     runtime_error("can\'t open file " + filename + ": " + string_for_error(errno)),
     error(errno) {}
@@ -330,6 +334,34 @@ unique_ptr<FILE, void(*)(FILE*)> fopen_unique(const string& filename,
     });
   if (!f.get()) {
     throw cannot_open_file(filename);
+  }
+  return f;
+}
+
+unique_ptr<FILE, void(*)(FILE*)> fdopen_unique(int fd, const string& mode) {
+  unique_ptr<FILE, void(*)(FILE*)> f(
+    fdopen(fd, mode.c_str()),
+    [](FILE* f) {
+      fclose(f);
+    });
+  if (!f.get()) {
+    throw cannot_open_file(fd);
+  }
+  return f;
+}
+
+shared_ptr<FILE> fopen_shared(const string& filename, const string& mode) {
+  shared_ptr<FILE> f(fopen(filename.c_str(), mode.c_str()), fclose);
+  if (!f.get()) {
+    throw cannot_open_file(filename);
+  }
+  return f;
+}
+
+shared_ptr<FILE> fdopen_shared(int fd, const string& mode) {
+  shared_ptr<FILE> f(fdopen(fd, mode.c_str()), fclose);
+  if (!f.get()) {
+    throw cannot_open_file(fd);
   }
   return f;
 }
