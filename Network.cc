@@ -102,7 +102,7 @@ int listen(const string& addr, int port, int backlog, bool nonblocking) {
 
     if (::bind(fd, (struct sockaddr*)(&sa), sizeof(sa)) != 0) {
       close(fd);
-      throw runtime_error("can\'t bind socket: " + string_for_error(errno));
+      throw runtime_error("can\'t bind socket to port " + to_string(port) + ": " + string_for_error(errno));
     }
 
   } else {
@@ -118,7 +118,7 @@ int listen(const string& addr, int port, int backlog, bool nonblocking) {
 
     if (::bind(fd, (struct sockaddr*)(&sa), sizeof(sa)) != 0) {
       close(fd);
-      throw runtime_error("can\'t bind socket: " + string_for_error(errno));
+      throw runtime_error("can\'t bind socket to path " + addr + ": " + string_for_error(errno));
     }
   }
 

@@ -1,6 +1,9 @@
 #include <assert.h>
+#include <errno.h>
 #include <string.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include "Process.hh"
@@ -96,6 +99,49 @@ int main(int argc, char** argv) {
   }
 
   // TODO: test run_process timeout behavior
+
+  // test start_time_for_pid
+  {
+    uint64_t my_start_time = start_time_for_pid(getpid());
+    uint64_t cat1_start_time;
+    {
+      Subprocess p({"cat"});
+      cat1_start_time = start_time_for_pid(p.pid());
+      expect_lt(my_start_time, cat1_start_time);
+      expect_eq(cat1_start_time, start_time_for_pid(p.pid()));
+      expect_eq(my_start_time, start_time_for_pid(getpid()));
+    }
+    // make sure the cat processes don't start withint the same jiffy
+    usleep(100000);
+    {
+      Subprocess p({"cat"});
+      uint64_t cat2_start_time = start_time_for_pid(p.pid());
+      expect_lt(my_start_time, cat2_start_time);
+      expect_lt(cat1_start_time, cat2_start_time);
+      expect_eq(cat2_start_time, start_time_for_pid(p.pid()));
+      expect_eq(my_start_time, start_time_for_pid(getpid()));
+    }
+  }
+
+  // test the cached process info functions
+  {
+    pid_t pid = getpid_cached();
+    uint64_t start_time = this_process_start_time();
+
+    pid_t child_pid = fork();
+    if (!child_pid) {
+      expect_ne(pid, getpid_cached());
+      expect_ne(start_time, this_process_start_time());
+      _exit(0);
+    }
+    expect_eq(pid, getpid_cached());
+    expect_eq(start_time, this_process_start_time());
+
+    int exit_status;
+    expect_eq(child_pid, waitpid(child_pid, &exit_status, 0));
+    expect_eq(true, WIFEXITED(exit_status));
+    expect_eq(0, WEXITSTATUS(exit_status));
+  }
 
   printf("%s: all tests passed\n", argv[0]);
   return 0;

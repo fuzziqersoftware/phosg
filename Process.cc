@@ -1,11 +1,17 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
+#ifdef MACOSX
+#include <libproc.h>
+#include <sys/proc_info.h>
+#endif
 
 #include "Filesystem.hh"
 #include "Process.hh"
@@ -102,6 +108,98 @@ unordered_map<pid_t, string> list_processes(bool with_commands) {
   }
 
   return ret;
+}
+
+uint64_t start_time_for_pid(pid_t pid) {
+#ifdef MACOSX
+  struct proc_taskallinfo ti;
+  int ret = proc_pidinfo(pid, PROC_PIDTASKALLINFO, 0, &ti, sizeof(ti));
+  if (ret <= 0) {
+    if (errno == ESRCH) {
+      return 0;
+    }
+    throw runtime_error("can\'t get start time for pid " + to_string(pid) +
+        ": " + string_for_error(errno));
+  }
+  if (ret < sizeof(ti)) {
+    throw runtime_error("can\'t get start time for pid " + to_string(pid) +
+        ": " + string_for_error(errno));
+  }
+
+  return (uint64_t)ti.pbsd.pbi_start_tvsec * 1000000 +
+      (uint64_t)ti.pbsd.pbi_start_tvusec;
+
+#else
+  // load_file doesn't work here because stat() can return the wrong length
+  string s(4096, 0);
+  try {
+    auto f = fopen_unique(string_printf("/proc/%d/stat", pid));
+    ssize_t bytes_read = fread(const_cast<char*>(s.data()), 1, 4096, f.get());
+    if (bytes_read <= 0) {
+      throw runtime_error("proc/stat output unrecognized for pid " + to_string(pid));
+    }
+    s.resize(bytes_read);
+  } catch (const cannot_open_file& e) {
+    if (e.error == ENOENT) {
+      return 0; // process doesn't exist
+    }
+    throw;
+  }
+
+  size_t offset = s.find(')');
+  if (offset == string::npos) {
+    log(ERROR, "proc/stat: %s\n", s.c_str());
+    throw runtime_error("proc/stat output unrecognized for pid " + to_string(pid));
+  }
+
+  // start time is the 22nd field - because we skipped to the close paren, we're
+  // already somewhere within the 1st.
+  for (size_t x = 0; x < 20; x++) {
+    offset = skip_non_whitespace(s, offset);
+    offset = skip_whitespace(s, offset);
+  }
+
+  if (offset >= s.size()) {
+    log(ERROR, "proc/stat: %s\n", s.c_str());
+    throw runtime_error("proc/stat output unrecognized for pid " + to_string(pid));
+  }
+
+  return strtoull(s.c_str() + offset, NULL, 0);
+#endif
+}
+
+static bool atfork_handler_added = false;
+static pid_t cached_this_process_pid = 0;
+static uint64_t cached_this_process_start_time = 0;
+
+static void clear_cached_pid_vars() {
+  cached_this_process_pid = 0;
+  cached_this_process_start_time = 0;
+  // TODO: do pthread_atfork() handlers survive in the child process? if not,
+  // we should set atfork_handler_added to false here
+}
+
+static void maybe_add_atfork_handler() {
+  if (!atfork_handler_added) {
+    pthread_atfork(NULL, NULL, clear_cached_pid_vars);
+    atfork_handler_added = true;
+  }
+}
+
+pid_t getpid_cached() {
+  if (!cached_this_process_pid) {
+    maybe_add_atfork_handler();
+    cached_this_process_pid = getpid();
+  }
+  return cached_this_process_pid;
+}
+
+uint64_t this_process_start_time() {
+  if (!cached_this_process_start_time) {
+    // don't need to call maybe_add_atfork_handler; getpid_cached will do it
+    cached_this_process_start_time = start_time_for_pid(getpid_cached());
+  }
+  return cached_this_process_start_time;
 }
 
 static void replace_fd(int oldfd, int newfd) {

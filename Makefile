@@ -6,8 +6,11 @@ LDFLAGS=-L/usr/local/lib -std=c++14 -lstdc++
 INSTALL_DIR=/usr/local
 
 ifeq ($(shell uname -s),Darwin)
-	CXXFLAGS +=  -arch i386 -arch x86_64
+	CXXFLAGS +=  -arch i386 -arch x86_64 -DMACOSX
 	LDFLAGS +=  -arch i386 -arch x86_64
+else
+	CXXFLAGS +=  -DLINUX
+	LDFLAGS +=  -pthread
 endif
 
 all: libphosg.a test
