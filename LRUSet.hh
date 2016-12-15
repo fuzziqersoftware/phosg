@@ -42,7 +42,7 @@ public:
 
   std::pair<K, size_t> evict_object();
 
-  void print() const;
+  void swap(LRUSet<K>& other);
 };
 
 #include "LRUSet-inl.hh"

@@ -149,3 +149,19 @@ std::pair<K, size_t> LRUSet<K>::evict_object() {
   this->total_size -= ret.second;
   return ret;
 }
+
+template <typename K>
+void LRUSet<K>::swap(LRUSet<K>& other) {
+  Item* this_head = this->head;
+  Item* this_tail = this->tail;
+  size_t this_total_size = this->total_size;
+
+  this->items.swap(other.items);
+  this->head = other.head;
+  this->tail = other.tail;
+  this->total_size = other.total_size;
+
+  other.head = this_head;
+  other.tail = this_tail;
+  other.total_size = this_total_size;
+}

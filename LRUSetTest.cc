@@ -46,23 +46,33 @@ int main(int argc, char** argv) {
   expect_eq(c.size(), 280);
   expect_eq(c.count(), 3);
 
-  auto evicted = c.evict_object();
-  expect_eq(evicted.first, "key3");
-  expect_eq(evicted.second, 80);
-  expect_eq(c.size(), 200);
-  expect_eq(c.count(), 2);
+  LRUSet<string> d;
+  expect_eq(d.size(), 0);
+  expect_eq(d.count(), 0);
 
-  evicted = c.evict_object();
-  expect_eq(evicted.first, "key2");
-  expect_eq(evicted.second, 100);
-  expect_eq(c.size(), 100);
-  expect_eq(c.count(), 1);
-
-  evicted = c.evict_object();
-  expect_eq(evicted.first, "key1");
-  expect_eq(evicted.second, 100);
+  d.swap(c);
   expect_eq(c.size(), 0);
   expect_eq(c.count(), 0);
+  expect_eq(d.size(), 280);
+  expect_eq(d.count(), 3);
+
+  auto evicted = d.evict_object();
+  expect_eq(evicted.first, "key3");
+  expect_eq(evicted.second, 80);
+  expect_eq(d.size(), 200);
+  expect_eq(d.count(), 2);
+
+  evicted = d.evict_object();
+  expect_eq(evicted.first, "key2");
+  expect_eq(evicted.second, 100);
+  expect_eq(d.size(), 100);
+  expect_eq(d.count(), 1);
+
+  evicted = d.evict_object();
+  expect_eq(evicted.first, "key1");
+  expect_eq(evicted.second, 100);
+  expect_eq(d.size(), 0);
+  expect_eq(d.count(), 0);
 
   printf("%s: all tests passed\n", argv[0]);
 
