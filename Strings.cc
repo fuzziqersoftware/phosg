@@ -10,6 +10,7 @@
 
 #include "Encoding.hh"
 #include "Filesystem.hh"
+#include "Process.hh"
 #include "Strings.hh"
 
 using namespace std;
@@ -82,18 +83,12 @@ void log(int level, const char* fmt, ...) {
     return;
   }
 
-  static pid_t pid = 0;
-
-  if (!pid) {
-    pid = getpid();
-  }
-
   char time_buffer[32];
   time_t now_secs = time(NULL);
   struct tm now_tm;
   localtime_r(&now_secs, &now_tm);
   strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", &now_tm);
-  fprintf(stderr, "%c %d %s - ", log_level_chars[level], pid, time_buffer);
+  fprintf(stderr, "%c %d %s - ", log_level_chars[level], getpid_cached(), time_buffer);
 
   va_list va;
   va_start(va, fmt);
