@@ -61,6 +61,7 @@ bool lisdir(const std::string& filename);
 bool islink(const std::string& filename);
 
 std::string readlink(const std::string& filename);
+std::string realpath(const std::string& path);
 
 class scoped_fd {
 public:

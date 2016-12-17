@@ -184,6 +184,16 @@ string readlink(const string& filename) {
   return data;
 }
 
+string realpath(const string& path) {
+  string data(PATH_MAX, 0);
+  if (!realpath(path.c_str(), const_cast<char*>(data.data()))) {
+    throw cannot_stat_file(path);
+  }
+  data.resize(strlen(data.c_str()));
+  data.shrink_to_fit();
+  return data;
+}
+
 scoped_fd::scoped_fd() : fd(-1) { }
 
 scoped_fd::scoped_fd(int fd) : fd(fd) { }
