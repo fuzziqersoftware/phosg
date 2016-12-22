@@ -317,11 +317,11 @@ void fwritex(FILE* f, const string& data) {
 }
 
 string load_file(const string& filename) {
-  auto f = fopen_unique(filename.c_str(), "rb");
-  size_t file_size = fstat(fileno(f.get())).st_size;
+  scoped_fd fd(filename, O_RDONLY);
+  size_t file_size = fstat(fd).st_size;
 
   string data(file_size, 0);
-  if (fread(const_cast<char*>(data.data()), 1, data.size(), f.get()) != data.size()) {
+  if (read(fd, const_cast<char*>(data.data()), data.size()) != data.size()) {
     throw runtime_error("can\'t read from " + filename + ": " + string_for_error(errno));
   }
 
@@ -329,8 +329,8 @@ string load_file(const string& filename) {
 }
 
 void save_file(const string& filename, const string& data) {
-  auto f = fopen_unique(filename.c_str(), "wb");
-  if (fwrite(data.data(), 1, data.size(), f.get()) != data.size()) {
+  scoped_fd fd(filename, O_CREAT | O_TRUNC | O_WRONLY);
+  if (write(fd, data.data(), data.size()) != data.size()) {
     throw runtime_error("can\'t write to " + filename + ": " + string_for_error(errno));
   }
 }
