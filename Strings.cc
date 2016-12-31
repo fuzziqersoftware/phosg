@@ -215,6 +215,13 @@ void print_color_escape(FILE* stream, TerminalFormat color, ...) {
   fwrite(fmt.data(), fmt.size(), 1, stream);
 }
 
+void print_indent(FILE* stream, int indent_level) {
+  for (; indent_level > 0; indent_level--) {
+    fputc(' ', stream);
+    fputc(' ', stream);
+  }
+}
+
 void print_data(FILE* stream, const void* _data, uint64_t size,
     uint64_t address, const void* _prev, bool use_color) {
 

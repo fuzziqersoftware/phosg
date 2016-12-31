@@ -67,6 +67,8 @@ enum class TerminalFormat {
 
 void print_color_escape(FILE* stream, TerminalFormat color, ...);
 
+void print_indent(FILE* stream, int indent_level);
+
 void print_data(FILE* stream, const void* _data, uint64_t size,
     uint64_t address = 0, const void* _prev = NULL, bool use_color = false);
 
