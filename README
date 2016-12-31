@@ -13,5 +13,6 @@ A short summary of its contents:
 - String helpers like printf, split, time/size formatting, etc.
 
 Building & installing:
+0. Make sure you have Make, g++ and Python installed.
 1. `make`
 2. `sudo make install`
