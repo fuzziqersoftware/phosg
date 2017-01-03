@@ -66,7 +66,7 @@ std::string realpath(const std::string& path);
 class scoped_fd {
 public:
   scoped_fd();
-  explicit scoped_fd(int fd);
+  scoped_fd(int fd);
   scoped_fd(const char* filename, int mode, mode_t perm = 0755);
   scoped_fd(const std::string& filename, int mode, mode_t perm = 0755);
   scoped_fd(const scoped_fd&) = delete;
