@@ -1,7 +1,11 @@
+#define _STDC_FORMAT_MACROS
+
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -17,74 +21,112 @@
 using namespace std;
 
 
-string inet_ntop(const struct sockaddr& sa) {
-  if (sa.sa_family == PF_INET) {
-    char buffer[INET_ADDRSTRLEN + 1];
-    if (!inet_ntop(PF_INET, &((const sockaddr_in*)&sa)->sin_addr, buffer, sizeof(buffer))) {
-      string error = string_for_error(errno);
-      return string_printf("<INVALID-IPV4-ADDRESS:%s>", error.c_str());
+pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const string& addr,
+    int port) {
+  struct sockaddr_storage s;
+  memset(&s, 0, sizeof(s));
+
+  if (port == 0) {
+    // unix socket
+    struct sockaddr_un* sun = (struct sockaddr_un*)&s;
+    if ((addr.size() + 1) > sizeof(sun->sun_path)) {
+      throw runtime_error("socket path is too long");
     }
-    return string(buffer);
+
+    sun->sun_family = AF_UNIX;
+    strcpy(sun->sun_path, addr.c_str());
+    return make_pair(s, sizeof(sockaddr_un));
   }
 
-  if (sa.sa_family == PF_INET6) {
-    char buffer[INET6_ADDRSTRLEN + 1];
-    if (!inet_ntop(PF_INET6, &((const sockaddr_in6*)&sa)->sin6_addr, buffer, sizeof(buffer))) {
-      string error = string_for_error(errno);
-      return string_printf("<INVALID-IPV6-ADDRESS:%s>", error.c_str());
-    }
-    return string(buffer);
-  }
+  // inet or inet6
 
-  return string_printf("<INVALID-ADDRESS-FAMILY:%d>", sa.sa_family);
-}
-
-static struct sockaddr_in make_sockaddr_in(const string& addr, int port) {
-  struct sockaddr_in sa;
-  memset(&sa, 0, sizeof(sa));
-  sa.sin_family = PF_INET;
-  sa.sin_port = htons(port);
-
+  size_t ret_size = sizeof(struct sockaddr_in);
   if (addr.empty()) {
-    sa.sin_addr.s_addr = htonl(INADDR_ANY);
+    struct sockaddr_in* sin = (struct sockaddr_in*)&s;
+    sin->sin_family = AF_INET;
+    sin->sin_port = htons(port);
+    sin->sin_addr.s_addr = htonl(INADDR_ANY);
+
   } else {
-    struct addrinfo *res0, *res;
-    if (!getaddrinfo(addr.c_str(), NULL, NULL, &res0)) {
-      for (res = res0; res; res = res->ai_next) {
-        if (res->ai_family == PF_INET) {
-          break;
-        }
-      }
-      if (res) {
-        struct sockaddr_in* res_sin = (struct sockaddr_in*)&res->ai_addr;
-        sa.sin_addr.s_addr = res_sin->sin_addr.s_addr;
-        freeaddrinfo(res0);
-      } else {
-        freeaddrinfo(res0);
-        throw runtime_error("can\'t resolve hostname " + addr + ": no usable data");
-      }
-    } else {
+    struct addrinfo *res0;
+    if (getaddrinfo(addr.c_str(), NULL, NULL, &res0)) {
       throw runtime_error("can\'t resolve hostname " + addr + ": " + string_for_error(errno));
     }
+
+    std::unique_ptr<struct addrinfo, void(*)(struct addrinfo*)> res0_unique(
+        res0, freeaddrinfo);
+    struct addrinfo *res4 = NULL, *res6 = NULL;
+    for (struct addrinfo* res = res0; res; res = res->ai_next) {
+      if (!res4 && (res->ai_family == AF_INET)) {
+        res4 = res;
+      } else if (!res6 && (res->ai_family == AF_INET6)) {
+        res6 = res;
+      }
+    }
+    if (!res4 && !res6) {
+      throw runtime_error("can\'t resolve hostname " + addr + ": no usable data");
+    }
+
+    if (res4) {
+      struct sockaddr_in* res_sin = (struct sockaddr_in*)res4->ai_addr;
+      struct sockaddr_in* sin = (struct sockaddr_in*)&s;
+      sin->sin_family = AF_INET;
+      sin->sin_port = htons(port);
+      sin->sin_addr.s_addr = res_sin->sin_addr.s_addr;
+
+    } else { // res->ai_family == AF_INET6
+      struct sockaddr_in6* res_sin6 = (struct sockaddr_in6*)res6->ai_addr;
+      struct sockaddr_in6* sin6 = (struct sockaddr_in6*)&s;
+      sin6->sin6_family = AF_INET6;
+      sin6->sin6_port = htons(port);
+      memcpy(&sin6->sin6_addr, &res_sin6->sin6_addr, sizeof(sin6->sin6_addr));
+
+      ret_size = sizeof(struct sockaddr_in6);
+    }
   }
-  return sa;
+
+  return make_pair(s, ret_size);
 }
 
-static struct sockaddr_un make_sockaddr_un(const string& path) {
-  struct sockaddr_un sa;
-  if ((path.size() + 1) > sizeof(sa.sun_path)) {
-    throw runtime_error("socket path is too long");
-  }
+string render_sockaddr_storage(const sockaddr_storage& s) {
+  switch (s.ss_family) {
+    case AF_UNIX: {
+      struct sockaddr_un* sun = (struct sockaddr_un*)&s;
+      return string(sun->sun_path);
+    }
 
-  memset(&sa, 0, sizeof(sa));
-  sa.sun_family = PF_UNIX;
-  strcpy(sa.sun_path, path.c_str());
-  return sa;
+    case AF_INET: {
+      struct sockaddr_in* sin = (struct sockaddr_in*)&s;
+
+      char buf[INET_ADDRSTRLEN];
+      if (!inet_ntop(AF_INET, &sin->sin_addr, buf, sizeof(buf) / sizeof(buf[0]))) {
+        return string_printf("<UNPRINTABLE-IPV4-ADDRESS>:%" PRIu16,
+            ntohs(sin->sin_port));
+      }
+      return string_printf("%s:%" PRIu16, buf, ntohs(sin->sin_port));
+    }
+
+    case AF_INET6: {
+      struct sockaddr_in6* sin6 = (struct sockaddr_in6*)&s;
+
+      char buf[INET6_ADDRSTRLEN];
+      if (!inet_ntop(AF_INET6, &sin6->sin6_addr, buf, sizeof(buf) / sizeof(buf[0]))) {
+        return string_printf("<UNPRINTABLE-IPV6-ADDRESS>:%" PRIu16,
+            ntohs(sin6->sin6_port));
+      }
+      return string_printf("[%s]:%" PRIu16, buf, ntohs(sin6->sin6_port));
+    }
+
+    default:
+      return "<INVALID-ADDRESS-FAMILY>";
+  }
 }
 
 int listen(const string& addr, int port, int backlog, bool nonblocking) {
 
-  int fd = socket(port ? PF_INET : PF_UNIX, backlog ? SOCK_STREAM : SOCK_DGRAM,
+  pair<struct sockaddr_storage, size_t> s = make_sockaddr_storage(addr, port);
+
+  int fd = socket(s.first.ss_family, backlog ? SOCK_STREAM : SOCK_DGRAM,
       port ? (backlog ? IPPROTO_TCP : IPPROTO_UDP) : 0);
   if (fd == -1) {
     throw runtime_error("can\'t create socket: " + string_for_error(errno));
@@ -93,33 +135,18 @@ int listen(const string& addr, int port, int backlog, bool nonblocking) {
   int y = 1;
   if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &y, sizeof(y)) == -1) {
     close(fd);
-    throw runtime_error("can\'t get socket flags: " + string_for_error(errno));
+    throw runtime_error("can\'t enable address reuse: " + string_for_error(errno));
   }
 
-  if (port) {
-    // listen on a TCP port
-    struct sockaddr_in sa = make_sockaddr_in(addr, port);
+  if (port == 0) {
+    // delete the socket file before we start listening on it
+    unlink(addr);
+  }
 
-    if (::bind(fd, (struct sockaddr*)(&sa), sizeof(sa)) != 0) {
-      close(fd);
-      throw runtime_error("can\'t bind socket to port " + to_string(port) + ": " + string_for_error(errno));
-    }
-
-  } else {
-    // listen on a Unix socket
-    struct sockaddr_un sa;
-    try {
-      sa = make_sockaddr_un(addr);
-    } catch (const runtime_error& e) {
-      close(fd);
-      throw;
-    }
-    unlink(sa.sun_path);
-
-    if (::bind(fd, (struct sockaddr*)(&sa), sizeof(sa)) != 0) {
-      close(fd);
-      throw runtime_error("can\'t bind socket to path " + addr + ": " + string_for_error(errno));
-    }
+  if (::bind(fd, (struct sockaddr*)&s.first, s.second) != 0) {
+    close(fd);
+    throw runtime_error("can\'t bind socket to " + render_sockaddr_storage(s.first) +
+        ": " + string_for_error(errno));
   }
 
   // only listen() on stream sockets
@@ -137,24 +164,16 @@ int listen(const string& addr, int port, int backlog, bool nonblocking) {
 
 int connect(const string& addr, int port, bool nonblocking) {
 
-  int fd = socket(port ? PF_INET : PF_UNIX, SOCK_STREAM, port ? IPPROTO_TCP : 0);
+  pair<struct sockaddr_storage, size_t> s = make_sockaddr_storage(addr, port);
+
+  int fd = socket(s.first.ss_family, SOCK_STREAM, port ? IPPROTO_TCP : 0);
   if (fd == -1) {
     throw runtime_error("can\'t create socket: " + string_for_error(errno));
   }
 
-  if (port) {
-    struct sockaddr_in sa = make_sockaddr_in(addr, port);
-    if (connect(fd, (struct sockaddr*)&sa, sizeof(sa)) == -1) {
-      close(fd);
-      throw runtime_error("can\'t connect socket: " + string_for_error(errno));
-    }
-
-  } else {
-    struct sockaddr_un sa = make_sockaddr_un(addr);
-    if (connect(fd, (struct sockaddr*)&sa, sizeof(sa)) == -1) {
-      close(fd);
-      throw runtime_error("can\'t connect socket: " + string_for_error(errno));
-    }
+  if (connect(fd, (struct sockaddr*)&s.first, s.second) == -1) {
+    close(fd);
+    throw runtime_error("can\'t connect socket: " + string_for_error(errno));
   }
 
   if (nonblocking) {
@@ -164,15 +183,15 @@ int connect(const string& addr, int port, bool nonblocking) {
   return fd;
 }
 
-void get_socket_addresses(int fd, struct sockaddr_in* local,
-    struct sockaddr_in* remote) {
+void get_socket_addresses(int fd, struct sockaddr_storage* local,
+    struct sockaddr_storage* remote) {
   socklen_t len;
   if (local) {
-    len = sizeof(struct sockaddr_in);
+    len = sizeof(struct sockaddr_storage);
     getsockname(fd, (struct sockaddr*)local, &len);
   }
   if (remote) {
-    len = sizeof(struct sockaddr_in);
+    len = sizeof(struct sockaddr_storage);
     getpeername(fd, (struct sockaddr*)remote, &len);
   }
 }

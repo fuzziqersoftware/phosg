@@ -1,12 +1,17 @@
 #pragma once
 
+#include <stdint.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
 #include <string>
+#include <utility>
 
 
-std::string inet_ntop(const struct sockaddr& sa);
+std::pair<struct sockaddr_storage, size_t> make_sockaddr_storage(
+    const std::string& addr, int port);
+
+std::string render_sockaddr_storage(const sockaddr_storage& s);
 
 /**
  * Opens a socket to accept connections or data.
@@ -22,7 +27,8 @@ std::string inet_ntop(const struct sockaddr& sa);
  * - Unix datagram sockets. For these, set addr to the socket's path, and set
  *   port and backlog to 0.
  */
-int listen(const std::string& addr, int port, int backlog, bool nonblocking = true);
+int listen(const std::string& addr, int port, int backlog,
+    bool nonblocking = true);
 
 /**
  * Connects to a listening socket, possibly on a remote host.
@@ -32,8 +38,8 @@ int listen(const std::string& addr, int port, int backlog, bool nonblocking = tr
  */
 int connect(const std::string& addr, int port, bool nonblocking = true);
 
-void get_socket_addresses(int fd, struct sockaddr_in* local,
-    struct sockaddr_in* remote);
+void get_socket_addresses(int fd, struct sockaddr_storage* local,
+    struct sockaddr_storage* remote);
 
 std::string render_netloc(const std::string& addr, int port);
 
