@@ -1,3 +1,5 @@
+#include "Network.hh"
+
 #define _STDC_FORMAT_MACROS
 
 #include <arpa/inet.h>
@@ -15,7 +17,6 @@
 #include <string>
 
 #include "Filesystem.hh"
-#include "Network.hh"
 #include "Strings.hh"
 
 using namespace std;

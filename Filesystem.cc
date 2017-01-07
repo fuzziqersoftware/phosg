@@ -1,3 +1,5 @@
+#include "Filesystem.hh"
+
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -16,7 +18,6 @@
 #include <string>
 #include <unordered_set>
 
-#include "Filesystem.hh"
 #include "Strings.hh"
 
 using namespace std;

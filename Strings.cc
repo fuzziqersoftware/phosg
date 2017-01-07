@@ -1,3 +1,5 @@
+#include "Strings.hh"
+
 #include <stdarg.h>
 #include <string.h>
 #include <sys/time.h>
@@ -11,7 +13,6 @@
 #include "Encoding.hh"
 #include "Filesystem.hh"
 #include "Process.hh"
-#include "Strings.hh"
 
 using namespace std;
 

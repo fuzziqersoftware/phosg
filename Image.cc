@@ -1,3 +1,5 @@
+#include "Image.hh"
+
 #include <float.h>
 #include <math.h>
 #include <stdarg.h>
@@ -9,7 +11,6 @@
 #include <stdexcept>
 
 #include "Filesystem.hh"
-#include "Image.hh"
 #include "ImageTextFont.hh"
 #include "Strings.hh"
 

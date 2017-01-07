@@ -1,3 +1,5 @@
+#include "Process.hh"
+
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -14,7 +16,6 @@
 #endif
 
 #include "Filesystem.hh"
-#include "Process.hh"
 #include "Strings.hh"
 #include "Time.hh"
 

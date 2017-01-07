@@ -1,3 +1,5 @@
+#include "Time.hh"
+
 #include <sys/time.h>
 
 #include <stdexcept>
