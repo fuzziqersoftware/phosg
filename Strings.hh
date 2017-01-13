@@ -69,8 +69,17 @@ void print_color_escape(FILE* stream, TerminalFormat color, ...);
 
 void print_indent(FILE* stream, int indent_level);
 
+enum PrintDataFlags {
+  UseColor = 1, // use terminal escape codes to show differences
+  PrintAscii = 2, // print ascii view on the right
+  PrintFloat = 4, // print float view on the right
+  PrintDouble = 8, // print double view on the right
+  ReverseEndian = 16, // floats/doubles should be byteswapped
+};
+
 void print_data(FILE* stream, const void* _data, uint64_t size,
-    uint64_t address = 0, const void* _prev = NULL, bool use_color = false);
+    uint64_t address = 0, const void* _prev = NULL,
+    uint64_t flags = PrintDataFlags::PrintAscii);
 
 std::string parse_data_string(const std::string& s, std::string* mask = NULL);
 std::string format_data_string(const std::string& data, const std::string* mask = NULL);

@@ -1,7 +1,7 @@
 OBJECTS=Concurrency.o ConsistentHashRing.o FileCache.o Filesystem.o Image.o JSONPickle.o JSON.o Network.o Process.o Strings.o Time.o UnitTest.o
 CXX=g++ -fPIC
 CXXFLAGS=-I/usr/local/include -std=c++14 -g -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -Wall -Werror
-LDFLAGS=-L/usr/local/lib -std=c++14 -lstdc++
+LDFLAGS=-L/usr/local/lib -g -std=c++14 -lstdc++
 
 INSTALL_DIR=/usr/local
 
@@ -36,7 +36,7 @@ test: ConsistentHashRingTest EncodingTest FilesystemTest JSONPickleTest JSONTest
 	./TimeTest
 	./UnitTestTest
 
-%Test: %Test.o libphosg.a
+%Test: %Test.o $(OBJECTS)
 	$(CXX) $(LDFLAGS) $^ -o $@
 
 clean:

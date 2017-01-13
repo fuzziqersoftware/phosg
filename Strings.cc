@@ -1,6 +1,7 @@
 #include "Strings.hh"
 
 #include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -223,126 +224,161 @@ void print_indent(FILE* stream, int indent_level) {
   }
 }
 
+// TODO: generalize these classes
+class RedBoldTerminalGuard {
+public:
+  RedBoldTerminalGuard(FILE* f, bool active = true) : f(f), active(active) {
+    if (this->active) {
+      print_color_escape(this->f, TerminalFormat::BOLD, TerminalFormat::FG_RED,
+          TerminalFormat::END);
+    }
+  }
+  ~RedBoldTerminalGuard() {
+    if (this->active) {
+      print_color_escape(this->f, TerminalFormat::NORMAL, TerminalFormat::END);
+    }
+  }
+private:
+  FILE* f;
+  bool active;
+};
+
+class InverseTerminalGuard {
+public:
+  InverseTerminalGuard(FILE* f, bool active = true) : f(f), active(active) {
+    if (this->active) {
+      print_color_escape(this->f, TerminalFormat::INVERSE, TerminalFormat::END);
+    }
+  }
+  ~InverseTerminalGuard() {
+    if (this->active) {
+      print_color_escape(this->f, TerminalFormat::NORMAL, TerminalFormat::END);
+    }
+  }
+private:
+  FILE* f;
+  bool active;
+};
+
 void print_data(FILE* stream, const void* _data, uint64_t size,
-    uint64_t address, const void* _prev, bool use_color) {
+    uint64_t start_address, const void* _prev, uint64_t flags) {
 
   if (size == 0) {
     return;
   }
 
+  uint64_t end_address = start_address + size;
+
+  bool use_color = flags & PrintDataFlags::UseColor;
+  bool print_ascii = flags & PrintDataFlags::PrintAscii;
+  bool print_float = flags & PrintDataFlags::PrintFloat;
+  bool print_double = flags & PrintDataFlags::PrintDouble;
+  bool reverse_endian = flags & PrintDataFlags::ReverseEndian;
+
   // if color is disabled or no diff source is given, disable diffing
   const uint8_t* data = (const uint8_t*)_data;
   const uint8_t* prev = (const uint8_t*)(_prev ? _prev : _data);
 
-  char data_ascii[20];
-  char prev_ascii[20]; // actually only 16 is necessary but w/e
-
-  // start_offset is how many blank spaces to print before the first byte
-  int start_offset = address & 0x0F;
-  address &= ~0x0F;
-  size += start_offset;
-
-  // if nonzero, print the address here (the loop won't do it for the 1st line)
-  if (start_offset) {
-    fprintf(stream, "%016llX | ", (unsigned long long)address);
-  }
-
-  // print initial spaces, if any
-  unsigned long long x, y;
-  for (x = 0; x < (unsigned)start_offset; x++) {
-    fputs("   ", stream);
-    data_ascii[x] = ' ';
-    prev_ascii[x] = ' ';
-  }
-
   // print the data
-  for (; x < size; x++) {
-    int line_offset = x & 0x0F;
-    int data_offset = x - start_offset;
-    data_ascii[line_offset] = data[data_offset];
-    prev_ascii[line_offset] = prev[data_offset];
+  for (uint64_t line_start_address = start_address & (~0x0F);
+       line_start_address < end_address;
+       line_start_address += 0x10) {
+    uint64_t line_end_address = line_start_address + 0x10;
+    fprintf(stream, "%016llX |", line_start_address);
 
-    // first byte on the line? then print the address
-    if ((x & 0x0F) == 0) {
-      fprintf(stream, "%016llX | ", address + x);
+    // print the hex view
+    {
+      uint64_t address = line_start_address;
+      for (; (address < start_address) && (address < line_end_address); address++) {
+        fputs("   ", stream);
+      }
+      for (; (address < end_address) && (address < line_end_address); address++) {
+        uint8_t current_value = data[address - start_address];
+        uint8_t previous_value = prev[address - start_address];
+
+        RedBoldTerminalGuard g(stream, use_color && (previous_value != current_value));
+        fprintf(stream, " %02X", current_value);
+      }
+      for (; address < line_end_address; address++) {
+        fputs("   ", stream);
+      }
     }
 
-    // print the byte itself
-    if (use_color && (prev[data_offset] != data[data_offset])) {
-      print_color_escape(stream, TerminalFormat::BOLD, TerminalFormat::FG_RED,
-          TerminalFormat::END);
-    }
-    fprintf(stream, "%02X ", data[data_offset]);
-    if (use_color && (prev[data_offset] != data[data_offset])) {
-      print_color_escape(stream, TerminalFormat::NORMAL, TerminalFormat::END);
-    }
+    // print the ascii view
+    if (print_ascii) {
+      fputs(" | ", stream);
 
-    // last byte on the line? then print the ascii view and a \n
-    if ((x & 0x0F) == 0x0F) {
-      fputs("| ", stream);
+      uint64_t address = line_start_address;
+      for (; (address < start_address) && (address < line_end_address); address++) {
+        fputc(' ', stream);
+      }
+      for (; (address < end_address) && (address < line_end_address); address++) {
+        uint8_t current_value = data[address - start_address];
+        uint8_t previous_value = prev[address - start_address];
 
-      for (y = 0; y < 16; y++) {
-        if (use_color && (prev_ascii[y] != data_ascii[y])) {
-          print_color_escape(stream, TerminalFormat::BOLD, TerminalFormat::FG_RED,
-              TerminalFormat::END);
-        }
-
-        if ((data_ascii[y] < 0x20) || (data_ascii[y] >= 0x7F)) {
-          if (use_color) {
-            print_color_escape(stream, TerminalFormat::INVERSE,
-                TerminalFormat::END);
-          }
+        RedBoldTerminalGuard g1(stream, use_color && (previous_value != current_value));
+        if ((current_value < 0x20) || (current_value >= 0x7F)) {
+          InverseTerminalGuard g2(stream, use_color);
           fputc(' ', stream);
-          if (use_color) {
-            print_color_escape(stream, TerminalFormat::NORMAL,
-                TerminalFormat::END);
-          }
         } else {
-          fputc(data_ascii[y], stream);
-        }
-
-        if (use_color && (prev_ascii[y] != data_ascii[y])) {
-          print_color_escape(stream, TerminalFormat::NORMAL,
-              TerminalFormat::END);
+          fputc(current_value, stream);
         }
       }
-
-      fputc('\n', stream);
-    }
-  }
-
-  // if the last line is a partial line, print the remaining ascii chars
-  if (x & 0x0F) {
-    for (y = x; y & 0x0F; y++) {
-      fprintf(stream, "   ");
-    }
-    fprintf(stream, "| ");
-
-    for (y = 0; y < (x & 0x0F); y++) {
-      if (use_color && (prev_ascii[y] != data_ascii[y])) {
-        print_color_escape(stream, TerminalFormat::FG_RED, TerminalFormat::BOLD,
-            TerminalFormat::END);
-      }
-
-      if ((data_ascii[y] < 0x20) || (data_ascii[y] == 0x7F)) {
-        if (use_color) {
-          print_color_escape(stream, TerminalFormat::INVERSE,
-              TerminalFormat::END);
-        }
-        putc(' ', stream);
-        if (use_color) {
-          print_color_escape(stream, TerminalFormat::NORMAL,
-              TerminalFormat::END);
-        }
-      } else {
-        putc(data_ascii[y], stream);
-      }
-
-      if (use_color && (prev_ascii[y] != data_ascii[y])) {
-        print_color_escape(stream, TerminalFormat::NORMAL, TerminalFormat::END);
+      for (; address < line_end_address; address++) {
+        fputc(' ', stream);
       }
     }
-    putc('\n', stream);
+
+    // print the float view
+    if (print_float) {
+      fputs(" |", stream);
+
+      uint64_t address = line_start_address;
+      for (; (address < start_address) && (address < line_end_address); address += sizeof(float)) {
+        fputs("             ", stream);
+      }
+      for (; (address + sizeof(float) <= end_address) && (address < line_end_address); address += sizeof(float)) {
+        float current_value = reverse_endian ?
+            bswap32f(*(uint32_t*)(&data[address - start_address])) :
+            *(float*)(&data[address - start_address]);
+        float previous_value = reverse_endian ?
+            bswap32f(*(uint32_t*)(&prev[address - start_address])) :
+            *(float*)(&prev[address - start_address]);
+
+        RedBoldTerminalGuard g1(stream, use_color && (previous_value != current_value));
+        fprintf(stream, " %12.5g", current_value);
+      }
+      for (; address < line_end_address; address += sizeof(float)) {
+        fputs("             ", stream);
+      }
+    }
+
+    // print the double view
+    if (print_double) {
+      fputs(" |", stream);
+
+      uint64_t address = line_start_address;
+      for (; (address < start_address) && (address < line_end_address); address += sizeof(double)) {
+        fputs("             ", stream);
+      }
+      for (; (address + sizeof(double) <= end_address) && (address < line_end_address); address += sizeof(double)) {
+        double current_value = reverse_endian ?
+            bswap64f(*(uint64_t*)(&data[address - start_address])) :
+            *(double*)(&data[address - start_address]);
+        double previous_value = reverse_endian ?
+            bswap64f(*(uint64_t*)(&prev[address - start_address])) :
+            *(double*)(&prev[address - start_address]);
+
+        RedBoldTerminalGuard g1(stream, use_color && (previous_value != current_value));
+        fprintf(stream, " %12.5lg", current_value);
+      }
+      for (; address < line_end_address; address += sizeof(double)) {
+        fputs("             ", stream);
+      }
+    }
+
+    // done with this line
+    fputc('\n', stream);
   }
 }
 

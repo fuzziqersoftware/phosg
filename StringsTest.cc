@@ -1,40 +1,140 @@
 #include <assert.h>
 #include <sys/time.h>
 
+#include "Filesystem.hh"
 #include "Strings.hh"
 #include "UnitTest.hh"
 
 using namespace std;
 
 
+void print_data_test_case(const string& expected_output, const string& data,
+    uint64_t address = 0, const string& prev = "",
+    uint64_t flags = PrintDataFlags::PrintAscii) {
+
+  // osx doesn't have fmemopen, so we just write to a file because I'm too lazy
+  // to use funopen()
+  {
+    auto f = fopen_unique("StringsTest-data", "w");
+    print_data(f.get(), data.data(), data.size(), address,
+        prev.empty() ? NULL : prev.data(), flags);
+  }
+  string output_data = load_file("StringsTest-data");
+
+  if (expected_output != output_data) {
+    fputs("expected:\n", stderr);
+    fwrite(expected_output.data(), 1, expected_output.size(), stderr);
+    fputs("actual:\n", stderr);
+    fwrite(output_data.data(), 1, output_data.size(), stderr);
+  }
+
+  expect_eq(expected_output, output_data);
+}
+
+void print_data_test() {
+
+  // basic
+  fprintf(stderr, "-- [print_data] basic\n");
+  print_data_test_case("\
+0000000000000000 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
+string("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 0x10));
+  print_data_test_case("\
+0000000000000000 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n\
+0000000000000010 | 61 62 63 64 65 66 67 68 69                      | abcdefghi       \n",
+string("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x61\x62\x63\x64\x65\x66\x67\x68\x69", 0x19));
+
+  // with address
+  fprintf(stderr, "-- [print_data] address\n");
+  print_data_test_case("\
+3FFF3039AEC14EE0 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
+string("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 0x10),
+0x3FFF3039AEC14EE0);
+  print_data_test_case("\
+3FFF3039AEC14EE0 |          00 01 02 03 04 05 06 07 08 09 0A 0B 0C |                 \n\
+3FFF3039AEC14EF0 | 0D 0E 0F                                        |                 \n",
+string("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 0x10),
+0x3FFF3039AEC14EE3);
+  print_data_test_case("\
+3FFF3039AEC14EE0 |          61 63 65                               |    ace          \n",
+"ace", 0x3FFF3039AEC14EE3);
+
+  // without ascii
+  fprintf(stderr, "-- [print_data] no ascii\n");
+  print_data_test_case("\
+3FFF3039AEC14EE0 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n",
+string("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 0x10),
+0x3FFF3039AEC14EE0, "", 0);
+  print_data_test_case("\
+3FFF3039AEC14EE0 |          00 01 02 03 04 05 06 07 08 09 0A 0B 0C\n\
+3FFF3039AEC14EF0 | 0D 0E 0F                                       \n",
+string("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 0x10),
+0x3FFF3039AEC14EE3, "", 0);
+  print_data_test_case("\
+3FFF3039AEC14EE0 |          61 63 65                              \n",
+"ace", 0x3FFF3039AEC14EE3, "", 0);
+
+  // floats
+  fprintf(stderr, "-- [print_data] with floats\n");
+  string float_data("\0\0\0\0\x56\x6F\x6D\xC3\0\0\0\0\xA5\x5B\xC8\x40\0\0\0\0\0\0\0\0\x6E\x37\x9F\x43\x3E\x51\x3F\x40", 0x20);
+  print_data_test_case("\
+0000000107B50FE0 |                                     00 00 00 00 |                 \n\
+0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 | Vom      [ @    \n\
+0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |     n7 C>Q?@    \n",
+float_data, 0x0000000107B50FEC, "", PrintDataFlags::PrintAscii);
+  print_data_test_case("\
+0000000107B50FE0 |                                     00 00 00 00 |                                                   0\n\
+0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 |      -237.43            0       6.2612            0\n\
+0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |            0       318.43       2.9893             \n",
+float_data, 0x0000000107B50FEC, "", PrintDataFlags::PrintFloat);
+  print_data_test_case("\
+0000000107B50FE0 |                                     00 00 00 00 |                  |                                                   0\n\
+0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 | Vom      [ @     |      -237.43            0       6.2612            0\n\
+0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |     n7 C>Q?@     |            0       318.43       2.9893             \n",
+float_data, 0x0000000107B50FEC, "", PrintDataFlags::PrintAscii | PrintDataFlags::PrintFloat);
+  print_data_test_case("\
+0000000000000000 |    00 00 00 00 00 00 00 00                      |                         0                          \n",
+string("\0\0\0\0\0\0\0\0", 8), 1, "", PrintDataFlags::PrintFloat);
+
+  // TODO: test doubles
+  // TODO: test diffing
+  // TODO: test reverse-endian
+}
+
+
 int main(int argc, char** argv) {
 
+  fprintf(stderr, "-- starts_with\n");
   expect(starts_with("abcdef", "abc"));
   expect(starts_with("abcdef", "abcdef"));
   expect(!starts_with("abcdef", "abcdefg"));
   expect(!starts_with("abcdef", "abd"));
   expect(!starts_with("abcdef", "dbc"));
 
+  fprintf(stderr, "-- ends_with\n");
   expect(ends_with("abcdef", "def"));
   expect(ends_with("abcdef", "abcdef"));
   expect(!ends_with("abcdef", "gabcdef"));
   expect(!ends_with("abcdef", "ded"));
   expect(!ends_with("abcdef", "fef"));
 
+  fprintf(stderr, "-- string_printf\n");
   expect_eq("lolz 1000 0x4f", string_printf("%s %llu %p", "lolz", 1000ULL, (void*)0x4F));
 
   {
+    fprintf(stderr, "-- split\n");
     string in = "12,34,567,abc";
     vector<string> expected = {"12", "34", "567", "abc"};
     expect_eq(expected, split(in, ','));
   }
 
   {
+    fprintf(stderr, "-- split_context\n");
     string in = "12,3(4,56)7,ab[c,]d,e{fg(h,),}";
     vector<string> expected = {"12", "3(4,56)7", "ab[c,]d", "e{fg(h,),}"};
     expect_eq(expected, split_context(in, ','));
   }
 
+  fprintf(stderr, "-- skip_whitespace/skip_non_whitespace\n");
   expect_eq(0, skip_whitespace("1234", 0));
   expect_eq(2, skip_whitespace("  1234", 0));
   expect_eq(7, skip_whitespace("  \t\r\n  1234", 0));
@@ -68,6 +168,7 @@ int main(int argc, char** argv) {
   expect_eq(4, skip_non_whitespace(string("1234"), 0));
   expect_eq(4, skip_non_whitespace(string("1234"), 2));
 
+  fprintf(stderr, "-- skip_word\n");
   const char* sentence = "The quick brown fox jumped over the lazy dog.";
   vector<size_t> expected_offsets = {4, 10, 16, 20, 27, 32, 36, 41, 45};
   {
@@ -90,6 +191,7 @@ int main(int argc, char** argv) {
     expect_eq(expected_offsets, offsets);
   }
 
+  fprintf(stderr, "-- parse_data_string/format_data_string\n");
   {
     string input("/* omit 01 02 */ 03 ?04? $ ##30 $ ##127 ?\"dark\"? ###-1 \'cold\' %-1.667 %%-2.667");
     string expected_data(
@@ -129,6 +231,7 @@ int main(int argc, char** argv) {
     }
   }
 
+  fprintf(stderr, "-- format_size\n");
   {
     expect_eq("0 bytes", format_size(0));
     expect_eq("1000 bytes", format_size(1000));
@@ -138,6 +241,8 @@ int main(int argc, char** argv) {
     expect_eq("1073741824 bytes (1.00 GB)", format_size(1073741824, true));
   }
 
+  print_data_test();
+
   // TODO: test string_vprintf
   // TODO: test log_level, set_log_level, log
   // TODO: test get_time_string
@@ -146,3 +251,4 @@ int main(int argc, char** argv) {
   printf("%s: all tests passed\n", argv[0]);
   return 0;
 }
+
