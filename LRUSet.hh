@@ -33,6 +33,7 @@ public:
   bool emplace(K&& k, size_t size = 0);
 
   bool erase(const K& k);
+  void clear();
 
   bool change_size(const K& k, size_t new_size);
   bool touch(const K& k, ssize_t new_size = -1);

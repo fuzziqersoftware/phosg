@@ -31,7 +31,7 @@ size_t FileCache::size() const {
 }
 
 FileCache::Lease::Lease(FileCache* cache, const std::string& name,
-    mode_t create_mode) : cache(cache), fd(-1) {
+    mode_t create_mode) : fd(-1), fd_object() {
 
   try {
     lock_guard<mutex> g(cache->lock);
@@ -69,6 +69,11 @@ FileCache::Lease::Lease(FileCache* cache, const std::string& name,
   this->fd = this->fd_object->fd;
 }
 
+void FileCache::Lease::close() {
+  this->fd = -1;
+  this->fd_object.reset();
+}
+
 FileCache::Lease FileCache::lease(const std::string& name, mode_t create_mode) {
   return Lease(this, name, create_mode);
 }
@@ -83,6 +88,12 @@ void FileCache::close(const std::string& name) {
 
   this->lru.erase(fd_it->second);
   this->name_to_fd.erase(fd_it);
+}
+
+void FileCache::clear() {
+  lock_guard<mutex> g(this->lock);
+  this->lru.clear();
+  this->name_to_fd.clear();
 }
 
 void FileCache::enforce_max_size() {

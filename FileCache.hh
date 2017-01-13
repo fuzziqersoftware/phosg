@@ -37,7 +37,6 @@ public:
   size_t size() const;
 
   struct Lease {
-    FileCache* cache;
     int fd;
     std::shared_ptr<File> fd_object;
 
@@ -47,10 +46,14 @@ public:
     Lease(Lease&&) = default;
     Lease& operator=(const Lease&) = delete;
     ~Lease() = default;
+
+    void close();
   };
   Lease lease(const std::string& name, mode_t create_mode = 0644);
 
   void close(const std::string& name);
+
+  void clear();
 
 private:
   size_t max_size;

@@ -68,6 +68,14 @@ bool LRUSet<K>::erase(const K& k) {
 }
 
 template <typename K>
+void LRUSet<K>::clear() {
+  this->head = NULL;
+  this->tail = NULL;
+  this->items.clear();
+  this->total_size = 0;
+}
+
+template <typename K>
 bool LRUSet<K>::change_size(const K& k, size_t new_size) {
   try {
     Item& i = this->items.at(k);
