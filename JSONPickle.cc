@@ -490,7 +490,7 @@ void serialize_pickle_recursive(string& buffer, const JSONObject& o) {
     buffer += "N";
 
   } else if (o.is_bool()) {
-    buffer += (o.as_bool() ? "\x88" : "\x89");
+    buffer += (o.as_bool() ? '\x88' : '\x89');
 
   } else if (o.is_string()) {
     const string& s = o.as_string();
@@ -518,7 +518,7 @@ void serialize_pickle_recursive(string& buffer, const JSONObject& o) {
       uint16_t v16 = v;
       buffer += "M";
       buffer.append((char*)&v16, sizeof(v16));
-    } else if (((v & 0xFFFFFFFF00000000) == 0) || ((v & 0xFFFFFFFF00000000) == 0xFFFFFFFF00000000)) {
+    } else if (((v & 0xFFFFFFFF80000000) == 0) || ((v & 0xFFFFFFFF80000000) == 0xFFFFFFFF80000000)) {
       int32_t v32 = v;
       buffer += "J";
       buffer.append((char*)&v32, sizeof(v32));
