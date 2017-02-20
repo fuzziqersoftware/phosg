@@ -93,7 +93,7 @@ JSONObject parse_pickle(const void* data, size_t size) {
         char* endptr;
         int64_t value = strtoll(&buffer[offset], &endptr, 10);
         if (endptr == &buffer[offset]) {
-          throw JSONObject::parse_error("blank float value");
+          throw JSONObject::parse_error("blank integer value");
         }
 
         // special cases: "00" = False, "01" = True
@@ -146,7 +146,7 @@ JSONObject parse_pickle(const void* data, size_t size) {
 
       case 'M':    // BININT2         - push 2-byte unsigned int
         if (size - offset < 2) {
-          throw JSONObject::parse_error("no space for 1-byte binary int");
+          throw JSONObject::parse_error("no space for 2-byte binary int");
         }
         stk.emplace_back((int64_t)(*(uint16_t*)&buffer[offset]));
         offset += 2;
@@ -157,14 +157,15 @@ JSONObject parse_pickle(const void* data, size_t size) {
         break;
 
       case 'S': {  // STRING          - push string; NL-terminated string argument
-        // expect S'<data>'\n
-        if (buffer[offset] != '\'') {
+        // expect S'<data>'\n or S"<data>"\n"
+        char sentinel = buffer[offset];
+        if ((sentinel != '\'') && (sentinel != '\"')) {
           throw JSONObject::parse_error("incorrect string start sentinel");
         }
         offset++;
 
         string s;
-        while (offset < size && buffer[offset] != '\'') {
+        while (offset < size && buffer[offset] != sentinel) {
           if (buffer[offset] == '\\' && (offset < size - 1)) {
             offset++;
             if (offset >= size) {
@@ -191,13 +192,11 @@ JSONObject parse_pickle(const void* data, size_t size) {
           }
           offset++;
         }
-        stk.emplace_back(move(s));
-
 
         if (offset >= size) {
           throw JSONObject::parse_error("unterminated string");
         }
-        if (buffer[offset] != '\'') {
+        if (buffer[offset] != sentinel) {
           throw JSONObject::parse_error("incorrect string end sentinel");
         }
         offset++;
@@ -206,6 +205,7 @@ JSONObject parse_pickle(const void* data, size_t size) {
         }
         offset++;
 
+        stk.emplace_back(move(s));
         break;
       }
 
