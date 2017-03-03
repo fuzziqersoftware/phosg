@@ -14,20 +14,20 @@
 using namespace std;
 
 
-JSONObject parse_pickle(const std::string& pickle_data) {
+shared_ptr<JSONObject> parse_pickle(const std::string& pickle_data) {
   return parse_pickle(pickle_data.data(), pickle_data.size());
 }
 
-JSONObject parse_pickle(const void* pickle_data) {
+shared_ptr<JSONObject> parse_pickle(const void* pickle_data) {
   return parse_pickle(pickle_data, strlen((const char*)pickle_data));
 }
 
-JSONObject parse_pickle(const void* data, size_t size) {
+shared_ptr<JSONObject> parse_pickle(const void* data, size_t size) {
   const char* buffer = (const char*)data;
   size_t offset = 0;
 
   vector<size_t> mark_stk;
-  vector<JSONObject> stk;
+  vector<shared_ptr<JSONObject>> stk;
   while (offset < size) {
     char cmd = buffer[offset];
     offset++;
@@ -77,7 +77,7 @@ JSONObject parse_pickle(const void* data, size_t size) {
 
       case 'F': {  // FLOAT           - push float object; decimal string argument
         char* endptr;
-        stk.emplace_back(strtod(&buffer[offset], &endptr));
+        stk.emplace_back(new JSONObject(strtod(&buffer[offset], &endptr)));
         if (endptr == &buffer[offset]) {
           throw JSONObject::parse_error("blank float value");
         }
@@ -98,9 +98,9 @@ JSONObject parse_pickle(const void* data, size_t size) {
 
         // special cases: "00" = False, "01" = True
         if (((value & 1) == value) && ((endptr - &buffer[offset]) == 2)) {
-          stk.emplace_back((bool)value);
+          stk.emplace_back(new JSONObject((bool)value));
         } else {
-          stk.emplace_back(value);
+          stk.emplace_back(new JSONObject(value));
         }
 
         offset += (endptr - &buffer[offset]);
@@ -115,7 +115,7 @@ JSONObject parse_pickle(const void* data, size_t size) {
         if (size - offset < 4) {
           throw JSONObject::parse_error("no space for 4-byte binary int");
         }
-        stk.emplace_back((int64_t)(*(int32_t*)&buffer[offset]));
+        stk.emplace_back(new JSONObject((int64_t)(*(int32_t*)&buffer[offset])));
         offset += 4;
         break;
 
@@ -123,13 +123,14 @@ JSONObject parse_pickle(const void* data, size_t size) {
         if (size - offset < 1) {
           throw JSONObject::parse_error("no space for 1-byte binary int");
         }
-        stk.emplace_back((int64_t)((uint8_t)buffer[offset]));
+        stk.emplace_back(new JSONObject((int64_t)((uint8_t)buffer[offset])));
         offset++;
         break;
 
       case 'L':    // LONG            - push long; decimal string argument
         char* endptr;
-        stk.emplace_back((int64_t)strtoll(&buffer[offset], &endptr, 10));
+        stk.emplace_back(new JSONObject((int64_t)strtoll(&buffer[offset],
+            &endptr, 10)));
         if (endptr == &buffer[offset]) {
           throw JSONObject::parse_error("blank long value");
         }
@@ -148,13 +149,67 @@ JSONObject parse_pickle(const void* data, size_t size) {
         if (size - offset < 2) {
           throw JSONObject::parse_error("no space for 2-byte binary int");
         }
-        stk.emplace_back((int64_t)(*(uint16_t*)&buffer[offset]));
+        stk.emplace_back(new JSONObject(
+            (int64_t)(*(uint16_t*)&buffer[offset])));
         offset += 2;
         break;
 
       case 'N':    // NONE            - push None
-        stk.emplace_back();
+        stk.emplace_back(new JSONObject());
         break;
+
+      case 'V': {  // UNICODE         - push Unicode string; raw-unicode-escaped'd argument
+        // expect V<data>\n
+        string s;
+        while (offset < size && buffer[offset] != '\n') {
+          if (buffer[offset] == '\\' && (offset < size - 1)) {
+            offset++;
+            if (offset >= size) {
+              throw JSONObject::parse_error("end of string literal during escape sequence");
+            }
+            if (buffer[offset] == 'u') {
+              if (offset > size - 5) {
+                throw JSONObject::parse_error("end of string literal during unicode escape sequence");
+              }
+              int16_t ch = ((value_for_hex_char(buffer[offset + 1]) << 12) |
+                            (value_for_hex_char(buffer[offset + 2]) << 8) |
+                            (value_for_hex_char(buffer[offset + 3]) << 4) |
+                             value_for_hex_char(buffer[offset + 4]));
+              if (ch & 0xFF00) {
+                throw JSONObject::parse_error("unknown unicode escape sequence");
+              }
+              s += (char)ch;
+              offset += 4;
+            } else if (buffer[offset] == 'x') {
+              if (offset > size - 3) {
+                throw JSONObject::parse_error("end of string literal during hex escape sequence");
+              }
+              s += ((value_for_hex_char(buffer[offset + 1]) << 4) |
+                     value_for_hex_char(buffer[offset + 2]));
+              offset += 2;
+            } else if (buffer[offset] == 't') {
+              s += '\t';
+            } else if (buffer[offset] == 'n') {
+              s += '\n';
+            } else if (buffer[offset] == 'r') {
+              s += '\r';
+            } else {
+              s += buffer[offset];
+            }
+          } else {
+            s += buffer[offset];
+          }
+          offset++;
+        }
+
+        if (offset >= size) {
+          throw JSONObject::parse_error("unterminated string");
+        }
+        offset++; // skip the \n
+
+        stk.emplace_back(new JSONObject(move(s)));
+        break;
+      }
 
       case 'S': {  // STRING          - push string; NL-terminated string argument
         // expect S'<data>'\n or S"<data>"\n"
@@ -172,10 +227,10 @@ JSONObject parse_pickle(const void* data, size_t size) {
               throw JSONObject::parse_error("end of string literal during escape sequence");
             }
             if (buffer[offset] == 'x') {
-              if (offset > size - 2) {
+              if (offset > size - 3) {
                 throw JSONObject::parse_error("end of string literal during hex escape sequence");
               }
-              s += ((value_for_hex_char(buffer[offset + 1]) << 16) |
+              s += ((value_for_hex_char(buffer[offset + 1]) << 4) |
                      value_for_hex_char(buffer[offset + 2]));
               offset += 2;
             } else if (buffer[offset] == 't') {
@@ -205,10 +260,29 @@ JSONObject parse_pickle(const void* data, size_t size) {
         }
         offset++;
 
-        stk.emplace_back(move(s));
+        stk.emplace_back(new JSONObject(move(s)));
         break;
       }
 
+      case '\x8D': // BINUNICODE8     - push very long string
+      case '\x8E': { // BINBYTES8       - push very long bytes string
+        if (size - offset < 8) {
+          throw JSONObject::parse_error("no space for 8-byte string length");
+        }
+
+        size_t length = *(uint64_t*)(&buffer[offset]);
+        if (offset + length > size) {
+          throw JSONObject::parse_error("string length overflows buffer");
+        }
+        offset += 8;
+
+        stk.emplace_back(new JSONObject(&buffer[offset], length));
+        offset += length;
+        break;
+      }
+
+      case 'X':    // BINUNICODE      -   "     "       "  ; counted UTF-8 string argument
+      case 'B':    // BINBYTES        - push bytes; counted binary string argument
       case 'T': {  // BINSTRING       - push string; counted binary string argument
         if (size - offset < 4) {
           throw JSONObject::parse_error("no space for 4-byte string length");
@@ -220,11 +294,13 @@ JSONObject parse_pickle(const void* data, size_t size) {
         }
         offset += 4;
 
-        stk.emplace_back(&buffer[offset], length);
+        stk.emplace_back(new JSONObject(&buffer[offset], length));
         offset += length;
         break;
       }
 
+      case '\x8C': // SHORT_BINUNICODE - push short string; UTF-8 length < 256 bytes
+      case 'C':    // SHORT_BINBYTES  -  "     "   ;    "      "       "      " < 256 bytes
       case 'U': {  // SHORT_BINSTRING -  "     "   ;    "      "       "      " < 256 bytes
         if (size - offset < 1) {
           throw JSONObject::parse_error("no space for 1-byte string length");
@@ -236,7 +312,7 @@ JSONObject parse_pickle(const void* data, size_t size) {
         }
         offset++;
 
-        stk.emplace_back(&buffer[offset], length);
+        stk.emplace_back(new JSONObject(&buffer[offset], length));
         offset += length;
         break;
       }
@@ -245,9 +321,9 @@ JSONObject parse_pickle(const void* data, size_t size) {
         if (stk.size() < 2) {
           throw JSONObject::parse_error("not enough items on stack for append");
         }
-        shared_ptr<JSONObject> j(new JSONObject(move(stk.back())));
+        shared_ptr<JSONObject> j = move(stk.back());
         stk.pop_back();
-        stk.back().as_list().emplace_back(move(j));
+        stk.back()->as_list().emplace_back(move(j));
         break;
       }
 
@@ -262,24 +338,26 @@ JSONObject parse_pickle(const void* data, size_t size) {
         }
         mark_stk.pop_back();
 
-        unordered_map<string, JSONObject> d;
+        unordered_map<string, shared_ptr<JSONObject>> d;
         while (stk.size() > mark) {
-          JSONObject value(move(stk.back()));
+          shared_ptr<JSONObject> value = move(stk.back());
           stk.pop_back();
-          if (!stk.back().is_string()) {
+          if (!stk.back()->is_string()) {
             throw JSONObject::parse_error("dict contains keys that aren\'t strings");
           }
-          d.emplace(stk.back().as_string(), move(value));
+          d.emplace(stk.back()->as_string(), move(value));
           stk.pop_back();
         }
-        stk.emplace_back(move(d));
+        stk.emplace_back(new JSONObject(move(d)));
         break;
       }
 
       case '}':    // EMPTY_DICT      - push empty dict
-        stk.emplace_back(unordered_map<string, JSONObject>());
+        stk.emplace_back(new JSONObject(
+            unordered_map<string, shared_ptr<JSONObject>>()));
         break;
 
+      case '\x90': // ADDITEMS        - modify set by adding topmost stack items
       case 'e': {  // APPENDS         - extend list on stack by topmost stack slice
         if (mark_stk.empty() || stk.empty()) {
           throw JSONObject::parse_error("stack empty on list append");
@@ -291,19 +369,20 @@ JSONObject parse_pickle(const void* data, size_t size) {
         }
         mark_stk.pop_back();
 
-        JSONObject& list = stk[mark - 1];
-        if (!list.is_list()) {
+        shared_ptr<JSONObject>& list = stk[mark - 1];
+        if (!list->is_list()) {
           throw JSONObject::parse_error("append to non-list");
         }
-        auto& l = list.as_list();
+        auto& l = list->as_list();
 
         for (size_t x = mark; x < stk.size(); x++) {
-          l.emplace_back(new JSONObject(move(stk[x])));
+          l.emplace_back(stk[x]);
         }
         stk.resize(mark);
         break;
       }
 
+      case '\x91': // FROZENSET       - build frozenset from topmost stack items
       case 't':    // TUPLE           - build tuple from topmost stack items
       case 'l': {  // LIST            - build list from topmost stack items
         if (mark_stk.empty()) {
@@ -313,18 +392,19 @@ JSONObject parse_pickle(const void* data, size_t size) {
         size_t mark = mark_stk.back();
         mark_stk.pop_back();
 
-        vector<JSONObject> l;
+        vector<shared_ptr<JSONObject>> l;
         for (size_t x = mark; x < stk.size(); x++) {
           l.emplace_back(move(stk[x]));
         }
         stk.resize(mark);
-        stk.emplace_back(l);
+        stk.emplace_back(new JSONObject(l));
         break;
       }
 
+      case '\x8F': // EMPTY_SET       - push empty set
       case ')':    // EMPTY_TUPLE     - push empty tuple
       case ']':    // EMPTY_LIST      - push empty list
-        stk.emplace_back(vector<JSONObject>());
+        stk.emplace_back(new JSONObject(vector<shared_ptr<JSONObject>>()));
         break;
 
       case 's': {  // SETITEM         - add key+value pair to dict
@@ -332,16 +412,16 @@ JSONObject parse_pickle(const void* data, size_t size) {
           throw JSONObject::parse_error("stack empty on dict setitem");
         }
 
-        JSONObject& d = stk[stk.size() - 3];
-        JSONObject& k = stk[stk.size() - 2];
-        JSONObject& v = stk[stk.size() - 1];
-        if (!d.is_dict()) {
+        shared_ptr<JSONObject>& d = stk[stk.size() - 3];
+        shared_ptr<JSONObject>& k = stk[stk.size() - 2];
+        shared_ptr<JSONObject>& v = stk[stk.size() - 1];
+        if (!d->is_dict()) {
           throw JSONObject::parse_error("setitem on non-dict");
         }
-        if (!k.is_string()) {
+        if (!k->is_string()) {
           throw JSONObject::parse_error("setitem with non-string key");
         }
-        d.as_dict().emplace(k.as_string(), shared_ptr<JSONObject>(new JSONObject(move(v))));
+        d->as_dict().emplace(k->as_string(), move(v));
         stk.pop_back();
         stk.pop_back();
         break;
@@ -359,19 +439,19 @@ JSONObject parse_pickle(const void* data, size_t size) {
         if (mark < 1) {
           throw JSONObject::parse_error("setitems with no dict");
         }
-        if (!stk[mark - 1].is_dict()) {
+        if (!stk[mark - 1]->is_dict()) {
           throw JSONObject::parse_error("setitems on non-dict");
         }
         mark_stk.pop_back();
-        auto& d = stk[mark - 1].as_dict();
+        auto& d = stk[mark - 1]->as_dict();
 
         while (!stk.empty() && stk.size() > mark) {
-          JSONObject value(move(stk.back()));
+          shared_ptr<JSONObject> value = move(stk.back());
           stk.pop_back();
-          if (!stk.back().is_string()) {
+          if (!stk.back()->is_string()) {
             throw JSONObject::parse_error("setitems with non-string key");
           }
-          d.emplace(stk.back().as_string(), shared_ptr<JSONObject>(new JSONObject(move(value))));
+          d.emplace(stk.back()->as_string(), move(value));
           stk.pop_back();
         }
         break;
@@ -382,12 +462,15 @@ JSONObject parse_pickle(const void* data, size_t size) {
         if (size - offset < 8) {
           throw JSONObject::parse_error("no space for binary double");
         }
-        stk.emplace_back(bswap64f(*(uint64_t*)&buffer[offset]));
+        stk.emplace_back(new JSONObject(bswap64f(*(uint64_t*)&buffer[offset])));
         offset += 8;
         break;
 
       case '\x80': // PROTO           - identify pickle protocol
-        if (size - offset < 2) {
+        if (offset != 1) {
+          throw JSONObject::parse_error("protocol change in midstream");
+        }
+        if (size - offset < 1) {
           throw JSONObject::parse_error("protocol opcode with no argument");
         }
         // we complain about it if it's missing, then ignore it. life is hard
@@ -398,10 +481,10 @@ JSONObject parse_pickle(const void* data, size_t size) {
         if (stk.size() < 1) {
           throw JSONObject::parse_error("stack empty on 1-tuple construction");
         }
-        vector<JSONObject> tup;
+        vector<shared_ptr<JSONObject>> tup;
         tup.emplace_back(move(stk.back()));
         stk.pop_back();
-        stk.emplace_back(move(tup));
+        stk.emplace_back(new JSONObject(move(tup)));
         break;
       }
 
@@ -409,11 +492,11 @@ JSONObject parse_pickle(const void* data, size_t size) {
         if (stk.size() < 2) {
           throw JSONObject::parse_error("stack empty on 2-tuple construction");
         }
-        vector<JSONObject> tup;
+        vector<shared_ptr<JSONObject>> tup;
         tup.emplace_back(move(stk[stk.size() - 2]));
         tup.emplace_back(move(stk[stk.size() - 1]));
         stk.resize(stk.size() - 2);
-        stk.emplace_back(move(tup));
+        stk.emplace_back(new JSONObject(move(tup)));
         break;
       }
 
@@ -421,21 +504,21 @@ JSONObject parse_pickle(const void* data, size_t size) {
         if (stk.size() < 3) {
           throw JSONObject::parse_error("stack empty on 3-tuple construction");
         }
-        vector<JSONObject> tup;
+        vector<shared_ptr<JSONObject>> tup;
         tup.emplace_back(move(stk[stk.size() - 3]));
         tup.emplace_back(move(stk[stk.size() - 2]));
         tup.emplace_back(move(stk[stk.size() - 1]));
         stk.resize(stk.size() - 3);
-        stk.emplace_back(move(tup));
+        stk.emplace_back(new JSONObject(move(tup)));
         break;
       }
 
       case '\x88': // NEWTRUE         - push True
-        stk.emplace_back(true);
+        stk.emplace_back(new JSONObject(true));
         break;
 
       case '\x89': // NEWFALSE        - push False
-        stk.emplace_back(false);
+        stk.emplace_back(new JSONObject(false));
         break;
 
       case '\x8a': // LONG1           - push long from < 256 bytes
@@ -443,6 +526,9 @@ JSONObject parse_pickle(const void* data, size_t size) {
         throw JSONObject::parse_error("long opcodes not implemented");
 
       // memo isn't supported, but it's ok if it's never read; skip the write
+      case '\x94': // MEMOIZE         - store top of the stack in memo
+        // memo[len(memo)] = stk.back()
+        break;
       case 'p':    // PUT             - store stack top in memo; index is string arg
         for (; (offset < size) && (buffer[offset] != '\n'); offset++) { }
         offset++;
@@ -454,14 +540,16 @@ JSONObject parse_pickle(const void* data, size_t size) {
         offset += 4;
         break;
 
+      // framing isn't supported here; the data is already in memory so there's
+      // no need to deal with frames
+      case '\x95': // FRAME           - indicate the beginning of a new frame
+        offset += 8;
+        break;
+
       case 'g':    // GET             - push item from memo on stack; index is string arg
       case 'h':    // BINGET          -   "    "    "    "   "   "  ;   "    " 1-byte arg
       case 'j':    // LONG_BINGET     - push item from memo on stack; index is 4-byte arg
         throw JSONObject::parse_error("memo not supported");
-
-      case 'V':    // UNICODE         - push Unicode string; raw-unicode-escaped'd argument
-      case 'X':    // BINUNICODE      -   "     "       "  ; counted UTF-8 string argument
-        throw JSONObject::parse_error("unicode not supported"); // TODO
 
       case 'P':    // PERSID          - push persistent object; id is taken from string arg
       case 'Q':    // BINPERSID       -  "       "         "  ;  "  "   "     "  stack
@@ -474,6 +562,8 @@ JSONObject parse_pickle(const void* data, size_t size) {
       case '\x82': // EXT1            - push object from extension registry; 1-byte index
       case '\x83': // EXT2            - ditto, but 2-byte index
       case '\x84': // EXT4            - ditto, but 4-byte index
+      case '\x92': // NEWOBJ_EX       - like NEWOBJ but work with keyword only arguments
+      case '\x93': // STACK_GLOBAL    - same as GLOBAL but using names on the stacks
         throw JSONObject::parse_error("pickled python objects not supported");
     }
 

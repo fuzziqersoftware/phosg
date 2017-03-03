@@ -12,27 +12,42 @@
 using namespace std;
 
 
-string get_python_process_output(const string& script, const string* stdin_data) {
-  auto r = run_process({"python", "-c", script}, stdin_data);
+string get_python_process_output(const string& script, const string* stdin_data,
+    bool python3) {
+  auto r = run_process({python3 ? "python3" : "python", "-c", script}, stdin_data);
   if (ends_with(r.stdout_contents, "\n")) {
     r.stdout_contents.resize(r.stdout_contents.size() - 1);
   }
   return r.stdout_contents;
 }
 
-string get_python_repr(const string& pickle_data) {
-  return get_python_process_output("import pickle, sys; print(repr(pickle.load(sys.stdin)))",
-      &pickle_data);
+string get_python_repr(const string& pickle_data, bool python3) {
+  string script = string_printf("import pickle, sys; print(repr(pickle.load(sys.stdin%s)))",
+      python3 ? ".buffer" : "");
+  return get_python_process_output(script, &pickle_data, python3);
 }
 
-string get_sorted_dict_python_repr(const string& pickle_data) {
-  return get_python_process_output("import pickle, sys; print(repr(sorted(pickle.load(sys.stdin).items())))",
-      &pickle_data);
+string get_sorted_dict_python_repr(const string& pickle_data, bool python3) {
+  string script = string_printf("import pickle, sys; print(repr(sorted(pickle.load(sys.stdin%s).items())))",
+      python3 ? ".buffer" : "");
+  return get_python_process_output(script, &pickle_data, python3);
 }
 
-string get_python_pickled(const string& repr_data, int protocol) {
-  string script = string_printf("import pickle, sys; pickle.dump(eval(sys.stdin.read()), sys.stdout, %d)", protocol);
-  return get_python_process_output(script, &repr_data);
+string get_python_pickled(const string& repr_data, int protocol, bool python3) {
+  string script = string_printf("import pickle, sys; pickle.dump(eval(sys.stdin%s.read()), sys.stdout%s, %d)",
+      python3 ? ".buffer" : "", python3 ? ".buffer" : "", protocol);
+  return get_python_process_output(script, &repr_data, python3);
+}
+
+
+shared_ptr<JSONObject> try_parse_pickle(const string& input) {
+  try {
+    return parse_pickle(input);
+  } catch (const exception& e) {
+    fprintf(stderr, "error while parsing pickle data:\n");
+    print_data(stderr, input.data(), input.size());
+    throw;
+  }
 }
 
 
@@ -47,29 +62,42 @@ struct TestCase {
     fprintf(stderr, "-- %s\n", this->name.c_str());
 
     for (const auto& it : this->pickled) {
-      expect_eq(this->object, parse_pickle(it));
+      fprintf(stderr, "-- %s (parse pickled representation)\n", this->name.c_str());
+      auto parsed = try_parse_pickle(it);
+      expect_eq(this->object, *parsed);
     }
-    expect_eq(this->object, parse_pickle(serialize_pickle(this->object)));
+    fprintf(stderr, "-- %s (parse serialized representation)\n", this->name.c_str());
+    auto reparsed = try_parse_pickle(serialize_pickle(this->object));
+    expect_eq(this->object, *reparsed);
 
-    if (this->sorted_python_repr.empty()) {
-      expect_eq(this->python_repr, get_python_repr(serialize_pickle(this->object)));
-    } else {
-      expect_eq(this->sorted_python_repr, get_sorted_dict_python_repr(serialize_pickle(this->object)));
-    }
-    for (int protocol = 0; protocol <= 2; protocol++) {
-      expect_eq(this->object, parse_pickle(get_python_pickled(this->python_repr, protocol)));
+    for (int python3 = 0; python3 < 2; python3++) {
+      if (this->sorted_python_repr.empty()) {
+        fprintf(stderr, "-- %s (python%c deserialize; unsorted)\n", this->name.c_str(), python3 ? '3' : '2');
+        expect_eq(this->python_repr, get_python_repr(serialize_pickle(this->object), python3));
+      } else {
+        fprintf(stderr, "-- %s (python%c deserialize; sorted)\n", this->name.c_str(), python3 ? '3' : '2');
+        expect_eq(this->sorted_python_repr, get_sorted_dict_python_repr(serialize_pickle(this->object), python3));
+      }
+      for (int protocol = 0; protocol <= 4; protocol++) {
+        if (!python3 && (protocol > 2)) {
+          continue;
+        }
+        fprintf(stderr, "-- %s (python%c serialize; protocol %d)\n", this->name.c_str(), python3 ? '3' : '2', protocol);
+        auto parsed = try_parse_pickle(get_python_pickled(this->python_repr, protocol, python3));
+        expect_eq(this->object, *parsed);
+      }
     }
   }
 };
 
 vector<TestCase> test_cases({
-  {"null",            {"N.", "\x80\x02N."},
+  {"null",            {"N.", "\x80\x02N.", "\x80\x04N."},
                       "None", "",
                       JSONObject()},
-  {"true",            {"I01\n.", "\x80\x02\x88."},
+  {"true",            {"I01\n.", "\x80\x02\x88.", "\x80\x04\x88."},
                       "True", "",
                       JSONObject(true)},
-  {"false",           {"I00\n.", "\x80\x02\x89."},
+  {"false",           {"I00\n.", "\x80\x02\x89.", "\x80\x04\x89."},
                       "False", "",
                       JSONObject(false)},
   {"empty_string",    {"S\'\'\n.", string("U\x00.", 3), string("\x80\x02U\x00.", 5)},
