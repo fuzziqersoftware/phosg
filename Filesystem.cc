@@ -251,6 +251,39 @@ bool scoped_fd::is_open() {
   return this->fd >= 0;
 }
 
+string read_all(int fd) {
+  static const ssize_t read_size = 16 * 1024;
+
+  size_t total_size = 0;
+  vector<string> buffers;
+  for (;;) {
+    buffers.emplace_back(read_size, 0);
+    ssize_t bytes_read = read(fd, const_cast<char*>(buffers.back().data()),
+        read_size);
+    if (bytes_read < 0) {
+      throw io_error(fd);
+    }
+
+    total_size += bytes_read;
+    if (bytes_read < read_size) {
+      buffers.back().resize(bytes_read);
+      break;
+    }
+  }
+
+  if (buffers.size() == 1) {
+    return buffers.back();
+  }
+
+  string ret;
+  ret.reserve(total_size);
+  for (const string& buffer : buffers) {
+    ret += buffer;
+  }
+
+  return ret;
+}
+
 void readx(int fd, void* data, size_t size) {
   if (read(fd, data, size) != (ssize_t)size) {
     throw io_error(fd);
@@ -337,44 +370,55 @@ void save_file(const string& filename, const string& data) {
 }
 
 unique_ptr<FILE, void(*)(FILE*)> fopen_unique(const string& filename,
-    const string& mode) {
-  unique_ptr<FILE, void(*)(FILE*)> f(
-    fopen(filename.c_str(), mode.c_str()),
+    const string& mode, FILE* dash_file) {
+  if (dash_file && (filename == "-")) {
+    return unique_ptr<FILE, void(*)(FILE*)>(dash_file, [](FILE* f) { });
+  }
+
+  FILE* f = fopen(filename.c_str(), mode.c_str());
+  if (!f) {
+    throw cannot_open_file(filename);
+  }
+
+  return unique_ptr<FILE, void(*)(FILE*)>(f,
     [](FILE* f) {
       fclose(f);
     });
-  if (!f.get()) {
-    throw cannot_open_file(filename);
-  }
-  return f;
 }
 
 unique_ptr<FILE, void(*)(FILE*)> fdopen_unique(int fd, const string& mode) {
-  unique_ptr<FILE, void(*)(FILE*)> f(
-    fdopen(fd, mode.c_str()),
+  FILE* f = fdopen(fd, mode.c_str());
+  if (!f) {
+    throw cannot_open_file(fd);
+  }
+
+  return unique_ptr<FILE, void(*)(FILE*)>(f,
     [](FILE* f) {
       fclose(f);
     });
-  if (!f.get()) {
-    throw cannot_open_file(fd);
-  }
-  return f;
 }
 
-shared_ptr<FILE> fopen_shared(const string& filename, const string& mode) {
-  shared_ptr<FILE> f(fopen(filename.c_str(), mode.c_str()), fclose);
-  if (!f.get()) {
+shared_ptr<FILE> fopen_shared(const string& filename, const string& mode,
+    FILE* dash_file) {
+  if (dash_file && (filename == "-")) {
+    return shared_ptr<FILE>(dash_file, [](FILE* f) { });
+  }
+
+  FILE* f = fopen(filename.c_str(), mode.c_str());
+  if (!f) {
     throw cannot_open_file(filename);
   }
-  return f;
+
+  return shared_ptr<FILE>(f, fclose);
 }
 
 shared_ptr<FILE> fdopen_shared(int fd, const string& mode) {
-  shared_ptr<FILE> f(fdopen(fd, mode.c_str()), fclose);
-  if (!f.get()) {
+  FILE* f = fdopen(fd, mode.c_str());
+  if (!f) {
     throw cannot_open_file(fd);
   }
-  return f;
+
+  return shared_ptr<FILE>(f, fclose);
 }
 
 void unlink(const string& filename, bool recursive) {

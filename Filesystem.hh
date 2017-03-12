@@ -87,6 +87,8 @@ private:
   int fd;
 };
 
+std::string read_all(int fd);
+
 void readx(int fd, void* data, size_t size);
 void writex(int fd, const void* data, size_t size);
 std::string readx(int fd, size_t size);
@@ -106,11 +108,11 @@ std::string load_file(const std::string& filename);
 void save_file(const std::string& filename, const std::string& data);
 
 std::unique_ptr<FILE, void(*)(FILE*)> fopen_unique(const std::string& filename,
-    const std::string& mode = "rb");
+    const std::string& mode = "rb", FILE* dash_file = NULL);
 std::unique_ptr<FILE, void(*)(FILE*)> fdopen_unique(int fd,
     const std::string& mode = "rb");
 std::shared_ptr<FILE> fopen_shared(const std::string& filename,
-    const std::string& mode = "rb");
+    const std::string& mode = "rb", FILE* dash_file = NULL);
 std::shared_ptr<FILE> fdopen_shared(int fd, const std::string& mode = "rb");
 
 void unlink(const std::string& filename, bool recursive = false);
