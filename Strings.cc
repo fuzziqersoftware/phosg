@@ -1,5 +1,7 @@
 #include "Strings.hh"
 
+#define _STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -284,7 +286,7 @@ void print_data(FILE* stream, const void* _data, uint64_t size,
        line_start_address < end_address;
        line_start_address += 0x10) {
     uint64_t line_end_address = line_start_address + 0x10;
-    fprintf(stream, "%016llX |", line_start_address);
+    fprintf(stream, "%016" PRIX64 " |", line_start_address);
 
     // print the hex view
     {
@@ -297,7 +299,7 @@ void print_data(FILE* stream, const void* _data, uint64_t size,
         uint8_t previous_value = prev[address - start_address];
 
         RedBoldTerminalGuard g(stream, use_color && (previous_value != current_value));
-        fprintf(stream, " %02X", current_value);
+        fprintf(stream, " %02" PRIX8, current_value);
       }
       for (; address < line_end_address; address++) {
         fputs("   ", stream);
