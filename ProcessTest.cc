@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
       expect_eq(cat1_start_time, start_time_for_pid(p.pid()));
       expect_eq(my_start_time, start_time_for_pid(getpid()));
     }
-    // make sure the cat processes don't start withint the same jiffy
+    // make sure the cat processes don't start within the same jiffy
     usleep(100000);
     {
       Subprocess p({"cat"});

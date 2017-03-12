@@ -131,41 +131,13 @@ uint64_t start_time_for_pid(pid_t pid) {
       (uint64_t)ti.pbsd.pbi_start_tvusec;
 
 #else
-  // load_file doesn't work here because stat() can return the wrong length
-  string s(4096, 0);
   try {
-    auto f = fopen_unique(string_printf("/proc/%d/stat", pid));
-    ssize_t bytes_read = fread(const_cast<char*>(s.data()), 1, 4096, f.get());
-    if (bytes_read <= 0) {
-      throw runtime_error("proc/stat output unrecognized for pid " + to_string(pid));
-    }
-    s.resize(bytes_read);
-  } catch (const cannot_open_file& e) {
-    if (e.error == ENOENT) {
-      return 0; // process doesn't exist
-    }
-    throw;
+    struct stat st = stat(string_printf("/proc/%d", pid));
+    return (uint64_t)st.st_mtim.tv_sec * 1000000000 +
+        (uint64_t)st.st_mtim.tv_nsec;
+  } catch (const cannot_stat_file& e) {
+    return 0;
   }
-
-  size_t offset = s.find(')');
-  if (offset == string::npos) {
-    log(ERROR, "proc/stat: %s\n", s.c_str());
-    throw runtime_error("proc/stat output unrecognized for pid " + to_string(pid));
-  }
-
-  // start time is the 22nd field - because we skipped to the close paren, we're
-  // already somewhere within the 1st.
-  for (size_t x = 0; x < 20; x++) {
-    offset = skip_non_whitespace(s, offset);
-    offset = skip_whitespace(s, offset);
-  }
-
-  if (offset >= s.size()) {
-    log(ERROR, "proc/stat: %s\n", s.c_str());
-    throw runtime_error("proc/stat output unrecognized for pid " + to_string(pid));
-  }
-
-  return strtoull(s.c_str() + offset, NULL, 0);
 #endif
 }
 

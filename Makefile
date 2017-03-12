@@ -3,12 +3,12 @@ CXX=g++ -fPIC
 CXXFLAGS=-std=c++14 -g -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -Wall -Werror
 LDFLAGS=-g -std=c++14 -lstdc++
 
-INSTALL_DIR=/opt/local
-
 ifeq ($(shell uname -s),Darwin)
+	INSTALL_DIR=/opt/local
 	CXXFLAGS +=  -arch i386 -arch x86_64 -DMACOSX
 	LDFLAGS +=  -arch i386 -arch x86_64
 else
+	INSTALL_DIR=/usr/local
 	CXXFLAGS +=  -DLINUX
 	LDFLAGS +=  -pthread
 endif
