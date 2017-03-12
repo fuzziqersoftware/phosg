@@ -1,9 +1,9 @@
 OBJECTS=Concurrency.o ConsistentHashRing.o FileCache.o Filesystem.o Image.o JSONPickle.o JSON.o Network.o Process.o Strings.o Time.o UnitTest.o
 CXX=g++ -fPIC
-CXXFLAGS=-I/usr/local/include -std=c++14 -g -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -Wall -Werror
-LDFLAGS=-L/usr/local/lib -g -std=c++14 -lstdc++
+CXXFLAGS=-std=c++14 -g -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -Wall -Werror
+LDFLAGS=-g -std=c++14 -lstdc++
 
-INSTALL_DIR=/usr/local
+INSTALL_DIR=/opt/local
 
 ifeq ($(shell uname -s),Darwin)
 	CXXFLAGS +=  -arch i386 -arch x86_64 -DMACOSX

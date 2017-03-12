@@ -3,11 +3,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <phosg/UnitTest.hh>
 #include <string>
 #include <vector>
 
 #include "ConsistentHashRing.hh"
+#include "UnitTest.hh"
 
 using namespace std;
 
