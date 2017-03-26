@@ -111,6 +111,16 @@ unordered_map<pid_t, string> list_processes(bool with_commands) {
   return ret;
 }
 
+bool pid_exists(pid_t pid) {
+  if (!kill(pid, 0)) {
+    return true;
+  }
+  if (errno == ESRCH) {
+    return false;
+  }
+  throw runtime_error("invalid process ID: " + to_string(pid));
+}
+
 uint64_t start_time_for_pid(pid_t pid) {
 #ifdef MACOSX
   struct proc_taskallinfo ti;

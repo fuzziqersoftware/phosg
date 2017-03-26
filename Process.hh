@@ -18,6 +18,7 @@ pid_t pid_for_name(const std::string& name, bool search_commands = true, bool ex
 
 std::unordered_map<pid_t, std::string> list_processes(bool with_commands = true);
 
+bool pid_exists(pid_t pid);
 uint64_t start_time_for_pid(pid_t pid);
 
 pid_t getpid_cached();
