@@ -3,7 +3,6 @@
 #include <unistd.h>
 
 #include "Filesystem.hh"
-#include "Strings.hh"
 
 using namespace std;
 
@@ -26,7 +25,13 @@ size_t FileCache::set_max_size(size_t max_size) {
   return ret;
 }
 
+bool FileCache::is_open(const string& filename) const {
+  lock_guard<mutex> g(this->lock);
+  return this->name_to_fd.count(filename);
+}
+
 size_t FileCache::size() const {
+  lock_guard<mutex> g(this->lock);
   return this->name_to_fd.size();
 }
 
@@ -97,7 +102,7 @@ void FileCache::clear() {
 }
 
 void FileCache::enforce_max_size() {
-  while (this->lru.size() > this->max_size) {
+  while (this->lru.count() > this->max_size) {
     auto evicted_fd_object = this->lru.evict_object().first;
     this->name_to_fd.erase(evicted_fd_object->name);
   }

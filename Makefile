@@ -24,9 +24,10 @@ libphosg.a: $(OBJECTS)
 	rm -f libphosg.a
 	ar rcs libphosg.a $(OBJECTS)
 
-test: ConsistentHashRingTest EncodingTest FilesystemTest JSONPickleTest JSONTest LRUSetTest ProcessTest StringsTest TimeTest UnitTestTest
+test: ConsistentHashRingTest EncodingTest FileCacheTest FilesystemTest JSONPickleTest JSONTest LRUSetTest ProcessTest StringsTest TimeTest UnitTestTest
 	./ConsistentHashRingTest
 	./EncodingTest
+	./FileCacheTest
 	./FilesystemTest
 	./JSONPickleTest
 	./JSONTest

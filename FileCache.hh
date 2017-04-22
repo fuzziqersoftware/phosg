@@ -34,6 +34,7 @@ public:
   size_t get_max_size() const;
   size_t set_max_size(size_t max_size);
 
+  bool is_open(const std::string& name) const;
   size_t size() const;
 
   struct Lease {
@@ -59,7 +60,7 @@ private:
   size_t max_size;
   LRUSet<std::shared_ptr<File>> lru;
   std::unordered_map<std::string, std::shared_ptr<File>> name_to_fd;
-  std::mutex lock;
+  mutable std::mutex lock;
 
   void enforce_max_size();
 };
