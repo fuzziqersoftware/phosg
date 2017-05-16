@@ -1,4 +1,4 @@
-OBJECTS=Concurrency.o ConsistentHashRing.o FileCache.o Filesystem.o Image.o JSONPickle.o JSON.o Network.o Process.o Strings.o Time.o UnitTest.o
+OBJECTS=Concurrency.o ConsistentHashRing.o FileCache.o Filesystem.o Hash.o Image.o JSONPickle.o JSON.o Network.o Process.o Strings.o Time.o UnitTest.o
 CXX=g++ -fPIC
 CXXFLAGS=-std=c++14 -g -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -Wall -Werror
 LDFLAGS=-g -std=c++14 -lstdc++
@@ -24,11 +24,12 @@ libphosg.a: $(OBJECTS)
 	rm -f libphosg.a
 	ar rcs libphosg.a $(OBJECTS)
 
-test: ConsistentHashRingTest EncodingTest FileCacheTest FilesystemTest JSONPickleTest JSONTest LRUSetTest ProcessTest StringsTest TimeTest UnitTestTest
+test: ConsistentHashRingTest EncodingTest FileCacheTest FilesystemTest HashTest JSONPickleTest JSONTest LRUSetTest ProcessTest StringsTest TimeTest UnitTestTest
 	./ConsistentHashRingTest
 	./EncodingTest
 	./FileCacheTest
 	./FilesystemTest
+	./HashTest
 	./JSONPickleTest
 	./JSONTest
 	./LRUSetTest

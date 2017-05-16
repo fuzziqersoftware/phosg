@@ -7,10 +7,6 @@
 #include <vector>
 
 
-uint64_t fnv1a64(const void* data, size_t size,
-    uint64_t hash = 0xCBF29CE484222325);
-
-
 class ConsistentHashRing {
 public:
   struct Host {

@@ -10,20 +10,10 @@
 #include <unordered_map>
 #include <vector>
 
+#include "Hash.hh"
 #include "Strings.hh"
 
 using namespace std;
-
-
-uint64_t fnv1a64(const void* data, size_t size, uint64_t hash) {
-  const uint8_t *data_ptr = (const uint8_t*)data;
-  const uint8_t *end_ptr = data_ptr + size;
-
-  for (; data_ptr != end_ptr; data_ptr++) {
-    hash = (hash ^ (uint64_t)*data_ptr) * 0x00000100000001B3;
-  }
-  return hash;
-}
 
 
 ConsistentHashRing::Host::Host(const string& descriptor, int default_port) {
