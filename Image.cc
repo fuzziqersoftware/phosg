@@ -88,10 +88,11 @@ void Image::load(FILE* f) {
 
   } else if (format == WindowsBitmap) {
     WindowsBitmapHeader header;
-    fseek(f, 0, SEEK_SET);
-    fread(&header, sizeof(header), 1, f);
+    memcpy(&header.file_header.magic, sig, 2);
+    fread(reinterpret_cast<uint8_t*>(&header) + 2, sizeof(header) - 2, 1, f);
     if (header.file_header.magic != 0x4D42) {
-      throw runtime_error("bad signature in bitmap file");
+      throw runtime_error(string_printf("bad signature in bitmap file (%04hX)",
+          header.file_header.magic));
     }
     if ((header.info_header.bit_depth != 24) && (header.info_header.bit_depth != 32)) {
       throw runtime_error(string_printf(
