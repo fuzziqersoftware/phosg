@@ -93,8 +93,10 @@ void Image::load(FILE* f) {
     if (header.file_header.magic != 0x4D42) {
       throw runtime_error("bad signature in bitmap file");
     }
-    if (header.info_header.bit_depth != 24) {
-      throw runtime_error("can only load 24-bit bitmaps");
+    if ((header.info_header.bit_depth != 24) && (header.info_header.bit_depth != 32)) {
+      throw runtime_error(string_printf(
+          "can only load 24-bit or 32-bit bitmaps (this is a %hu-bit bitmap)",
+          header.info_header.bit_depth));
     }
     if (header.info_header.num_planes != 1) {
       throw runtime_error("can only load 1-plane bitmaps");
@@ -103,21 +105,26 @@ void Image::load(FILE* f) {
       throw runtime_error("can only load uncompressed bitmaps");
     }
 
+    bool reverse_row_order = header.info_header.height < 0;
+
     fseek(f, header.file_header.data_offset, SEEK_SET);
     this->width = header.info_header.width;
-    this->height = header.info_header.height;
+    this->height = header.info_header.height * (reverse_row_order ? -1 : 1);
     this->data = new uint8_t[this->width * this->height * 3];
 
-    int row_padding_bytes = (4 - ((this->width * 3) % 4)) % 4;
+    bool has_alpha = header.info_header.bit_depth == 32;
+    uint8_t pixel_bytes = has_alpha ? 4 : 3;
+    int row_padding_bytes = (4 - ((this->width * pixel_bytes) % 4)) % 4;
     uint8_t row_padding_data[4] = {0, 0, 0, 0};
 
-    uint8_t* row_data = new uint8_t[this->width * 3];
+    uint8_t* row_data = new uint8_t[this->width * pixel_bytes];
     for (int y = this->height - 1; y >= 0; y--) {
-      fread(row_data, this->width * 3, 1, f);
-      for (int x = 0; x < this->width * 3; x += 3) {
-        this->data[y * this->width * 3 + x + 2] = row_data[x];
-        this->data[y * this->width * 3 + x + 1] = row_data[x + 1];
-        this->data[y * this->width * 3 + x] = row_data[x + 2];
+      fread(row_data, this->width * pixel_bytes, 1, f);
+      int target_y = reverse_row_order ? (this->height - y - 1) : y;
+      for (int x = 0; x < this->width; x++) {
+        this->data[target_y * this->width * 3 + x * 3 + 2] = row_data[x * pixel_bytes];
+        this->data[target_y * this->width * 3 + x * 3 + 1] = row_data[x * pixel_bytes + 1];
+        this->data[target_y * this->width * 3 + x * 3] = row_data[x * pixel_bytes + 2];
       }
       if (row_padding_bytes)
         fread(row_padding_data, row_padding_bytes, 1, f);
