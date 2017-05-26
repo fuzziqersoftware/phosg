@@ -38,7 +38,7 @@ static size_t skip_whitespace_or_comment(const string& s, size_t offset) {
   while (offset < s.length()) {
     char ch = s[offset];
     if (reading_comment) {
-      if (ch == '\n') {
+      if ((ch == '\n') || (ch == '\r')) {
         reading_comment = false;
       }
     } else {
