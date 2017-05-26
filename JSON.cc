@@ -407,6 +407,22 @@ const shared_ptr<JSONObject> JSONObject::operator[](size_t index) const {
   return this->list_data[index];
 }
 
+shared_ptr<JSONObject> JSONObject::at(const string& key) {
+  return (*this)[key];
+}
+
+const shared_ptr<JSONObject> JSONObject::at(const string& key) const {
+  return (*this)[key];
+}
+
+shared_ptr<JSONObject> JSONObject::at(size_t index) {
+  return (*this)[index];
+}
+
+const shared_ptr<JSONObject> JSONObject::at(size_t index) const {
+  return (*this)[index];
+}
+
 unordered_map<string, shared_ptr<JSONObject>>& JSONObject::as_dict() {
   if (this->type != Dict)
     throw type_error("object cannot be accessed as a dict");

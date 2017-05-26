@@ -100,6 +100,11 @@ public:
   std::shared_ptr<JSONObject> operator[](size_t index);
   const std::shared_ptr<JSONObject> operator[](size_t index) const;
 
+  std::shared_ptr<JSONObject> at(const std::string& key);
+  const std::shared_ptr<JSONObject> at(const std::string& key) const;
+  std::shared_ptr<JSONObject> at(size_t index);
+  const std::shared_ptr<JSONObject> at(size_t index) const;
+
   std::unordered_map<std::string, std::shared_ptr<JSONObject>>& as_dict();
   const std::unordered_map<std::string, std::shared_ptr<JSONObject>>& as_dict() const;
   std::vector<std::shared_ptr<JSONObject>>& as_list();
