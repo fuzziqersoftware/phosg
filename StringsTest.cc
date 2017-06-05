@@ -280,6 +280,8 @@ int main(int argc, char** argv) {
   // TODO: test get_time_string
   // TODO: test string_for_error
 
+  unlink("StringsTest-data");
+
   printf("%s: all tests passed\n", argv[0]);
   return 0;
 }
