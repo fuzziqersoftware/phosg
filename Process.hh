@@ -19,7 +19,12 @@ pid_t pid_for_name(const std::string& name, bool search_commands = true, bool ex
 std::unordered_map<pid_t, std::string> list_processes(bool with_commands = true);
 
 bool pid_exists(pid_t pid);
-uint64_t start_time_for_pid(pid_t pid);
+
+// returns the process' start time, in platform-dependent units. on linux, the
+// value is in nanoseconds since the epoch; on osx, it's in microseconds since
+// the epoch. if allow_zombie is true, returns the start time even if the
+// process is a zombie. allow_zombie is ignored on osx (it's always false).
+uint64_t start_time_for_pid(pid_t pid, bool allow_zombie = false);
 
 pid_t getpid_cached();
 uint64_t this_process_start_time();

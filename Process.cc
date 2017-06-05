@@ -121,7 +121,7 @@ bool pid_exists(pid_t pid) {
   throw runtime_error("invalid process ID: " + to_string(pid));
 }
 
-uint64_t start_time_for_pid(pid_t pid) {
+uint64_t start_time_for_pid(pid_t pid, bool allow_zombie) {
 #ifdef MACOSX
   struct proc_taskallinfo ti;
   int ret = proc_pidinfo(pid, PROC_PIDTASKALLINFO, 0, &ti, sizeof(ti));
@@ -141,13 +141,41 @@ uint64_t start_time_for_pid(pid_t pid) {
       (uint64_t)ti.pbsd.pbi_start_tvusec;
 
 #else
+  uint64_t start_time;
   try {
     struct stat st = stat(string_printf("/proc/%d", pid));
-    return (uint64_t)st.st_mtim.tv_sec * 1000000000 +
+    start_time = (uint64_t)st.st_mtim.tv_sec * 1000000000 +
         (uint64_t)st.st_mtim.tv_nsec;
   } catch (const cannot_stat_file& e) {
     return 0;
   }
+
+  if (allow_zombie) {
+    return start_time;
+  }
+
+  // so many syscalls... sigh
+  char status_data[64];
+  try {
+    string filename = string_printf("/proc/%d/stat", pid);
+    scoped_fd fd(filename, O_RDONLY);
+    ssize_t bytes_read = read(fd, status_data, 63);
+    if (bytes_read < 0) {
+      throw runtime_error("can\'t read stat file for pid " + to_string(pid));
+    }
+    status_data[bytes_read] = '\0';
+  } catch (const cannot_open_file& e) {
+    return 0; // assume it's not running; may have terminated after the stat
+  }
+
+  size_t status_offset = skip_word(status_data, skip_word(status_data, 0));
+  if (status_data[status_offset] == '\0') {
+    throw runtime_error("can\'t parse stat file for pid " + to_string(pid));
+  }
+  if (status_data[status_offset] == 'Z') {
+    return 0;
+  }
+  return start_time;
 #endif
 }
 

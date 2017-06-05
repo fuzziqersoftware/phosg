@@ -135,23 +135,63 @@ int main(int argc, char** argv) {
   {
     fprintf(stderr, "-- start_time_for_pid\n");
     uint64_t my_start_time = start_time_for_pid(getpid());
-    uint64_t cat1_start_time;
+    uint64_t cat1_start_time, cat2_start_time;
     {
       Subprocess p({"cat"});
       cat1_start_time = start_time_for_pid(p.pid());
+
       expect_lt(my_start_time, cat1_start_time);
-      expect_eq(cat1_start_time, start_time_for_pid(p.pid()));
+
       expect_eq(my_start_time, start_time_for_pid(getpid()));
+      expect_eq(cat1_start_time, start_time_for_pid(p.pid()));
     }
+
     // make sure the cat processes don't start within the same jiffy
     usleep(100000);
     {
       Subprocess p({"cat"});
-      uint64_t cat2_start_time = start_time_for_pid(p.pid());
+      cat2_start_time = start_time_for_pid(p.pid());
+
       expect_lt(my_start_time, cat2_start_time);
       expect_lt(cat1_start_time, cat2_start_time);
-      expect_eq(cat2_start_time, start_time_for_pid(p.pid()));
+
       expect_eq(my_start_time, start_time_for_pid(getpid()));
+      expect_eq(cat2_start_time, start_time_for_pid(p.pid()));
+    }
+
+    // make sure we get the right result for zombie processes
+    {
+      pid_t child_pid = fork();
+      if (!child_pid) {
+        usleep(200000);
+        _exit(0);
+      }
+
+      uint64_t child_start_time = start_time_for_pid(child_pid);
+      expect_lt(my_start_time, child_start_time);
+
+      expect_eq(my_start_time, start_time_for_pid(getpid()));
+      expect_eq(child_start_time, start_time_for_pid(child_pid));
+
+      // wait for it to terminate, then check if we can get its start time. on
+      // osx, there's no way to get the start time of a zombie - it ignores
+      // allow_zombie and always returns 0 if the process is a zombie
+      usleep(400000);
+      expect_eq(0, start_time_for_pid(child_pid, false));
+#ifdef MACOSX
+      expect_eq(0, start_time_for_pid(child_pid, true));
+#else
+      expect_eq(child_start_time, start_time_for_pid(child_pid, true));
+#endif
+
+      // now reap the zombie and check again
+      int exit_status;
+      expect_eq(child_pid, wait(&exit_status));
+      expect_eq(true, WIFEXITED(exit_status));
+      expect_eq(0, WEXITSTATUS(exit_status));
+
+      expect_eq(0, start_time_for_pid(child_pid, false));
+      expect_eq(0, start_time_for_pid(child_pid, true));
     }
   }
 
