@@ -384,6 +384,12 @@ void print_data(FILE* stream, const void* _data, uint64_t size,
   }
 }
 
+void print_data(FILE* stream, const std::string& data, uint64_t address,
+    const void* prev, uint64_t flags) {
+  print_data(stream, data.data(), data.size(), address, prev, flags);
+}
+
+
 static inline void add_mask_bits(string* mask, bool mask_enabled, size_t num_bytes) {
   if (!mask) {
     return;
