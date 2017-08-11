@@ -105,6 +105,7 @@ std::string freadx(FILE* f, size_t size);
 void fwritex(FILE* f, const std::string& data);
 
 std::string load_file(const std::string& filename);
+void save_file(const std::string& filename, const void* data, size_t size);
 void save_file(const std::string& filename, const std::string& data);
 
 std::unique_ptr<FILE, void(*)(FILE*)> fopen_unique(const std::string& filename,

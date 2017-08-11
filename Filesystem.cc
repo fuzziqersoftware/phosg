@@ -362,11 +362,15 @@ string load_file(const string& filename) {
   return data;
 }
 
-void save_file(const string& filename, const string& data) {
+void save_file(const string& filename, const void* data, size_t size) {
   scoped_fd fd(filename, O_CREAT | O_TRUNC | O_WRONLY);
-  if (write(fd, data.data(), data.size()) != (ssize_t)data.size()) {
+  if (write(fd, data, size) != (ssize_t)size) {
     throw runtime_error("can\'t write to " + filename + ": " + string_for_error(errno));
   }
+}
+
+void save_file(const string& filename, const string& data) {
+  save_file(filename, data.data(), data.size());
 }
 
 unique_ptr<FILE, void(*)(FILE*)> fopen_unique(const string& filename,
