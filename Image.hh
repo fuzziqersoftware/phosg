@@ -66,6 +66,7 @@ public:
 
   void blit(const Image& source, int x, int y, int w, int h, int sx, int sy);
   void mask_blit(const Image& source, int x, int y, int w, int h, int sx, int sy, uint8_t r, uint8_t g, uint8_t b);
+  void mask_blit(const Image& source, int x, int y, int w, int h, int sx, int sy, const Image& mask);
 
   void fill_rect(int x, int y, int w, int h, uint8_t r, uint8_t g, uint8_t b, uint8_t alpha);
 };

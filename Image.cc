@@ -564,6 +564,35 @@ void Image::mask_blit(const Image& source, int x, int y, int w, int h, int sx,
   }
 }
 
+void Image::mask_blit(const Image& source, int x, int y, int w, int h, int sx,
+    int sy, const Image& mask) {
+
+  if ((source.get_width() != mask.get_width()) || (source.get_height() != mask.get_height())) {
+    throw runtime_error("mask dimensions don\'t match image dimensions");
+  }
+
+  if (w < 0) {
+    w = source.get_width();
+  }
+  if (h < 0) {
+    h = source.get_height();
+  }
+
+  for (int yy = 0; yy < h; yy++) {
+    for (int xx = 0; xx < w; xx++) {
+      try {
+        uint8_t r, g, b;
+        mask.read_pixel(sx + xx, sy + yy, &r, &g, &b);
+        if (r == 0xFF && g == 0xFF && b == 0xFF) {
+          continue;
+        }
+        source.read_pixel(sx + xx, sy + yy, &r, &g, &b);
+        this->write_pixel(x + xx, y + yy, r, g, b);
+      } catch (const runtime_error& e) { }
+    }
+  }
+}
+
 void Image::fill_rect(int x, int y, int w, int h, uint8_t r, uint8_t g,
     uint8_t b, uint8_t alpha) {
 
