@@ -72,10 +72,39 @@ bool ConsistentHashRing::Host::operator<(const Host& other) const {
 }
 
 
+
+ConsistentHashRing::ConsistentHashRing(const vector<Host>& hosts) :
+    hosts(hosts) { }
+
+uint64_t ConsistentHashRing::host_id_for_key(const string& s) const {
+  return this->host_id_for_key(s.data(), s.size());
+}
+
+const ConsistentHashRing::Host& ConsistentHashRing::host_for_key(
+    const string& s) const {
+  return this->host_for_key(s.data(), s.size());
+}
+
+const ConsistentHashRing::Host& ConsistentHashRing::host_for_key(
+    const void* key, int64_t size) const {
+  return this->host_for_id(this->host_id_for_key(key, size));
+}
+
+const ConsistentHashRing::Host& ConsistentHashRing::host_for_id(
+    uint64_t id) const {
+  return this->hosts[id];
+}
+
+const vector<ConsistentHashRing::Host>& ConsistentHashRing::all_hosts() const {
+  return this->hosts;
+}
+
+
+
 #define POINTS_PER_HOST 256 // must be divisible by 4
 
-ConsistentHashRing::ConsistentHashRing(const vector<Host>& hosts,
-    uint8_t precision) {
+ConstantTimeConsistentHashRing::ConstantTimeConsistentHashRing(
+    const vector<Host>& hosts, uint8_t precision) {
   if (hosts.size() > 254) {
     throw runtime_error("too many hosts");
   }
@@ -111,35 +140,13 @@ ConsistentHashRing::ConsistentHashRing(const vector<Host>& hosts,
   }
 }
 
-uint8_t ConsistentHashRing::host_id_for_key(const string& s) const {
-  return this->host_id_for_key(s.data(), s.size());
-}
-
-uint8_t ConsistentHashRing::host_id_for_key(const void* key, int64_t size) const {
+uint64_t ConstantTimeConsistentHashRing::host_id_for_key(const void* key,
+    int64_t size) const {
   uint16_t z = 0;
   uint64_t h = fnv1a64(key, size, fnv1a64(&z, sizeof(uint16_t)));
   return this->points[h & (this->points.size() - 1)];
 }
 
-const ConsistentHashRing::Host& ConsistentHashRing::host_for_key(
-    const string& s) const {
-  return this->host_for_key(s.data(), s.size());
-}
-
-const ConsistentHashRing::Host& ConsistentHashRing::host_for_key(
-    const void* key, int64_t size) const {
-  return this->host_for_id(this->host_id_for_key(key, size));
-}
-
-const ConsistentHashRing::Host& ConsistentHashRing::host_for_id(
-    uint8_t id) const {
-  return this->hosts[id];
-}
-
-const vector<uint8_t>& ConsistentHashRing::all_points() const {
+const vector<uint8_t>& ConstantTimeConsistentHashRing::all_points() const {
   return this->points;
-}
-
-const vector<ConsistentHashRing::Host>& ConsistentHashRing::all_hosts() const {
-  return this->hosts;
 }

@@ -12,12 +12,14 @@
 using namespace std;
 
 
+using Ring = ConstantTimeConsistentHashRing;
+
 int main(int argc, char* argv[]) {
 
   {
     printf("-- create ring with one host\n");
-    auto in_hosts = ConsistentHashRing::Host::parse_netloc_list({"host1:8080"}, 0);
-    ConsistentHashRing r(in_hosts);
+    auto in_hosts = Ring::Host::parse_netloc_list({"host1:8080"}, 0);
+    Ring r(in_hosts);
 
     const auto& points = r.all_points();
     expect_eq(0x20000, points.size());
@@ -28,9 +30,9 @@ int main(int argc, char* argv[]) {
 
   {
     printf("-- create ring with three hosts; make sure all points are set\n");
-    auto in_hosts = ConsistentHashRing::Host::parse_netloc_list(
+    auto in_hosts = Ring::Host::parse_netloc_list(
         {"host1:8080", "host2:8080", "host3:8080"}, 0);
-    ConsistentHashRing r(in_hosts);
+    Ring r(in_hosts);
 
     const auto& points = r.all_points();
     const auto& hosts = r.all_hosts();
@@ -43,9 +45,9 @@ int main(int argc, char* argv[]) {
 
   {
     printf("-- create ring with two hosts; check point balance\n");
-    auto in_hosts = ConsistentHashRing::Host::parse_netloc_list(
+    auto in_hosts = Ring::Host::parse_netloc_list(
         {"host1:8080", "host2:8080"}, 0);
-    ConsistentHashRing r(in_hosts);
+    Ring r(in_hosts);
 
     const auto& points = r.all_points();
     const auto& hosts = r.all_hosts();
@@ -64,12 +66,12 @@ int main(int argc, char* argv[]) {
 
   {
     printf("-- check host removal affecting other hosts\n");
-    auto in_hosts1 = ConsistentHashRing::Host::parse_netloc_list(
+    auto in_hosts1 = Ring::Host::parse_netloc_list(
         {"host1:8080", "host2:8080", "host3:8080"}, 0);
-    auto in_hosts2 = ConsistentHashRing::Host::parse_netloc_list(
+    auto in_hosts2 = Ring::Host::parse_netloc_list(
         {"host1:8080", "host2:8080"}, 0);
-    ConsistentHashRing r1(in_hosts1);
-    ConsistentHashRing r2(in_hosts2);
+    Ring r1(in_hosts1);
+    Ring r2(in_hosts2);
 
     expect_eq(in_hosts1.size(), r1.all_hosts().size());
     expect_eq(in_hosts2.size(), r2.all_hosts().size());
@@ -88,12 +90,12 @@ int main(int argc, char* argv[]) {
 
   {
     printf("-- check that host order doesn't matter\n");
-    auto in_hosts1 = ConsistentHashRing::Host::parse_netloc_list(
+    auto in_hosts1 = Ring::Host::parse_netloc_list(
         {"host1:80", "host2:80", "host3:80", "host4:80"}, 0);
-    auto in_hosts2 = ConsistentHashRing::Host::parse_netloc_list(
+    auto in_hosts2 = Ring::Host::parse_netloc_list(
         {"host4:80", "host3:80", "host2:80", "host1:80"}, 0);
-    ConsistentHashRing r1(in_hosts1);
-    ConsistentHashRing r2(in_hosts2);
+    Ring r1(in_hosts1);
+    Ring r2(in_hosts2);
 
     expect_eq(in_hosts1.size(), r1.all_hosts().size());
     expect_eq(in_hosts1.size(), r2.all_hosts().size());
