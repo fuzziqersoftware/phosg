@@ -11,7 +11,9 @@ bool starts_with(const std::string& s, const std::string& start);
 bool ends_with(const std::string& s, const std::string& end);
 
 std::string string_printf(const char* fmt, ...);
+std::wstring wstring_printf(const wchar_t* fmt, ...);
 std::string string_vprintf(const char* fmt, va_list va);
+std::wstring wstring_vprintf(const wchar_t* fmt, va_list va);
 
 uint8_t value_for_hex_char(char x);
 

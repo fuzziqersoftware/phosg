@@ -42,6 +42,14 @@ string string_printf(const char* fmt, ...) {
   return ret;
 }
 
+wstring wstring_printf(const wchar_t* fmt, ...) {
+  va_list va;
+  va_start(va, fmt);
+  wstring ret = wstring_vprintf(fmt, va);
+  va_end(va);
+  return ret;
+}
+
 string string_vprintf(const char* fmt, va_list va) {
   char* result = NULL;
   int length = vasprintf(&result, fmt, va);
@@ -53,6 +61,22 @@ string string_vprintf(const char* fmt, va_list va) {
   string ret(result, length);
   free(result);
   return ret;
+}
+
+wstring wstring_vprintf(const wchar_t* fmt, va_list va) {
+  // TODO: use open_wmemstream when it's available on mac os
+  wstring result;
+  result.resize(wcslen(fmt) * 2); // silly guess
+
+  ssize_t written = -1;
+  while ((written < 0) || (written > static_cast<ssize_t>(result.size()))) {
+    va_list tmp_va;
+    va_copy(tmp_va, va);
+    written = vswprintf(const_cast<wchar_t*>(result.data()), result.size(), fmt, va);
+    va_end(tmp_va);
+  }
+  result.resize(written);
+  return result;
 }
 
 uint8_t value_for_hex_char(char x) {
