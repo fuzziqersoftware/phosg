@@ -748,3 +748,138 @@ string format_size(size_t size, bool include_bytes) {
 #endif
   }
 }
+
+StringReader::StringReader(shared_ptr<string> data, size_t offset) :
+    owned_data(data), data(reinterpret_cast<const uint8_t*>(data->data())),
+    length(data->size()), offset(offset) { }
+
+StringReader::StringReader(const void* data, size_t size, size_t offset) :
+    data(reinterpret_cast<const uint8_t*>(data)), length(size), offset(offset) { }
+
+size_t StringReader::where() const {
+  return this->offset;
+}
+
+size_t StringReader::size() const {
+  return this->length;
+}
+
+void StringReader::go(size_t offset) {
+  this->offset = offset;
+}
+
+bool StringReader::eof() const {
+  return (this->offset >= this->length);
+}
+
+uint8_t StringReader::get_u8(bool advance) {
+  if (this->offset >= this->length) {
+    throw out_of_range("end of string");
+  }
+  uint8_t ret = static_cast<uint8_t>(this->data[this->offset]);
+  if (advance) {
+    this->offset++;
+  }
+  return ret;
+}
+
+int8_t StringReader::get_s8(bool advance) {
+  if (this->offset >= this->length) {
+    throw out_of_range("end of string");
+  }
+  int8_t ret = static_cast<int8_t>(this->data[this->offset]);
+  if (advance) {
+    this->offset++;
+  }
+  return ret;
+}
+
+uint16_t StringReader::get_u16(bool advance) {
+  if (this->offset >= this->length - 1) {
+    throw out_of_range("end of string");
+  }
+  uint16_t ret = *reinterpret_cast<const uint16_t*>(this->data + this->offset);
+  if (advance) {
+    this->offset += 2;
+  }
+  return ret;
+}
+
+int16_t StringReader::get_s16(bool advance) {
+  if (this->offset >= this->length - 1) {
+    throw out_of_range("end of string");
+  }
+  int16_t ret = *reinterpret_cast<const int16_t*>(this->data + this->offset);
+  if (advance) {
+    this->offset += 2;
+  }
+  return ret;
+}
+
+uint32_t StringReader::get_u32(bool advance) {
+  if (this->offset >= this->length - 3) {
+    throw out_of_range("end of string");
+  }
+  uint32_t ret = *reinterpret_cast<const uint32_t*>(this->data + this->offset);
+  if (advance) {
+    this->offset += 4;
+  }
+  return ret;
+}
+
+int32_t StringReader::get_s32(bool advance) {
+  if (this->offset >= this->length - 3) {
+    throw out_of_range("end of string");
+  }
+  int32_t ret = *reinterpret_cast<const int32_t*>(this->data + this->offset);
+  if (advance) {
+    this->offset += 4;
+  }
+  return ret;
+}
+
+uint64_t StringReader::get_u64(bool advance) {
+  if (this->offset >= this->length - 7) {
+    throw out_of_range("end of string");
+  }
+  uint64_t ret = *reinterpret_cast<const uint64_t*>(this->data + this->offset);
+  if (advance) {
+    this->offset += 8;
+  }
+  return ret;
+}
+
+int64_t StringReader::get_s64(bool advance) {
+  if (this->offset >= this->length - 7) {
+    throw out_of_range("end of string");
+  }
+  int64_t ret = *reinterpret_cast<const int64_t*>(this->data + this->offset);
+  if (advance) {
+    this->offset += 8;
+  }
+  return ret;
+}
+
+uint16_t StringReader::get_u16r(bool advance) {
+  return bswap16(this->get_u16(advance));
+}
+
+int16_t StringReader::get_s16r(bool advance) {
+  return bswap16(this->get_s16(advance));
+}
+
+uint32_t StringReader::get_u32r(bool advance) {
+  return bswap32(this->get_u32(advance));
+}
+
+int32_t StringReader::get_s32r(bool advance) {
+  return bswap32(this->get_s32(advance));
+}
+
+uint64_t StringReader::get_u64r(bool advance) {
+  return bswap64(this->get_u64(advance));
+}
+
+int64_t StringReader::get_s64r(bool advance) {
+  return bswap64(this->get_s64(advance));
+}

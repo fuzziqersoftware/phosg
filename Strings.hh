@@ -90,3 +90,37 @@ std::string format_data_string(const std::string& data, const std::string* mask 
 
 std::string format_time(struct timeval* tv = NULL);
 std::string format_size(size_t size, bool include_bytes = false);
+
+class StringReader {
+public:
+  explicit StringReader(std::shared_ptr<std::string> data, size_t offset = 0);
+  StringReader(const void* data, size_t size, size_t offset = 0);
+  ~StringReader() = default;
+
+  size_t where() const;
+  size_t size() const;
+  void go(size_t offset);
+  bool eof() const;
+
+  uint8_t get_u8(bool advance = true);
+  int8_t get_s8(bool advance = true);
+  uint16_t get_u16(bool advance = true);
+  int16_t get_s16(bool advance = true);
+  uint32_t get_u32(bool advance = true);
+  int32_t get_s32(bool advance = true);
+  uint64_t get_u64(bool advance = true);
+  int64_t get_s64(bool advance = true);
+
+  uint16_t get_u16r(bool advance = true);
+  int16_t get_s16r(bool advance = true);
+  uint32_t get_u32r(bool advance = true);
+  int32_t get_s32r(bool advance = true);
+  uint64_t get_u64r(bool advance = true);
+  int64_t get_s64r(bool advance = true);
+
+private:
+  std::shared_ptr<std::string> owned_data;
+  const uint8_t* data;
+  size_t length;
+  size_t offset;
+};
