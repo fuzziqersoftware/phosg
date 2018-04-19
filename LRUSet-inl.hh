@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <unordered_map>
+#include <utility>
 
 
 template <typename K>
@@ -19,52 +20,57 @@ LRUSet<K>::~LRUSet() {
 }
 
 template <typename K>
-bool LRUSet<K>::insert(const K& key, size_t size) {
-  bool ret = this->erase(key);
-
-  auto emplace_ret = this->items.emplace(std::piecewise_construct,
-      std::make_tuple(key), std::make_tuple(size));
+bool LRUSet<K>::after_emplace(
+    const std::pair<typename std::unordered_map<K, Item>::iterator, bool>& emplace_ret, size_t size) {
   auto& k = emplace_ret.first->first;
   auto& i = emplace_ret.first->second;
 
-  i.key = &k;
-  i.size = size;
-  this->link_item(&i);
+  if (emplace_ret.second) {
+    // item was inserted
+    i.key = &k;
+    i.size = size;
+    this->total_size += size;
+    this->link_item(&i);
+    return true;
 
-  this->total_size += size;
+  } else {
+    // item already existed. the key must match already; just update the size
+    // and move the item to the front of the lru
+    ssize_t size_delta = static_cast<ssize_t>(size) - static_cast<ssize_t>(i.size);
+    i.size = size;
+    this->total_size += size_delta;
+    this->unlink_item(&i);
+    this->link_item(&i);
+    return false;
+  }
+}
 
-  return !ret;
+template <typename K>
+bool LRUSet<K>::insert(const K& key, size_t size) {
+  auto emplace_ret = this->items.emplace(std::piecewise_construct,
+      std::make_tuple(key), std::make_tuple(size));
+  return this->after_emplace(emplace_ret, size);
 }
 
 template <typename K>
 bool LRUSet<K>::emplace(K&& key, size_t size) {
-  bool ret = this->erase(key);
-
   auto emplace_ret = this->items.emplace(std::piecewise_construct,
       std::forward_as_tuple(std::move(key)), std::forward_as_tuple(size));
-  auto& k = emplace_ret.first->first;
-  auto& i = emplace_ret.first->second;
-
-  i.key = &k;
-  i.size = size;
-  this->link_item(&i);
-
-  this->total_size += size;
-
-  return !ret;
+  return this->after_emplace(emplace_ret, size);
 }
 
 template <typename K>
 bool LRUSet<K>::erase(const K& k) {
-  try {
-    Item& i = this->items.at(k);
-    this->unlink_item(&i);
-    this->total_size -= i.size;
-    this->items.erase(k);
-    return true;
-  } catch (const std::out_of_range& e) {
+  auto item_it = this->items.find(k);
+  if (item_it == this->items.end()) {
     return false;
   }
+
+  Item& item = item_it->second;
+  this->unlink_item(&item);
+  this->total_size -= item.size;
+  this->items.erase(item_it);
+  return true;
 }
 
 template <typename K>
@@ -147,7 +153,7 @@ template <typename K>
 std::pair<K, size_t> LRUSet<K>::evict_object() {
   Item* i = this->tail;
   if (!i) {
-    throw std::out_of_range("");
+    throw std::out_of_range("nothing to evict");
   }
 
   this->unlink_item(i);

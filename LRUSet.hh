@@ -22,6 +22,9 @@ protected:
   std::unordered_map<K, Item> items;
   size_t total_size;
 
+  bool after_emplace(
+      const std::pair<typename std::unordered_map<K, Item>::iterator, bool>& emplace_ret, size_t size);
+
   void unlink_item(Item* i);
   void link_item(Item* i);
 
