@@ -19,6 +19,7 @@ size_t FileCache::get_max_size() const {
 }
 
 size_t FileCache::set_max_size(size_t max_size) {
+  lock_guard<mutex> g(this->lock);
   size_t ret = this->max_size;
   this->max_size = max_size;
   this->enforce_max_size();
