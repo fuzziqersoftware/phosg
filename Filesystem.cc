@@ -284,6 +284,39 @@ string read_all(int fd) {
   return ret;
 }
 
+string read_all(FILE* f) {
+  static const ssize_t read_size = 16 * 1024;
+
+  size_t total_size = 0;
+  vector<string> buffers;
+  for (;;) {
+    buffers.emplace_back(read_size, 0);
+    ssize_t bytes_read = fread(const_cast<char*>(buffers.back().data()),
+        1, read_size, f);
+    if (bytes_read < 0) {
+      throw io_error(fileno(f));
+    }
+
+    total_size += bytes_read;
+    if (bytes_read < read_size) {
+      buffers.back().resize(bytes_read);
+      break;
+    }
+  }
+
+  if (buffers.size() == 1) {
+    return buffers.back();
+  }
+
+  string ret;
+  ret.reserve(total_size);
+  for (const string& buffer : buffers) {
+    ret += buffer;
+  }
+
+  return ret;
+}
+
 void readx(int fd, void* data, size_t size) {
   if (read(fd, data, size) != (ssize_t)size) {
     throw io_error(fd);
