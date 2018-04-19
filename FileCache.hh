@@ -58,7 +58,7 @@ public:
 
 private:
   size_t max_size;
-  LRUSet<std::shared_ptr<File>> lru;
+  LRUSet<std::string> lru;
   std::unordered_map<std::string, std::shared_ptr<File>> name_to_fd;
   mutable std::mutex lock;
 

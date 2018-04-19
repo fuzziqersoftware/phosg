@@ -11,8 +11,7 @@ FileCache::File::File(const std::string& name, scoped_fd&& fd) : name(name),
     fd(move(fd)) { }
 
 
-FileCache::FileCache(size_t max_size) : max_size(max_size), lru(), name_to_fd(),
-    lock() { }
+FileCache::FileCache(size_t max_size) : max_size(max_size) { }
 
 size_t FileCache::get_max_size() const {
   return this->max_size;
@@ -42,7 +41,7 @@ FileCache::Lease::Lease(FileCache* cache, const std::string& name,
   try {
     lock_guard<mutex> g(cache->lock);
     this->fd_object = cache->name_to_fd.at(name);
-    cache->lru.touch(this->fd_object);
+    cache->lru.touch(this->fd_object->name);
 
   } catch (const out_of_range& e) {
     this->fd = open(name.c_str(),
@@ -61,7 +60,7 @@ FileCache::Lease::Lease(FileCache* cache, const std::string& name,
       if (emplace_ret.second) {
         this->fd = this->fd_object->fd;
 
-        cache->lru.insert(fd_ptr);
+        cache->lru.insert(fd_ptr->name);
         cache->enforce_max_size();
         return;
       }
@@ -92,7 +91,7 @@ void FileCache::close(const std::string& name) {
     return;
   }
 
-  this->lru.erase(fd_it->second);
+  this->lru.erase(fd_it->second->name);
   this->name_to_fd.erase(fd_it);
 }
 
@@ -104,7 +103,7 @@ void FileCache::clear() {
 
 void FileCache::enforce_max_size() {
   while (this->lru.count() > this->max_size) {
-    auto evicted_fd_object = this->lru.evict_object().first;
-    this->name_to_fd.erase(evicted_fd_object->name);
+    auto evicted_fd_name = this->lru.evict_object().first;
+    this->name_to_fd.erase(evicted_fd_name);
   }
 }
