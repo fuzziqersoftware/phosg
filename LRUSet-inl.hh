@@ -113,18 +113,20 @@ bool LRUSet<K>::touch(const K& k, ssize_t new_size) {
 
 template <typename K>
 void LRUSet<K>::unlink_item(Item* i) {
-  if (i->prev) {
-    i->prev->next = i->next;
-  }
-  if (i->next) {
-    i->next->prev = i->prev;
-  }
   if (this->head == i) {
     this->head = i->next;
   }
   if (this->tail == i) {
     this->tail = i->prev;
   }
+  if (i->prev) {
+    i->prev->next = i->next;
+  }
+  if (i->next) {
+    i->next->prev = i->prev;
+  }
+  i->prev = NULL;
+  i->next = NULL;
 }
 
 template <typename K>
