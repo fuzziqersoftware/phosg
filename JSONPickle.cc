@@ -28,6 +28,7 @@ shared_ptr<JSONObject> parse_pickle(const void* data, size_t size) {
 
   vector<size_t> mark_stk;
   vector<shared_ptr<JSONObject>> stk;
+  unordered_map<int64_t, shared_ptr<JSONObject>> memo;
   while (offset < size) {
     char cmd = buffer[offset];
     offset++;
@@ -529,16 +530,51 @@ shared_ptr<JSONObject> parse_pickle(const void* data, size_t size) {
       case '\x94': // MEMOIZE         - store top of the stack in memo
         // memo[len(memo)] = stk.back()
         break;
-      case 'p':    // PUT             - store stack top in memo; index is string arg
-        for (; (offset < size) && (buffer[offset] != '\n'); offset++) { }
+      case 'p': {  // PUT             - store stack top in memo; index is string arg
+        char* endptr;
+        int64_t index = strtoll(&buffer[offset], &endptr, 10);
+        if (endptr == &buffer[offset]) {
+          throw JSONObject::parse_error("blank integer value");
+        }
+
+        offset += (endptr - &buffer[offset]);
+        if (buffer[offset] != '\n') {
+          throw JSONObject::parse_error("incorrect put string terminator");
+        }
         offset++;
+
+        if (stk.empty()) {
+          throw JSONObject::parse_error("put opcode with empty stack");
+        }
+        memo.emplace(index, stk.back());
         break;
-      case 'q':    // BINPUT          -   "     "    "   "   " ;   "    " 1-byte arg
+      }
+      case 'q': {  // BINPUT          -   "     "    "   "   " ;   "    " 1-byte arg
+        if (size - offset < 1) {
+          throw JSONObject::parse_error("no space for 1-byte put opcode index");
+        }
+        int64_t index = static_cast<uint8_t>(buffer[offset]);
         offset++;
+
+        if (stk.empty()) {
+          throw JSONObject::parse_error("put opcode with empty stack");
+        }
+        memo.emplace(index, stk.back());
         break;
-      case 'r':    // LONG_BINPUT     -   "     "    "   "   " ;   "    " 4-byte arg
+      }
+      case 'r': {  // LONG_BINPUT     -   "     "    "   "   " ;   "    " 4-byte arg
+        if (size - offset < 4) {
+          throw JSONObject::parse_error("no space for 4-byte put opcode index");
+        }
+        int64_t index = *reinterpret_cast<const uint32_t*>(buffer[offset]);
         offset += 4;
+
+        if (stk.empty()) {
+          throw JSONObject::parse_error("put opcode with empty stack");
+        }
+        memo.emplace(index, stk.back());
         break;
+      }
 
       // framing isn't supported here; the data is already in memory so there's
       // no need to deal with frames
@@ -546,10 +582,54 @@ shared_ptr<JSONObject> parse_pickle(const void* data, size_t size) {
         offset += 8;
         break;
 
-      case 'g':    // GET             - push item from memo on stack; index is string arg
-      case 'h':    // BINGET          -   "    "    "    "   "   "  ;   "    " 1-byte arg
-      case 'j':    // LONG_BINGET     - push item from memo on stack; index is 4-byte arg
-        throw JSONObject::parse_error("memo not supported");
+      case 'g': {  // GET             - push item from memo on stack; index is string arg
+        char* endptr;
+        int64_t index = strtoll(&buffer[offset], &endptr, 10);
+        if (endptr == &buffer[offset]) {
+          throw JSONObject::parse_error("blank integer value");
+        }
+
+        offset += (endptr - &buffer[offset]);
+        if (buffer[offset] != '\n') {
+          throw JSONObject::parse_error("incorrect get string terminator");
+        }
+        offset++;
+
+        try {
+          stk.emplace_back(memo.at(index));
+        } catch (const out_of_range&) {
+          throw JSONObject::parse_error("memo get refers to missing index");
+        }
+        break;
+      }
+      case 'h': {  // BINGET          -   "    "    "    "   "   "  ;   "    " 1-byte arg
+        if (size - offset < 1) {
+          throw JSONObject::parse_error("no space for 1-byte get opcode index");
+        }
+        int64_t index = static_cast<uint8_t>(buffer[offset]);
+        offset++;
+
+        try {
+          stk.emplace_back(memo.at(index));
+        } catch (const out_of_range&) {
+          throw JSONObject::parse_error("memo get refers to missing index");
+        }
+        break;
+      }
+      case 'j': {  // LONG_BINGET     - push item from memo on stack; index is 4-byte arg
+        if (size - offset < 4) {
+          throw JSONObject::parse_error("no space for 4-byte get opcode index");
+        }
+        int64_t index = *reinterpret_cast<const uint32_t*>(buffer[offset]);
+        offset += 4;
+
+        try {
+          stk.emplace_back(memo.at(index));
+        } catch (const out_of_range&) {
+          throw JSONObject::parse_error("memo get refers to missing index");
+        }
+        break;
+      }
 
       case 'P':    // PERSID          - push persistent object; id is taken from string arg
       case 'Q':    // BINPERSID       -  "       "         "  ;  "  "   "     "  stack

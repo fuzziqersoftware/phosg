@@ -90,7 +90,9 @@ struct TestCase {
   }
 };
 
+
 vector<TestCase> test_cases({
+
   {"null",            {"N.", "\x80\x02N.", "\x80\x04N."},
                       "None", "",
                       JSONObject()},
@@ -160,6 +162,13 @@ vector<TestCase> test_cases({
                         {"hax", JSONObject(unordered_map<string, JSONObject>({
                           {"derp", JSONObject(vector<JSONObject>())}}))}
                       }))},
+
+  // technically \x87 isn't valid protocol 0 but I'm lazy and phosg knows what
+  // to do with it anyway
+  {"memo",            {"I00\np1\ng1\nI01\n\x87.", "\x80\x02\x89q\x01h\x01\x88\x87.",
+                      "\x80\x04\x89p1\ng1\n\x88\x87."}, "[False, False, True]", "",
+                      JSONObject(vector<JSONObject>({
+                          JSONObject(false), JSONObject(false), JSONObject(true)}))},
 
   // TODO: test advanced opcodes like 2-tuple, 3-tuple etc.
 });
