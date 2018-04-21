@@ -566,7 +566,7 @@ shared_ptr<JSONObject> parse_pickle(const void* data, size_t size) {
         if (size - offset < 4) {
           throw JSONObject::parse_error("no space for 4-byte put opcode index");
         }
-        int64_t index = *reinterpret_cast<const uint32_t*>(buffer[offset]);
+        int64_t index = *reinterpret_cast<const uint32_t*>(&buffer[offset]);
         offset += 4;
 
         if (stk.empty()) {
@@ -620,7 +620,7 @@ shared_ptr<JSONObject> parse_pickle(const void* data, size_t size) {
         if (size - offset < 4) {
           throw JSONObject::parse_error("no space for 4-byte get opcode index");
         }
-        int64_t index = *reinterpret_cast<const uint32_t*>(buffer[offset]);
+        int64_t index = *reinterpret_cast<const uint32_t*>(&buffer[offset]);
         offset += 4;
 
         try {

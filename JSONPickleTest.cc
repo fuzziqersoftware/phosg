@@ -166,7 +166,8 @@ vector<TestCase> test_cases({
   // technically \x87 isn't valid protocol 0 but I'm lazy and phosg knows what
   // to do with it anyway
   {"memo",            {"I00\np1\ng1\nI01\n\x87.", "\x80\x02\x89q\x01h\x01\x88\x87.",
-                      "\x80\x04\x89p1\ng1\n\x88\x87."}, "[False, False, True]", "",
+                      string("\x80\x04\x89r\x01\x00\x00\x00j\x01\x00\x00\x00\x88\x87.", 16)},
+                      "[False, False, True]", "",
                       JSONObject(vector<JSONObject>({
                           JSONObject(false), JSONObject(false), JSONObject(true)}))},
 
