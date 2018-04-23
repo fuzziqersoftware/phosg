@@ -30,22 +30,3 @@ public:
 
   rw_guard& operator=(const rw_guard& g) = delete;
 };
-
-class rw_guard_multi {
-private:
-  std::vector<rw_guard> guards;
-
-public:
-  rw_guard_multi();
-  explicit rw_guard_multi(size_t count);
-  rw_guard_multi(const rw_guard& g) = delete;
-  rw_guard_multi(rw_guard_multi&& g);
-  ~rw_guard_multi();
-
-  rw_guard& operator=(const rw_guard& g) = delete;
-
-  void add(rw_guard&& g);
-  void add(rw_lock& lock, bool exclusive);
-  void add(pthread_rwlock_t* lock, bool exclusive);
-  void unlock_latest();
-};
