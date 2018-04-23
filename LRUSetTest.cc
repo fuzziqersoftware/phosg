@@ -56,15 +56,33 @@ int main(int argc, char** argv) {
   expect_eq(d.size(), 280);
   expect_eq(d.count(), 3);
 
+  auto last = d.peek();
+  expect_eq(last.first, "key3");
+  expect_eq(last.second, 80);
+  expect_eq(d.size(), 280);
+  expect_eq(d.count(), 3);
+
   auto evicted = d.evict_object();
   expect_eq(evicted.first, "key3");
   expect_eq(evicted.second, 80);
   expect_eq(d.size(), 200);
   expect_eq(d.count(), 2);
 
+  last = d.peek();
+  expect_eq(last.first, "key2");
+  expect_eq(last.second, 100);
+  expect_eq(d.size(), 200);
+  expect_eq(d.count(), 2);
+
   evicted = d.evict_object();
   expect_eq(evicted.first, "key2");
   expect_eq(evicted.second, 100);
+  expect_eq(d.size(), 100);
+  expect_eq(d.count(), 1);
+
+  last = d.peek();
+  expect_eq(last.first, "key1");
+  expect_eq(last.second, 100);
   expect_eq(d.size(), 100);
   expect_eq(d.count(), 1);
 

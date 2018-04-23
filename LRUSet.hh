@@ -45,6 +45,7 @@ public:
   size_t count() const;
 
   std::pair<K, size_t> evict_object();
+  std::pair<K, size_t> peek();
 
   void swap(LRUSet<K>& other);
 };

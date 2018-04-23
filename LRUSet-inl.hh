@@ -167,6 +167,15 @@ std::pair<K, size_t> LRUSet<K>::evict_object() {
 }
 
 template <typename K>
+std::pair<K, size_t> LRUSet<K>::peek() {
+  Item* i = this->tail;
+  if (!i) {
+    throw std::out_of_range("set is empty");
+  }
+  return std::make_pair(*i->key, i->size);
+}
+
+template <typename K>
 void LRUSet<K>::swap(LRUSet<K>& other) {
   Item* this_head = this->head;
   Item* this_tail = this->tail;
