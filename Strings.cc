@@ -772,6 +772,33 @@ bool StringReader::eof() const {
   return (this->offset >= this->length);
 }
 
+string StringReader::get(size_t size, bool advance) {
+  if (this->offset >= this->length) {
+    return string();
+  }
+
+  string ret;
+  if (this->offset + size > this->length) {
+    ret = string(reinterpret_cast<const char*>(this->data + offset), this->length - size);
+  } else {
+    ret = string(reinterpret_cast<const char*>(this->data + offset), size);
+  }
+  if (advance) {
+    this->offset += ret.size();
+  }
+  return ret;
+}
+
+string StringReader::pget(size_t offset, size_t size) {
+  if (offset >= this->length) {
+    return string();
+  }
+  if (offset + size > this->length) {
+    return string(reinterpret_cast<const char*>(this->data + offset), this->length - size);
+  }
+  return string(reinterpret_cast<const char*>(this->data + offset), size);
+}
+
 uint8_t StringReader::get_u8(bool advance) {
   if (this->offset >= this->length) {
     throw out_of_range("end of string");
@@ -814,6 +841,25 @@ int16_t StringReader::get_s16(bool advance) {
     this->offset += 2;
   }
   return ret;
+}
+
+uint32_t StringReader::get_u24(bool advance) {
+  if (this->offset >= this->length - 2) {
+    throw out_of_range("end of string");
+  }
+  uint32_t ret = this->data[this->offset] | (this->data[this->offset + 1] << 8) | (this->data[this->offset + 2] << 16);
+  if (advance) {
+    this->offset += 3;
+  }
+  return ret;
+}
+
+int32_t StringReader::get_s24(bool advance) {
+  uint32_t x = this->get_u24(advance);
+  if (x & 0x00800000) {
+    return x | 0xFF000000;
+  }
+  return x;
 }
 
 uint32_t StringReader::get_u32(bool advance) {
@@ -866,6 +912,14 @@ uint16_t StringReader::get_u16r(bool advance) {
 
 int16_t StringReader::get_s16r(bool advance) {
   return bswap16(this->get_s16(advance));
+}
+
+uint32_t StringReader::get_u24r(bool advance) {
+  return bswap24(this->get_u24(advance));
+}
+
+int32_t StringReader::get_s24r(bool advance) {
+  return bswap24s(this->get_s24(advance));
 }
 
 uint32_t StringReader::get_u32r(bool advance) {

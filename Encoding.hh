@@ -12,6 +12,20 @@ static inline uint64_t bswap16(uint16_t a) {
          ((a << 8) & 0xFF00);
 }
 
+static inline uint32_t bswap24(uint32_t a) {
+  return ((a >> 16) & 0x000000FF) |
+         ( a        & 0x0000FF00) |
+         ((a << 16) & 0x00FF0000);
+}
+
+static inline int32_t bswap24s(int32_t a) {
+  int32_t r = bswap24(a);
+  if (r & 0x00800000) {
+    return r | 0xFF000000;
+  }
+  return r;
+}
+
 static inline uint32_t bswap32(uint32_t a) {
   return ((a >> 24) & 0x000000FF) |
          ((a >> 8)  & 0x0000FF00) |

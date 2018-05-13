@@ -103,10 +103,15 @@ public:
   void go(size_t offset);
   bool eof() const;
 
+  std::string get(size_t offset, bool advance = true);
+  std::string pget(size_t offset, size_t size);
+
   uint8_t get_u8(bool advance = true);
   int8_t get_s8(bool advance = true);
   uint16_t get_u16(bool advance = true);
   int16_t get_s16(bool advance = true);
+  uint32_t get_u24(bool advance = true);
+  int32_t get_s24(bool advance = true);
   uint32_t get_u32(bool advance = true);
   int32_t get_s32(bool advance = true);
   uint64_t get_u64(bool advance = true);
@@ -114,6 +119,8 @@ public:
 
   uint16_t get_u16r(bool advance = true);
   int16_t get_s16r(bool advance = true);
+  uint32_t get_u24r(bool advance = true);
+  int32_t get_s24r(bool advance = true);
   uint32_t get_u32r(bool advance = true);
   int32_t get_s32r(bool advance = true);
   uint64_t get_u64r(bool advance = true);
