@@ -226,20 +226,32 @@ std::string string_for_error(int error) {
   return string_printf("%d (%s)", error, buffer);
 }
 
-void print_color_escape(FILE* stream, TerminalFormat color, ...) {
-
+string vformat_color_escape(TerminalFormat color, va_list va) {
   string fmt("\033");
 
-  va_list va;
-  va_start(va, color);
   do {
     fmt += (fmt[fmt.size() - 1] == '\033') ? '[' : ';';
     fmt += to_string((int)color);
     color = va_arg(va, TerminalFormat);
   } while (color != TerminalFormat::END);
-  va_end(va);
 
   fmt += 'm';
+  return fmt;
+}
+
+string format_color_escape(TerminalFormat color, ...) {
+  va_list va;
+  va_start(va, color);
+  string ret = vformat_color_escape(color, va);
+  va_end(va);
+  return ret;
+}
+
+void print_color_escape(FILE* stream, TerminalFormat color, ...) {
+  va_list va;
+  va_start(va, color);
+  string fmt = vformat_color_escape(color, va);
+  va_end(va);
   fwrite(fmt.data(), fmt.size(), 1, stream);
 }
 

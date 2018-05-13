@@ -68,6 +68,8 @@ enum class TerminalFormat {
   BG_WHITE   = 48,
 };
 
+std::string vformat_color_escape(TerminalFormat color, va_list va);
+std::string format_color_escape(TerminalFormat color, ...);
 void print_color_escape(FILE* stream, TerminalFormat color, ...);
 
 void print_indent(FILE* stream, int indent_level);
