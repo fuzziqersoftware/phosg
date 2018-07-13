@@ -5,8 +5,8 @@ LDFLAGS=-g -std=c++14 -lstdc++
 
 ifeq ($(shell uname -s),Darwin)
 	INSTALL_DIR=/opt/local
-	CXXFLAGS +=  -arch i386 -arch x86_64 -DMACOSX
-	LDFLAGS +=  -arch i386 -arch x86_64
+	CXXFLAGS +=  -arch i386 -arch x86_64 -DMACOSX -mmacosx-version-min=10.11
+	LDFLAGS +=  -arch i386 -arch x86_64 -mmacosx-version-min=10.11
 else
 	INSTALL_DIR=/usr/local
 	CXXFLAGS +=  -DLINUX
