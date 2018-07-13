@@ -526,9 +526,8 @@ shared_ptr<JSONObject> parse_pickle(const void* data, size_t size) {
       case '\x8b': // LONG4           - push really big long
         throw JSONObject::parse_error("long opcodes not implemented");
 
-      // memo isn't supported, but it's ok if it's never read; skip the write
       case '\x94': // MEMOIZE         - store top of the stack in memo
-        // memo[len(memo)] = stk.back()
+        memo[memo.size()] = stk.back();
         break;
       case 'p': {  // PUT             - store stack top in memo; index is string arg
         char* endptr;
