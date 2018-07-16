@@ -458,6 +458,12 @@ shared_ptr<FILE> fdopen_shared(int fd, const string& mode) {
   return shared_ptr<FILE>(f, fclose);
 }
 
+void rename(const std::string& old_filename, const std::string& new_filename) {
+  if (rename(old_filename.c_str(), new_filename.c_str()) != 0) {
+    throw runtime_error("can\'t rename file " + old_filename + " to " + new_filename + ": " + string_for_error(errno));
+  }
+}
+
 void unlink(const string& filename, bool recursive) {
   if (recursive) {
     if (isdir(filename)) {

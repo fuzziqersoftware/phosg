@@ -117,6 +117,7 @@ std::shared_ptr<FILE> fopen_shared(const std::string& filename,
     const std::string& mode = "rb", FILE* dash_file = NULL);
 std::shared_ptr<FILE> fdopen_shared(int fd, const std::string& mode = "rb");
 
+void rename(const std::string& old_filename, const std::string& new_filename);
 void unlink(const std::string& filename, bool recursive = false);
 
 std::pair<int, int> pipe();
