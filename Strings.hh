@@ -80,6 +80,7 @@ enum PrintDataFlags {
   PrintFloat = 4, // print float view on the right
   PrintDouble = 8, // print double view on the right
   ReverseEndian = 16, // floats/doubles should be byteswapped
+  CollapseZeroLines = 32, // skips lines of all zeroes
 };
 
 void print_data(FILE* stream, const void* _data, uint64_t size,
