@@ -789,7 +789,7 @@ bool StringReader::eof() const {
   return (this->offset >= this->length);
 }
 
-string StringReader::get(size_t size, bool advance) {
+string StringReader::read(size_t size, bool advance) {
   if (this->offset >= this->length) {
     return string();
   }
@@ -806,7 +806,7 @@ string StringReader::get(size_t size, bool advance) {
   return ret;
 }
 
-string StringReader::pget(size_t offset, size_t size) {
+string StringReader::pread(size_t offset, size_t size) {
   if (offset >= this->length) {
     return string();
   }
@@ -953,4 +953,16 @@ uint64_t StringReader::get_u64r(bool advance) {
 
 int64_t StringReader::get_s64r(bool advance) {
   return bswap64(this->get_s64(advance));
+}
+
+size_t StringWriter::size() const {
+  return this->data.size();
+}
+
+void StringWriter::write(const std::string& data) {
+  this->data.append(data);
+}
+
+std::string& StringWriter::get() {
+  return this->data;
 }

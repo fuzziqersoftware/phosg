@@ -106,8 +106,19 @@ public:
   void go(size_t offset);
   bool eof() const;
 
-  std::string get(size_t offset, bool advance = true);
-  std::string pget(size_t offset, size_t size);
+  std::string read(size_t offset, bool advance = true);
+  std::string pread(size_t offset, size_t size);
+
+  template <typename T> T get(bool advance = true) {
+    if (this->offset > this->length - sizeof(T)) {
+      throw std::out_of_range("end of string");
+    }
+    T ret = *reinterpret_cast<const T*>(this->data + this->offset);
+    if (advance) {
+      this->offset += sizeof(T);
+    }
+    return ret;
+  }
 
   uint8_t get_u8(bool advance = true);
   int8_t get_s8(bool advance = true);
@@ -134,4 +145,23 @@ private:
   const uint8_t* data;
   size_t length;
   size_t offset;
+};
+
+class StringWriter {
+public:
+  StringWriter() = default;
+  ~StringWriter() = default;
+
+  size_t size() const;
+
+  void write(const std::string& data);
+
+  template <typename T> void write(T v) {
+    this->data.append(reinterpret_cast<const char*>(&v), sizeof(v));
+  }
+
+  std::string& get();
+
+private:
+  std::string data;
 };
