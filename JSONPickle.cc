@@ -523,12 +523,52 @@ shared_ptr<JSONObject> parse_pickle(const void* data, size_t size) {
         break;
 
       case '\x8a': // LONG1           - push long from < 256 bytes
-      case '\x8b': // LONG4           - push really big long
-        throw JSONObject::parse_error("long opcodes not implemented");
+      case '\x8b': { // LONG4           - push really big long
+        uint32_t num_bytes;
+
+        if (cmd == '\x8a') {
+          if (size - offset < 1) {
+            throw JSONObject::parse_error("no space for 1-byte long opcode size");
+          }
+          num_bytes = static_cast<uint8_t>(buffer[offset]);
+          offset++;
+
+        } else {
+          if (size - offset < 4) {
+            throw JSONObject::parse_error("no space for 4-byte long opcode size");
+          }
+          num_bytes = *reinterpret_cast<const uint32_t*>(&buffer[offset]);
+          offset += 4;
+        }
+
+        if (num_bytes > 8) {
+          throw JSONObject::parse_error("long integer does not fit in 64 bits");
+        }
+        if (size - offset < num_bytes) {
+          throw JSONObject::parse_error("long opcode exceeds end of data");
+        }
+
+        int64_t value = 0;
+        uint64_t byte = 0;
+        for (size_t x = 0; x < num_bytes; x++) {
+          byte = static_cast<uint8_t>(buffer[offset]);
+          offset++;
+          value |= (byte << (x << 3));
+        }
+
+        // sign-extend from the last byte if necessary
+        if ((num_bytes < 8) && (byte & 0x80)) {
+          value |= ~((1LL << (num_bytes << 3)) - 1);
+        }
+
+        stk.emplace_back(new JSONObject(value));
+        break;
+      }
 
       case '\x94': // MEMOIZE         - store top of the stack in memo
         memo[memo.size()] = stk.back();
         break;
+
       case 'p': {  // PUT             - store stack top in memo; index is string arg
         char* endptr;
         int64_t index = strtoll(&buffer[offset], &endptr, 10);
@@ -692,7 +732,8 @@ void serialize_pickle_recursive(string& buffer, const JSONObject& o) {
       buffer += "J";
       buffer.append((char*)&v32, sizeof(v32));
     } else {
-      buffer += string_printf("L%ld\n", v);
+      // why am I so damn lazy? sigh
+      buffer += string_printf("L%ldL\n", v);
     }
 
   } else if (o.is_float()) {
