@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
   }
 
   string src_data;
-  if (!src_filename || strcmp(src_filename, "-")) {
+  if (!src_filename || !strcmp(src_filename, "-")) {
     src_data = read_all(stdin);
   } else {
     src_data = load_file(src_filename);
