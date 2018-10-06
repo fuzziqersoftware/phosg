@@ -183,29 +183,45 @@ shared_ptr<JSONObject> JSONObject::parse(const string& s, size_t offset) {
     ret->string_data = "";
     while (offset < s.length() && s[offset] != '\"') {
       if (s[offset] == '\\') {
-        if (offset == s.length() - 1)
+        if (offset == s.length() - 1) {
           throw parse_error("incomplete string; pos=" + to_string(offset));
+        }
         offset++;
-        if (s[offset] == '\"')
+        if (s[offset] == '\"') {
           ret->string_data.push_back('\"');
-        else if (s[offset] == '\\')
+        } else if (s[offset] == '\\') {
           ret->string_data.push_back('\\');
-        else if (s[offset] == '/')
+        } else if (s[offset] == '/') {
           ret->string_data.push_back('/');
-        else if (s[offset] == 'b')
+        } else if (s[offset] == 'b') {
           ret->string_data.push_back('\b');
-        else if (s[offset] == 'f')
+        } else if (s[offset] == 'f') {
           ret->string_data.push_back('\f');
-        else if (s[offset] == 'n')
+        } else if (s[offset] == 'n') {
           ret->string_data.push_back('\n');
-        else if (s[offset] == 'r')
+        } else if (s[offset] == 'r') {
           ret->string_data.push_back('\r');
-        else if (s[offset] == 't')
+        } else if (s[offset] == 't') {
           ret->string_data.push_back('\t');
-        else if (s[offset] == 'x')
-          throw parse_error("unicode escape sequence in string; pos=" + to_string(offset));
-        else
+        } else if (s[offset] == 'u') {
+          if (offset >= s.length() - 5) {
+            throw parse_error("incomplete unicode escape sequence at end of string; pos=" + to_string(offset));
+          }
+          uint16_t value;
+          try {
+            value = (value_for_hex_char(s[offset + 1]) << 12) |
+                    (value_for_hex_char(s[offset + 2]) << 8) |
+                    (value_for_hex_char(s[offset + 3]) << 4) |
+                    value_for_hex_char(s[offset + 4]);
+          } catch (const out_of_range&) {
+            throw parse_error("incomplete unicode escape sequence in string; pos=" + to_string(offset));
+          }
+          if (value & 0xFF00) {
+            throw parse_error("non-ascii unicode character sequence in string; pos=" + to_string(offset));
+          }
+        } else {
           throw parse_error("invalid escape sequence in string; pos=" + to_string(offset));
+        }
       } else {
         ret->string_data.push_back(s[offset]);
       }
