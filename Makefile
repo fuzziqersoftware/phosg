@@ -13,16 +13,20 @@ else
 	LDFLAGS +=  -pthread
 endif
 
-all: libphosg.a test
+all: libphosg.a jsonformat test
 
 install: libphosg.a
 	mkdir -p $(INSTALL_DIR)/include/phosg
 	cp libphosg.a $(INSTALL_DIR)/lib/
 	cp -r *.hh $(INSTALL_DIR)/include/phosg/
+	cp jsonformat $(INSTALL_DIR)/bin/
 
 libphosg.a: $(OBJECTS)
 	rm -f libphosg.a
 	ar rcs libphosg.a $(OBJECTS)
+
+jsonformat: JSON.o JSONPickle.o Strings.o Filesystem.o Process.o Time.o JSONFormat.o
+	$(CXX) $(LDFLAGS) $^ -o $@
 
 test: ConsistentHashRingTest EncodingTest FileCacheTest FilesystemTest HashTest JSONPickleTest JSONTest LRUSetTest ProcessTest StringsTest TimeTest UnitTestTest
 	./ConsistentHashRingTest
@@ -42,6 +46,6 @@ test: ConsistentHashRingTest EncodingTest FileCacheTest FilesystemTest HashTest 
 	$(CXX) $(LDFLAGS) $^ -o $@
 
 clean:
-	rm -rf *.dSYM *.o gmon.out libphosg.a *Test
+	rm -rf *.dSYM *.o gmon.out libphosg.a jsonformat *Test
 
 .PHONY: clean

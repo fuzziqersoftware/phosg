@@ -12,6 +12,9 @@ A short summary of its contents:
 - Process listing and name <> PID mapping
 - String helpers like printf, split, time/size formatting, etc.
 
+Phosg also includes an executable (jsonformat) that reformats JSON and converts
+to/from Python's pickle format.
+
 Building & installing:
 0. Make sure you have Make, g++ and Python installed.
 1. `make`
