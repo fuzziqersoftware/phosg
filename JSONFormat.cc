@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <string>
 
@@ -23,6 +24,8 @@ Options:\n\
     size of the resulting data. No effect when --write-pickle is specified.\n\
   --read-pickle: Expect input data in pickle format instead of JSON.\n\
   --write-pickle: Write output in pickle format (protocol 2) instead of JSON.\n\
+  --binary-stdout: Don\'t complain if writing pickle data to standard output\n\
+    when it\'s a terminal.\n\
 \n", argv0);
 }
 
@@ -32,6 +35,7 @@ int main(int argc, char** argv) {
   bool format = true;
   bool write_pickle = false;
   bool read_pickle = false;
+  bool binary_stdout = false;
   const char* src_filename;
   const char* dst_filename;
   for (int x = 1; x < argc; x++) {
@@ -47,6 +51,8 @@ int main(int argc, char** argv) {
         read_pickle = true;
       } else if (!strcmp(argv[x], "--write-pickle")) {
         write_pickle = true;
+      } else if (!strcmp(argv[x], "--binary-stdout")) {
+        binary_stdout = true;
       } else {
         fprintf(stderr, "unknown argument: %s\n", argv[x]);
         return 1;
@@ -59,6 +65,12 @@ int main(int argc, char** argv) {
       fprintf(stderr, "too many positional arguments given\n");
       return 1;
     }
+  }
+
+  if (write_pickle && !binary_stdout && isatty(fileno(stdout))) {
+    fprintf(stderr, "stdout is a terminal; writing pickle data will likely be unreadable\n");
+    fprintf(stderr, "use --binary-stdout to write pickle data to stdout anyway\n");
+    return 1;
   }
 
   string src_data;
