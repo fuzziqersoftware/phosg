@@ -155,11 +155,11 @@ uint64_t start_time_for_pid(pid_t pid, bool allow_zombie) {
   }
 
   // so many syscalls... sigh
-  char status_data[64];
+  char status_data[2048]; // this is probably big enough
   try {
-    string filename = string_printf("/proc/%d/stat", pid);
+    string filename = string_printf("/proc/%d/status", pid);
     scoped_fd fd(filename, O_RDONLY);
-    ssize_t bytes_read = read(fd, status_data, 63);
+    ssize_t bytes_read = read(fd, status_data, 2047);
     if (bytes_read < 0) {
       throw runtime_error("can\'t read stat file for pid " + to_string(pid));
     }
@@ -168,11 +168,16 @@ uint64_t start_time_for_pid(pid_t pid, bool allow_zombie) {
     return 0; // assume it's not running; may have terminated after the stat
   }
 
-  size_t status_offset = skip_word(status_data, skip_word(status_data, 0));
-  if (status_data[status_offset] == '\0') {
-    throw runtime_error("can\'t parse stat file for pid " + to_string(pid));
+  char* state = strstr(status_data, "\nState:");
+  if (!state) {
+    throw runtime_error("no State field in status for pid " + to_string(pid));
   }
-  if (status_data[status_offset] == 'Z') {
+
+  state += skip_whitespace(state + 7, 0) + 7; // +7 to skip over "\nState:"
+  if (*state == 0) {
+    throw runtime_error("can\'t parse status data for pid " + to_string(pid));
+  }
+  if (*state == 'Z'){
     return 0;
   }
   return start_time;
