@@ -36,8 +36,8 @@ int main(int argc, char** argv) {
   bool write_pickle = false;
   bool read_pickle = false;
   bool binary_stdout = false;
-  const char* src_filename;
-  const char* dst_filename;
+  const char* src_filename = NULL;
+  const char* dst_filename = NULL;
   for (int x = 1; x < argc; x++) {
     if (argv[x][0] == '-') {
       if (!strcmp(argv[x], "--help")) {
