@@ -13,12 +13,12 @@ int main(int argc, char* argv[]) {
 
   expect_eq((uint16_t)-1, bswap16(-1));
   expect_eq((uint32_t)0x00FFFFFF, bswap24(-1));
-  expect_eq((uint32_t)-1, bswap24s(-1));
+  expect_eq((int32_t)-1, bswap24s(-1));
   expect_eq((uint32_t)-1, bswap32(-1));
   expect_eq((uint64_t)-1, bswap64(-1));
 
   expect_eq((uint16_t)-257, bswap16(-2));
-  expect_eq((uint32_t)-65537, bswap24s(-2));
+  expect_eq((int32_t)-65537, bswap24s(-2));
   expect_eq((uint32_t)-16777217, bswap32(-2));
   expect_eq((uint64_t)-72057594037927937, bswap64(-2));
 
