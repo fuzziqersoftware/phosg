@@ -470,7 +470,7 @@ void unlink(const string& filename, bool recursive) {
       for (const string& item : list_directory(filename)) {
         unlink(filename + "/" + item, true);
       }
-      if (rmdir(filename.c_str()) != 0) {
+      if ((rmdir(filename.c_str()) != 0) && (errno != ENOENT)) {
         throw runtime_error("can\'t delete directory " + filename + ": " + string_for_error(errno));
       }
     } else {
@@ -478,7 +478,7 @@ void unlink(const string& filename, bool recursive) {
     }
 
   } else {
-    if (unlink(filename.c_str()) != 0) {
+    if ((unlink(filename.c_str()) != 0) && (errno != ENOENT)) {
       throw runtime_error("can\'t delete file " + filename + ": " + string_for_error(errno));
     }
   }
