@@ -99,7 +99,7 @@ class StringReader {
 public:
   explicit StringReader(std::shared_ptr<std::string> data, size_t offset = 0);
   StringReader(const void* data, size_t size, size_t offset = 0);
-  ~StringReader() = default;
+  virtual ~StringReader() = default;
 
   size_t where() const;
   size_t size() const;
