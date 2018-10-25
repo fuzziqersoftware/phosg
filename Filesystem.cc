@@ -28,7 +28,7 @@ unordered_set<string> list_directory(const string& dirname,
 
   DIR* dir = opendir(dirname.c_str());
   if (dir == NULL) {
-    throw runtime_error("can\'t read directory " + dirname + ": " + string_for_error(errno));
+    throw cannot_open_file(dirname);
   }
 
   struct dirent* entry;
