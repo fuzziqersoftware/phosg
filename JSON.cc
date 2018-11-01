@@ -105,13 +105,15 @@ shared_ptr<JSONObject> JSONObject::parse(const string& s, size_t offset) {
 
     char expected_separator = '[';
     while (offset < s.length() && s[offset] != ']') {
-      if (s[offset] != expected_separator)
+      if (s[offset] != expected_separator) {
         throw parse_error("string is not a list; pos=" + to_string(offset));
+      }
       expected_separator = ',';
       offset++;
       offset = skip_whitespace_or_comment(s, offset);
-      if (offset >= s.length() || s[offset] == ']')
+      if (offset >= s.length() || s[offset] == ']') {
         break;
+      }
 
       ret->list_data.emplace_back(JSONObject::parse(s, offset));
       offset += ret->list_data.back()->source_length();
@@ -132,41 +134,60 @@ shared_ptr<JSONObject> JSONObject::parse(const string& s, size_t offset) {
       offset++;
     }
 
-    ret->int_data = 0;
-    for (; isdigit(s[offset]); offset++) {
-      ret->int_data = ret->int_data * 10 + (s[offset] - '0');
-    }
+    if (s[offset] == '0' && s[offset + 1] == 'x') { // hexadecimal
+      offset += 2;
 
-    double this_place = 0.1;
-    ret->float_data = ret->int_data;
-    if (s[offset] == '.') {
-      ret->type = Float;
-      offset++;
-      for (; isdigit(s[offset]); offset++) {
-        ret->float_data += (s[offset] - '0') * this_place;
-        this_place *= 0.1;
-      }
-    }
-
-    if (s[offset] == 'e' || s[offset] == 'E') {
-      offset++;
-      bool e_negative = s[offset] == '-';
-      if (s[offset] == '-' || s[offset] == '+')
-        offset++;
-
-      int e = 0;
-      for (; isdigit(s[offset]); offset++)
-        e = e * 10 + (s[offset] - '0');
-
-      if (e_negative) {
-        for (; e > 0; e--) {
-          ret->int_data *= 0.1;
-          ret->float_data *= 0.1;
+      ret->int_data = 0;
+      for (; isxdigit(s[offset]); offset++) {
+        if (s[offset] >= 'a') {
+          ret->int_data = (ret->int_data << 4) | (s[offset] - 'a');
+        } else if (s[offset] >= 'A') {
+          ret->int_data = (ret->int_data << 4) | (s[offset] - 'A');
+        } else {
+          ret->int_data = (ret->int_data << 4) | (s[offset] - '0');
         }
-      } else {
-        for (; e > 0; e--)
-          ret->float_data *= 10;
-        ret->int_data = ret->float_data;
+      }
+      ret->float_data = ret->int_data;
+
+    } else { // decimal
+      ret->int_data = 0;
+      for (; isdigit(s[offset]); offset++) {
+        ret->int_data = ret->int_data * 10 + (s[offset] - '0');
+      }
+
+      double this_place = 0.1;
+      ret->float_data = ret->int_data;
+      if (s[offset] == '.') {
+        ret->type = Float;
+        offset++;
+        for (; isdigit(s[offset]); offset++) {
+          ret->float_data += (s[offset] - '0') * this_place;
+          this_place *= 0.1;
+        }
+      }
+
+      if (s[offset] == 'e' || s[offset] == 'E') {
+        offset++;
+        bool e_negative = s[offset] == '-';
+        if (s[offset] == '-' || s[offset] == '+') {
+          offset++;
+        }
+
+        int e = 0;
+        for (; isdigit(s[offset]); offset++) {
+          e = e * 10 + (s[offset] - '0');
+        }
+
+        if (e_negative) {
+          for (; e > 0; e--) {
+            ret->int_data *= 0.1;
+            ret->float_data *= 0.1;
+          }
+        } else {
+          for (; e > 0; e--)
+            ret->float_data *= 10;
+          ret->int_data = ret->float_data;
+        }
       }
     }
 
