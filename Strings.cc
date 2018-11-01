@@ -135,6 +135,16 @@ vector<string> split(const string& s, char delim) {
   return elems;
 }
 
+vector<wstring> split(const wstring& s, wchar_t delim) {
+  vector<wstring> elems;
+  wstringstream ss(s);
+  wstring item;
+  while (getline(ss, item, delim)) {
+    elems.push_back(item);
+  }
+  return elems;
+}
+
 vector<string> split_context(const string& s, char delim) {
   vector<string> elems;
   vector<char> paren_stack;

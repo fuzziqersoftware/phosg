@@ -28,6 +28,7 @@ void set_log_level(int new_level);
 void log(int level, const char* fmt, ...);
 
 std::vector<std::string> split(const std::string& s, char delim);
+std::vector<std::wstring> split(const std::wstring& s, wchar_t delim);
 std::vector<std::string> split_context(const std::string& s, char delim);
 std::string join(const std::vector<std::string>& items,
     const std::string& delim);
