@@ -1,10 +1,13 @@
 #pragma once
 
 #include <dirent.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/uio.h>
+#include <unistd.h>
 
 #include <functional>
 #include <memory>
@@ -13,6 +16,8 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
+#include "Strings.hh"
 
 
 std::unordered_set<std::string> list_directory(const std::string& dirname,
@@ -104,6 +109,36 @@ void freadx(FILE* f, void* data, size_t size);
 void fwritex(FILE* f, const void* data, size_t size);
 std::string freadx(FILE* f, size_t size);
 void fwritex(FILE* f, const std::string& data);
+
+template <typename T>
+T load_object_file(const std::string& filename) {
+  scoped_fd fd(filename, O_RDONLY);
+  if (fstat(fd).st_size != sizeof(T)) {
+    throw std::runtime_error("size of " + filename + " is incorrect");
+  }
+
+  T ret;
+  if (read(fd, &ret, sizeof(ret)) != sizeof(ret)) {
+    throw std::runtime_error("can\'t read from " + filename + ": " + string_for_error(errno));
+  }
+
+  return ret;
+}
+
+template <typename T>
+std::vector<T> load_vector_file(const std::string& filename) {
+  scoped_fd fd(filename, O_RDONLY);
+  size_t file_size = fstat(fd).st_size;
+  size_t item_count = file_size / sizeof(T);
+  size_t read_size = item_count * sizeof(T);
+
+  std::vector<T> ret(item_count);
+  if (read(fd, ret.data(), read_size) != read_size) {
+    throw std::runtime_error("can\'t read from " + filename + ": " + string_for_error(errno));
+  }
+
+  return ret;
+}
 
 std::string load_file(const std::string& filename);
 void save_file(const std::string& filename, const void* data, size_t size);
