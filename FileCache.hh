@@ -17,9 +17,10 @@ private:
 
     File() = delete;
     File(const std::string& name, scoped_fd&& fd);
-    File(const FileCache&) = delete;
-    File(FileCache&&) = delete;
-    File& operator=(const FileCache&) = delete;
+    File(const File&) = delete;
+    File(File&&) = delete;
+    File& operator=(const File&) = delete;
+    File& operator=(File&&) = delete;
     ~File() = default;
   };
 
@@ -29,6 +30,7 @@ public:
   FileCache(const FileCache&) = delete;
   FileCache(FileCache&&) = delete;
   FileCache& operator=(const FileCache&) = delete;
+  FileCache& operator=(FileCache&&) = delete;
   ~FileCache() = default;
 
   size_t get_max_size() const;
