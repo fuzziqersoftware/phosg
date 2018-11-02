@@ -139,13 +139,7 @@ shared_ptr<JSONObject> JSONObject::parse(const string& s, size_t offset) {
 
       ret->int_data = 0;
       for (; isxdigit(s[offset]); offset++) {
-        if (s[offset] >= 'a') {
-          ret->int_data = (ret->int_data << 4) | (s[offset] - 'a');
-        } else if (s[offset] >= 'A') {
-          ret->int_data = (ret->int_data << 4) | (s[offset] - 'A');
-        } else {
-          ret->int_data = (ret->int_data << 4) | (s[offset] - '0');
-        }
+        ret->int_data = (ret->int_data << 4) | value_for_hex_char(s[offset]);
       }
       ret->float_data = ret->int_data;
 
