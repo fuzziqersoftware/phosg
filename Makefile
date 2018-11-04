@@ -1,4 +1,4 @@
-OBJECTS=Concurrency.o ConsistentHashRing.o FileCache.o Filesystem.o Hash.o Image.o JSONPickle.o JSON.o Network.o Process.o Strings.o Time.o UnitTest.o
+OBJECTS=Concurrency.o ConsistentHashRing.o FileCache.o Filesystem.o Hash.o Image.o JSONPickle.o JSON.o Network.o Process.o Random.o Strings.o Time.o UnitTest.o
 CXX=g++ -fPIC
 CXXFLAGS=-std=c++14 -g -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -Wall -Werror
 LDFLAGS=-g -std=c++14 -lstdc++
