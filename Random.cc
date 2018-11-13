@@ -1,5 +1,7 @@
 #include "Random.hh"
 
+#include <string.h>
+
 #include <stdexcept>
 #include <string>
 
