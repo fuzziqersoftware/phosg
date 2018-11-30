@@ -13,6 +13,8 @@
 #ifdef MACOSX
 #include <libproc.h>
 #include <sys/proc_info.h>
+#else
+#include <signal.h>
 #endif
 
 #include "Filesystem.hh"
@@ -118,8 +120,34 @@ bool pid_exists(pid_t pid) {
   if (errno == ESRCH) {
     return false;
   }
-  throw runtime_error("invalid process ID: " + to_string(pid));
+  return true;
 }
+
+#ifdef LINUX
+bool pid_is_zombie(pid_t pid) {
+  // so many syscalls... sigh
+  char status_data[2048]; // this is probably big enough
+  try {
+    string filename = string_printf("/proc/%d/status", pid);
+    scoped_fd fd(filename, O_RDONLY);
+    ssize_t bytes_read = read(fd, status_data, 2047);
+    if (bytes_read < 0) {
+      throw runtime_error("can\'t read stat file for pid " + to_string(pid));
+    }
+    status_data[bytes_read] = '\0';
+  } catch (const cannot_open_file& e) {
+    return false; // non-running processes are not zombies
+  }
+
+  char* state = strstr(status_data, "\nState:");
+  if (!state) {
+    return false;
+  }
+
+  state += skip_whitespace(state + 7, 0) + 7; // +7 to skip over "\nState:"
+  return (*state == 'Z');
+}
+#endif
 
 uint64_t start_time_for_pid(pid_t pid, bool allow_zombie) {
 #ifdef MACOSX
@@ -150,34 +178,7 @@ uint64_t start_time_for_pid(pid_t pid, bool allow_zombie) {
     return 0;
   }
 
-  if (allow_zombie) {
-    return start_time;
-  }
-
-  // so many syscalls... sigh
-  char status_data[2048]; // this is probably big enough
-  try {
-    string filename = string_printf("/proc/%d/status", pid);
-    scoped_fd fd(filename, O_RDONLY);
-    ssize_t bytes_read = read(fd, status_data, 2047);
-    if (bytes_read < 0) {
-      throw runtime_error("can\'t read stat file for pid " + to_string(pid));
-    }
-    status_data[bytes_read] = '\0';
-  } catch (const cannot_open_file& e) {
-    return 0; // assume it's not running; may have terminated after the stat
-  }
-
-  char* state = strstr(status_data, "\nState:");
-  if (!state) {
-    throw runtime_error("no State field in status for pid " + to_string(pid));
-  }
-
-  state += skip_whitespace(state + 7, 0) + 7; // +7 to skip over "\nState:"
-  if (*state == 0) {
-    throw runtime_error("can\'t parse status data for pid " + to_string(pid));
-  }
-  if (*state == 'Z'){
+  if (!allow_zombie && pid_is_zombie(pid)) {
     return 0;
   }
   return start_time;
