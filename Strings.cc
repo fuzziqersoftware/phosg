@@ -322,6 +322,7 @@ void print_data(FILE* stream, const void* _data, uint64_t size,
   bool print_float = flags & PrintDataFlags::PrintFloat;
   bool print_double = flags & PrintDataFlags::PrintDouble;
   bool reverse_endian = flags & PrintDataFlags::ReverseEndian;
+  bool collapse_zero_lines = flags & PrintDataFlags::CollapseZeroLines;
 
   // if color is disabled or no diff source is given, disable diffing
   const uint8_t* data = (const uint8_t*)_data;
@@ -332,7 +333,7 @@ void print_data(FILE* stream, const void* _data, uint64_t size,
        line_start_address < end_address;
        line_start_address += 0x10) {
     uint64_t line_end_address = line_start_address + 0x10;
-    if ((line_start_address > start_address) && (line_end_address <= end_address) &&
+    if (collapse_zero_lines && (line_start_address > start_address) && (line_end_address <= end_address) &&
         !memcmp(&data[line_start_address - start_address], "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 16)) {
       continue;
     }
