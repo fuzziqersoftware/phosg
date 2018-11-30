@@ -24,6 +24,7 @@ public:
   Image(const Image&);
   Image(FILE* f);
   Image(const char* filename);
+  Image(const std::string& filename);
   ~Image();
 
   const Image& operator=(const Image& other);

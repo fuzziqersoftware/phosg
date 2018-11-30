@@ -171,6 +171,8 @@ Image::Image(const char* filename) {
   }
 }
 
+Image::Image(const string& filename) : Image(filename.c_str()) { }
+
 Image::~Image() {
   delete[] data;
 }
