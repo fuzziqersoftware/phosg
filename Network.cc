@@ -45,7 +45,7 @@ pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const string& addr,
   if (addr.empty()) {
     struct sockaddr_in* sin = (struct sockaddr_in*)&s;
     sin->sin_family = AF_INET;
-    sin->sin_port = htons(port);
+    sin->sin_port = (port > 0) ? htons(port) : 0;
     sin->sin_addr.s_addr = htonl(INADDR_ANY);
 
   } else {
@@ -72,14 +72,14 @@ pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const string& addr,
       struct sockaddr_in* res_sin = (struct sockaddr_in*)res4->ai_addr;
       struct sockaddr_in* sin = (struct sockaddr_in*)&s;
       sin->sin_family = AF_INET;
-      sin->sin_port = htons(port);
+      sin->sin_port = (port > 0) ? htons(port) : 0;
       sin->sin_addr.s_addr = res_sin->sin_addr.s_addr;
 
     } else { // res->ai_family == AF_INET6
       struct sockaddr_in6* res_sin6 = (struct sockaddr_in6*)res6->ai_addr;
       struct sockaddr_in6* sin6 = (struct sockaddr_in6*)&s;
       sin6->sin6_family = AF_INET6;
-      sin6->sin6_port = htons(port);
+      sin6->sin6_port = (port > 0) ? htons(port) : 0;
       memcpy(&sin6->sin6_addr, &res_sin6->sin6_addr, sizeof(sin6->sin6_addr));
 
       ret_size = sizeof(struct sockaddr_in6);

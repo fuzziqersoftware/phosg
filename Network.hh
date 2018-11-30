@@ -26,6 +26,8 @@ std::string render_sockaddr_storage(const sockaddr_storage& s);
  *   to all addresses. The port argument must be nonzero. Set backlog to 0.
  * - Unix datagram sockets. For these, set addr to the socket's path, and set
  *   port and backlog to 0.
+ * The port argument may be negative to automatically choose a port (e.g. for
+ * UDP sockets where we the caller doesn't need a fixed port number).
  */
 int listen(const std::string& addr, int port, int backlog,
     bool nonblocking = true);
