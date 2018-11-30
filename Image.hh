@@ -35,6 +35,9 @@ public:
   inline int get_height() const {
     return this->height;
   }
+  inline const uint8_t* get_data() const {
+    return this->data;
+  }
 
   enum ImageFormat {
     GrayscalePPM = 0,
