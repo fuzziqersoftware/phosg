@@ -696,7 +696,7 @@ shared_ptr<JSONObject> parse_pickle(const void* data, size_t size) {
 
 void serialize_pickle_recursive(string& buffer, const JSONObject& o) {
   if (o.is_null()) {
-    buffer += "N";
+    buffer += 'N';
 
   } else if (o.is_bool()) {
     buffer += (o.as_bool() ? '\x88' : '\x89');
@@ -708,11 +708,11 @@ void serialize_pickle_recursive(string& buffer, const JSONObject& o) {
       throw JSONObject::parse_error("string too long to be serialized in pickle format");
     } else if (length > 0xFF) {
       uint32_t length32 = length;
-      buffer += "T";
+      buffer += 'T';
       buffer.append((char*)&length32, sizeof(length32));
     } else {
       uint8_t length8 = length;
-      buffer += "U";
+      buffer += 'U';
       buffer.append((char*)&length8, sizeof(length8));
     }
     buffer += s;
@@ -721,19 +721,44 @@ void serialize_pickle_recursive(string& buffer, const JSONObject& o) {
     int64_t v = o.as_int();
     if (v >= 0 && v < 0x100) {
       uint8_t v8 = v;
-      buffer += "K";
+      buffer += 'K';
       buffer.append((char*)&v8, sizeof(v8));
+
     } else if (v >= 0 && v < 0x10000) {
       uint16_t v16 = v;
-      buffer += "M";
+      buffer += 'M';
       buffer.append((char*)&v16, sizeof(v16));
+
     } else if (((v & 0xFFFFFFFF80000000) == 0) || ((v & 0xFFFFFFFF80000000) == 0xFFFFFFFF80000000)) {
       int32_t v32 = v;
-      buffer += "J";
+      buffer += 'J';
       buffer.append((char*)&v32, sizeof(v32));
+
     } else {
-      // why am I so damn lazy? sigh
-      buffer += string_printf("L%ldL\n", v);
+      // this library only supports ints up to 64 bits, so we don't need to
+      // think about using LONG4 here
+      buffer += '\x8A'; // LONG1
+
+      size_t size_offset = buffer.size();
+      buffer += '\x00';
+
+      // note: we don't have to think about v being 0 or -1 (which would produce
+      // incorrect results here) because 0 serializes using K and -1 serializes
+      // using J above
+      if (v > 0) {
+        while (v) {
+          buffer += static_cast<char>(v & 0xFF);
+          v >>= 8;
+          buffer[size_offset]++;
+        }
+
+      } else { // v < 0
+        while (v != -1) {
+          buffer += static_cast<char>(v & 0xFF);
+          v >>= 8;
+          buffer[size_offset]++;
+        }
+      }
     }
 
   } else if (o.is_float()) {
