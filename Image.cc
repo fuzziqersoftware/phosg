@@ -121,23 +121,25 @@ void Image::load(FILE* f) {
     uint8_t* new_data = new uint8_t[w * h * 3];
 
     if (header.info_header.compression == 0) { // BI_RGB
-      if (header.info_header.bit_depth != 24) {
-        throw runtime_error("bitmap uses BI_RGB but bit depth is not 24");
+      if ((header.info_header.bit_depth != 24) && (header.info_header.bit_depth != 32)) {
+        throw runtime_error("bitmap uses BI_RGB but bit depth is not 24 or 32");
       }
 
       has_alpha = false;
-      size_t row_padding_bytes = (4 - ((w * 3) % 4)) % 4;
+      size_t pixel_bytes = header.info_header.bit_depth / 8;
+      size_t row_padding_bytes = (4 - ((w * pixel_bytes) % 4)) % 4;
 
-      uint8_t* row_data = new uint8_t[w * 3];
+      uint8_t* row_data = new uint8_t[w * pixel_bytes];
       for (int32_t y = h - 1; y >= 0; y--) {
-        fread(row_data, w * 3, 1, f);
+        fread(row_data, w * pixel_bytes, 1, f);
         ssize_t target_y = reverse_row_order ? (h - y - 1) : y;
         ssize_t target_y_offset = target_y * w * 3;
         for (int32_t x = 0; x < w; x++) {
           size_t x_offset = x * 3;
-          new_data[target_y_offset + x_offset + 2] = row_data[x_offset + 0];
-          new_data[target_y_offset + x_offset + 1] = row_data[x_offset + 1];
-          new_data[target_y_offset + x_offset + 0] = row_data[x_offset + 2];
+          size_t src_x_offset = x * pixel_bytes;
+          new_data[target_y_offset + x_offset + 2] = row_data[src_x_offset + 0];
+          new_data[target_y_offset + x_offset + 1] = row_data[src_x_offset + 1];
+          new_data[target_y_offset + x_offset + 0] = row_data[src_x_offset + 2];
         }
         if (row_padding_bytes) {
           fseek(f, row_padding_bytes, SEEK_CUR);
