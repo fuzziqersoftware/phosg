@@ -217,6 +217,12 @@ scoped_fd::~scoped_fd() {
   }
 }
 
+scoped_fd& scoped_fd::operator=(scoped_fd&& other) {
+  this->fd = other.fd;
+  other.fd = -1;
+  return *this;
+}
+
 scoped_fd& scoped_fd::operator=(int other) {
   if (this->fd >= 0) {
     ::close(this->fd);
