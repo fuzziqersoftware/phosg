@@ -12,8 +12,8 @@
 // image as a PPM or Windows BMP file.
 class Image {
 private:
-  size_t width;
-  size_t height;
+  ssize_t width;
+  ssize_t height;
   bool has_alpha;
   uint8_t* data;
 
