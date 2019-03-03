@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
 
   {
     auto p = pipe();
-    writex(p.second, "omg");
+    writex(p.second, "omg", 3);
     expect_eq("omg", readx(p.first, 3));
 
     Poll poll;

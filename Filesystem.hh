@@ -111,6 +111,46 @@ void fwritex(FILE* f, const void* data, size_t size);
 std::string freadx(FILE* f, size_t size);
 void fwritex(FILE* f, const std::string& data);
 
+
+
+template <typename T>
+T readx(int fd) {
+  T t;
+  readx(fd, &t, sizeof(T));
+  return t;
+}
+
+template <typename T>
+void writex(int fd, const T& t) {
+  writex(fd, &t, sizeof(T));
+}
+
+template <typename T>
+T preadx(int fd, off_t offset) {
+  T t;
+  preadx(fd, &t, sizeof(T), offset);
+  return t;
+}
+
+template <typename T>
+void pwritex(int fd, const T& t, off_t offset) {
+  pwritex(fd, &t, sizeof(T), offset);
+}
+
+template <typename T>
+T freadx(FILE* f) {
+  T t;
+  freadx(f, &t, sizeof(T));
+  return t;
+}
+
+template <typename T>
+void fwritex(FILE* f, const T& t) {
+  fwritex(f, &t, sizeof(T));
+}
+
+
+
 template <typename T>
 T load_object_file(const std::string& filename) {
   scoped_fd fd(filename, O_RDONLY);
