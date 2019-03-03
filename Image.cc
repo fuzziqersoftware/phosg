@@ -453,14 +453,14 @@ void Image::save(const char* filename, Image::ImageFormat format) const {
 // fill the entire image with this color
 void Image::clear(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
   if (this->has_alpha) {
-    for (size_t x = 0; x < this->width * this->height; x++) {
+    for (ssize_t x = 0; x < this->width * this->height; x++) {
       this->data[x * 4 + 0] = r;
       this->data[x * 4 + 1] = g;
       this->data[x * 4 + 2] = b;
       this->data[x * 4 + 3] = a;
     }
   } else {
-    for (size_t x = 0; x < this->width * this->height; x++) {
+    for (ssize_t x = 0; x < this->width * this->height; x++) {
       this->data[x * 3 + 0] = r;
       this->data[x * 3 + 1] = g;
       this->data[x * 3 + 2] = b;
@@ -767,10 +767,10 @@ void Image::fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint8_t r,
     h += y;
     y = 0;
   }
-  if (x + w > this->get_width()) {
+  if (x + w > static_cast<ssize_t>(this->get_width())) {
     w = this->get_width() - x;
   }
-  if (y + h > this->get_height()) {
+  if (y + h > static_cast<ssize_t>(this->get_height())) {
     h = this->get_height() - y;
   }
 
