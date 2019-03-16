@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
     int file2_fd;
     {
       auto lease2 = c.lease("./FileCacheTest-file2", 0644);
-      file2_fd = lease2.fd;
+      file2_fd = lease2->fd;
     }
     {
       auto lease3 = c.lease("./FileCacheTest-file3", 0644);

@@ -10,7 +10,7 @@ using namespace std;
 
 
 class FileCache {
-private:
+public:
   struct File {
     std::string name;
     scoped_fd fd;
@@ -24,7 +24,6 @@ private:
     ~File() = default;
   };
 
-public:
   FileCache() = delete;
   explicit FileCache(size_t max_size);
   FileCache(const FileCache&) = delete;
@@ -39,20 +38,7 @@ public:
   bool is_open(const std::string& name) const;
   size_t size() const;
 
-  struct Lease {
-    int fd;
-    std::shared_ptr<File> fd_object;
-
-    Lease() = delete;
-    Lease(FileCache* cache, const std::string& name, mode_t create_mode);
-    Lease(const Lease&) = delete;
-    Lease(Lease&&) = default;
-    Lease& operator=(const Lease&) = delete;
-    ~Lease() = default;
-
-    void close();
-  };
-  Lease lease(const std::string& name, mode_t create_mode = 0644);
+  shared_ptr<const File> lease(const std::string& name, mode_t create_mode = 0644);
 
   void close(const std::string& name);
 
@@ -61,7 +47,7 @@ public:
 private:
   size_t max_size;
   LRUSet<std::string> lru;
-  std::unordered_map<std::string, std::shared_ptr<File>> name_to_fd;
+  std::unordered_map<std::string, std::shared_ptr<File>> name_to_file;
   mutable std::mutex lock;
 
   void enforce_max_size();

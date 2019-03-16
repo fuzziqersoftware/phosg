@@ -27,83 +27,71 @@ size_t FileCache::set_max_size(size_t max_size) {
 
 bool FileCache::is_open(const string& filename) const {
   lock_guard<mutex> g(this->lock);
-  return this->name_to_fd.count(filename);
+  return this->name_to_file.count(filename);
 }
 
 size_t FileCache::size() const {
   lock_guard<mutex> g(this->lock);
-  return this->name_to_fd.size();
+  return this->name_to_file.size();
 }
 
-FileCache::Lease::Lease(FileCache* cache, const std::string& name,
-    mode_t create_mode) : fd(-1), fd_object() {
-
+shared_ptr<const FileCache::File> FileCache::lease(const string& name,
+    mode_t create_mode) {
   try {
-    lock_guard<mutex> g(cache->lock);
-    this->fd_object = cache->name_to_fd.at(name);
-    cache->lru.touch(this->fd_object->name);
+    lock_guard<mutex> g(this->lock);
+    auto ret = this->name_to_file.at(name);
+    this->lru.touch(ret->name);
+    return ret;
 
   } catch (const out_of_range& e) {
-    this->fd = open(name.c_str(),
+    int fd = open(name.c_str(),
         O_RDWR | (create_mode ? O_CREAT : 0) | O_CLOEXEC, create_mode);
-    if (this->fd < 0) {
+    if (fd < 0) {
       throw cannot_open_file(name);
     }
 
-    shared_ptr<File> fd_ptr(new File(name, this->fd));
+    shared_ptr<File> fd_ptr(new File(name, fd));
+    shared_ptr<File> ret = fd_ptr;
 
     {
-      lock_guard<mutex> g(cache->lock);
-      auto emplace_ret = cache->name_to_fd.emplace(name, fd_ptr);
-      this->fd_object = emplace_ret.first->second;
-
+      lock_guard<mutex> g(this->lock);
+      auto emplace_ret = this->name_to_file.emplace(name, fd_ptr);
       if (emplace_ret.second) {
-        this->fd = this->fd_object->fd;
-
-        cache->lru.insert(fd_ptr->name);
-        cache->enforce_max_size();
-        return;
+        this->lru.insert(fd_ptr->name);
+        this->enforce_max_size();
+      } else {
+        // if we get here, then there was a data race and another thread opened
+        // this file while we were trying ot open it. we'll close our fd and use
+        // the one they opened instead. (note that fd_ptr is destroyed outside
+        // of the lock scope, so close() isn't called while holding the lock)
+        ret = emplace_ret.first->second;
       }
     }
-
-    // another thread got there first and opened this fd; close this fd and use
-    // the other one instead
-    ::close(this->fd);
+    return ret;
   }
-
-  this->fd = this->fd_object->fd;
-}
-
-void FileCache::Lease::close() {
-  this->fd = -1;
-  this->fd_object.reset();
-}
-
-FileCache::Lease FileCache::lease(const std::string& name, mode_t create_mode) {
-  return Lease(this, name, create_mode);
 }
 
 void FileCache::close(const std::string& name) {
   lock_guard<mutex> g(this->lock);
 
-  auto fd_it = this->name_to_fd.find(name);
-  if (fd_it == this->name_to_fd.end()) {
+  auto fd_it = this->name_to_file.find(name);
+  if (fd_it == this->name_to_file.end()) {
     return;
   }
 
   this->lru.erase(fd_it->second->name);
-  this->name_to_fd.erase(fd_it);
+  this->name_to_file.erase(fd_it);
 }
 
 void FileCache::clear() {
   lock_guard<mutex> g(this->lock);
   this->lru.clear();
-  this->name_to_fd.clear();
+  this->name_to_file.clear();
 }
 
 void FileCache::enforce_max_size() {
   while (this->lru.count() > this->max_size) {
     auto evicted_fd_name = this->lru.evict_object().first;
-    this->name_to_fd.erase(evicted_fd_name);
+    this->name_to_file.erase(evicted_fd_name);
   }
 }
