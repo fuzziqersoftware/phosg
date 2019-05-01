@@ -4,7 +4,14 @@ using namespace std;
 
 
 rw_lock::rw_lock() {
+#ifdef LINUX
+  pthread_rwlockattr_t attr;
+  pthread_rwlockattr_init(&attr);
+  pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+  pthread_rwlock_init(&this->lock, &attr);
+#else
   pthread_rwlock_init(&this->lock, NULL);
+#endif
 }
 
 rw_lock::~rw_lock() {
