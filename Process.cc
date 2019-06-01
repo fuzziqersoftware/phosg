@@ -1,5 +1,7 @@
 #include "Process.hh"
 
+#ifndef WINDOWS
+
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -465,3 +467,5 @@ SubprocessResult run_process(const vector<string>& cmd, const string* stdin_data
 
   return ret;
 }
+
+#endif

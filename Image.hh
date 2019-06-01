@@ -76,9 +76,11 @@ public:
       ssize_t dash_length, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 0xFF);
   void draw_vertical_line(ssize_t x, ssize_t y1, ssize_t y2,
       ssize_t dash_length, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 0xFF);
+#ifndef WINDOWS
   void draw_text(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
       uint8_t r, uint8_t g, uint8_t b, uint8_t a, uint8_t br, uint8_t bg,
       uint8_t bb, uint8_t ba, const char* fmt, ...);
+#endif
   void fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint8_t r,
       uint8_t g, uint8_t b, uint8_t a = 0xFF);
 

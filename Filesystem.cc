@@ -3,14 +3,20 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <poll.h>
-#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#ifndef WINDOWS
+#include <poll.h>
+#include <pwd.h>
+#define O_BINARY 0
+#else
+#include <windows.h>
+#endif
 
 #include <algorithm>
 #include <functional>
@@ -23,8 +29,10 @@
 using namespace std;
 
 
-unordered_set<string> list_directory(const string& dirname,
-    function<bool(struct dirent*)> filter) {
+#ifndef WINDOWS
+
+unordered_set<string> list_directory(const string& dirname) {
+  unordered_set<string> files;
 
   DIR* dir = opendir(dirname.c_str());
   if (dir == NULL) {
@@ -32,19 +40,51 @@ unordered_set<string> list_directory(const string& dirname,
   }
 
   struct dirent* entry;
-  unordered_set<string> files;
   while ((entry = readdir(dir))) {
-    if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..") ||
-        (filter && !filter(entry))) {
+    if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
       continue;
     }
     files.emplace(entry->d_name);
   }
 
   closedir(dir);
+
   return files;
 }
 
+#else  // WINDOWS
+
+unordered_set<string> list_directory(const string& dirname) {
+  unordered_set<string> files;
+
+  WIN32_FIND_DATA fdata;
+  string pattern = dirname + "\\*";
+  HANDLE h = FindFirstFile(pattern.c_str(), &fdata);
+  if (h == INVALID_HANDLE_VALUE) {
+    throw runtime_error("cannot open directory");
+  }
+  do {
+    if (!strcmp(fdata.cFileName, ".") || !strcmp(fdata.cFileName, "..")) {
+      continue;
+    }
+    files.emplace(fdata.cFileName);
+  } while (FindNextFile(h, &fdata) != 0);
+ 
+  if (GetLastError() != ERROR_NO_MORE_FILES) {
+    FindClose(h);
+    throw runtime_error(string_printf("error iterating directory: %d", GetLastError()));
+  }
+ 
+  FindClose(h);
+  return files;
+}
+
+#endif
+
+
+#ifndef WINDOWS
+
+// TODO: this can definitely be implemented on windows; I'm just lazy
 string get_user_home_directory() {
   const char *homedir = getenv("HOME");
   if (homedir) {
@@ -64,6 +104,8 @@ string get_user_home_directory() {
 
   return pwd.pw_dir;
 }
+
+#endif
 
 cannot_stat_file::cannot_stat_file(int fd) :
     runtime_error("can\'t stat fd " + to_string(fd) + ": " + string_for_error(errno)),
@@ -93,6 +135,8 @@ struct stat stat(const string& filename) {
   return st;
 }
 
+#ifndef WINDOWS
+
 struct stat lstat(const string& filename) {
   struct stat st;
   if (lstat(filename.c_str(), &st)) {
@@ -100,6 +144,8 @@ struct stat lstat(const string& filename) {
   }
   return st;
 }
+
+#endif
 
 struct stat fstat(int fd) {
   struct stat st;
@@ -121,17 +167,11 @@ bool isdir(const struct stat& st) {
   return (st.st_mode & S_IFMT) == S_IFDIR;
 }
 
-bool lisfile(const struct stat& st) {
-  return (st.st_mode & S_IFMT) == S_IFREG;
-}
-
-bool lisdir(const struct stat& st) {
-  return (st.st_mode & S_IFMT) == S_IFREG;
-}
-
+#ifndef WINDOWS
 bool islink(const struct stat& st) {
   return (st.st_mode & S_IFMT) == S_IFLNK;
 }
+#endif
 
 bool isfile(const string& filename) {
   try {
@@ -149,6 +189,7 @@ bool isdir(const string& filename) {
   }
 }
 
+#ifndef WINDOWS
 bool lisfile(const string& filename) {
   try {
     return isfile(lstat(filename));
@@ -194,6 +235,7 @@ string realpath(const string& path) {
   data.shrink_to_fit();
   return data;
 }
+#endif
 
 scoped_fd::scoped_fd() : fd(-1) { }
 
@@ -236,7 +278,7 @@ scoped_fd::operator int() const {
 }
 
 void scoped_fd::open(const char* filename, int mode, mode_t perm) {
-  this->fd = ::open(filename, mode, perm);
+  this->fd = ::open(filename, mode | O_BINARY, perm);
   if (this->fd < 0) {
     throw cannot_open_file(filename);
   }
@@ -345,6 +387,8 @@ void writex(int fd, const string& data) {
   writex(fd, data.data(), data.size());
 }
 
+#ifndef WINDOWS
+
 void preadx(int fd, void* data, size_t size, off_t offset) {
   if (pread(fd, data, size, offset) != (ssize_t)size) {
     throw io_error(fd);
@@ -366,6 +410,8 @@ string preadx(int fd, size_t size, off_t offset) {
 void pwritex(int fd, const string& data, off_t offset) {
   pwritex(fd, data.data(), data.size(), offset);
 }
+
+#endif
 
 void freadx(FILE* f, void* data, size_t size) {
   if (fread(data, 1, size, f) != size) {
@@ -394,8 +440,14 @@ string load_file(const string& filename) {
   ssize_t file_size = fstat(fd).st_size;
 
   string data(file_size, 0);
-  if (read(fd, const_cast<char*>(data.data()), data.size()) != file_size) {
-    throw runtime_error("can\'t read from " + filename + ": " + string_for_error(errno));
+  ssize_t bytes_read = read(fd, const_cast<char*>(data.data()), data.size());
+  if (bytes_read != file_size) {
+    if (errno == 0) {
+      throw runtime_error(string_printf("can\'t read from %s: %zd/%zd bytes read",
+          filename.c_str(), bytes_read, file_size));
+    } else {
+      throw runtime_error("can\'t read from " + filename + ": " + string_for_error(errno));
+    }
   }
 
   return data;
@@ -403,8 +455,14 @@ string load_file(const string& filename) {
 
 void save_file(const string& filename, const void* data, size_t size) {
   scoped_fd fd(filename, O_CREAT | O_TRUNC | O_WRONLY);
-  if (write(fd, data, size) != (ssize_t)size) {
-    throw runtime_error("can\'t write to " + filename + ": " + string_for_error(errno));
+  ssize_t bytes_written = write(fd, data, size);
+  if (bytes_written != static_cast<ssize_t>(size)) {
+    if (errno == 0) {
+      throw runtime_error(string_printf("can\'t write to %s: %zd/%zd bytes written",
+          filename.c_str(), bytes_written, size));
+    } else {
+      throw runtime_error("can\'t write to " + filename + ": " + string_for_error(errno));
+    }
   }
 }
 
@@ -412,33 +470,44 @@ void save_file(const string& filename, const string& data) {
   save_file(filename, data.data(), data.size());
 }
 
-unique_ptr<FILE, void(*)(FILE*)> fopen_unique(const string& filename,
-    const string& mode, FILE* dash_file) {
-  if (dash_file && (filename == "-")) {
-    return unique_ptr<FILE, void(*)(FILE*)>(dash_file, [](FILE* f) { });
+static FILE* fopen_binary_raw(const string& filename, const string& mode) {
+  string new_mode = mode;
+  if (new_mode.find('b') == string::npos) {
+    new_mode += 'b';
   }
-
-  FILE* f = fopen(filename.c_str(), mode.c_str());
+  FILE* f = fopen(filename.c_str(), new_mode.c_str());
   if (!f) {
     throw cannot_open_file(filename);
   }
-
-  return unique_ptr<FILE, void(*)(FILE*)>(f,
-    [](FILE* f) {
-      fclose(f);
-    });
+  return f;
 }
 
-unique_ptr<FILE, void(*)(FILE*)> fdopen_unique(int fd, const string& mode) {
-  FILE* f = fdopen(fd, mode.c_str());
+static FILE* fdopen_binary_raw(int fd, const string& mode) {
+  string new_mode = mode;
+  if (new_mode.find('b') == string::npos) {
+    new_mode += 'b';
+  }
+  FILE* f = fdopen(fd, new_mode.c_str());
   if (!f) {
     throw cannot_open_file(fd);
   }
+  return f;
+}
 
-  return unique_ptr<FILE, void(*)(FILE*)>(f,
-    [](FILE* f) {
-      fclose(f);
-    });
+static void fclose_raw(FILE* f) {
+  fclose(f);
+}
+
+unique_ptr<FILE, void(*)(FILE*)> fopen_unique(const string& filename,
+    const string& mode, FILE* dash_file) {
+  if (dash_file && (filename == "-")) {
+    return unique_ptr<FILE, void(*)(FILE*)>(dash_file, +[](FILE* f) { });
+  }
+  return unique_ptr<FILE, void(*)(FILE*)>(fopen_binary_raw(filename, mode), fclose_raw);
+}
+
+unique_ptr<FILE, void(*)(FILE*)> fdopen_unique(int fd, const string& mode) {
+  return unique_ptr<FILE, void(*)(FILE*)>(fdopen_binary_raw(fd, mode), fclose_raw);
 }
 
 shared_ptr<FILE> fopen_shared(const string& filename, const string& mode,
@@ -446,22 +515,11 @@ shared_ptr<FILE> fopen_shared(const string& filename, const string& mode,
   if (dash_file && (filename == "-")) {
     return shared_ptr<FILE>(dash_file, [](FILE* f) { });
   }
-
-  FILE* f = fopen(filename.c_str(), mode.c_str());
-  if (!f) {
-    throw cannot_open_file(filename);
-  }
-
-  return shared_ptr<FILE>(f, fclose);
+  return shared_ptr<FILE>(fopen_binary_raw(filename, mode), fclose_raw);
 }
 
 shared_ptr<FILE> fdopen_shared(int fd, const string& mode) {
-  FILE* f = fdopen(fd, mode.c_str());
-  if (!f) {
-    throw cannot_open_file(fd);
-  }
-
-  return shared_ptr<FILE>(f, fclose);
+  return shared_ptr<FILE>(fdopen_binary_raw(fd, mode), fclose_raw);
 }
 
 void rename(const std::string& old_filename, const std::string& new_filename) {
@@ -489,6 +547,8 @@ void unlink(const string& filename, bool recursive) {
     }
   }
 }
+
+#ifndef WINDOWS
 
 pair<int, int> pipe() {
   int fds[2];
@@ -558,3 +618,5 @@ unordered_map<int, short> Poll::poll(int timeout_ms) {
   }
   return ret;
 }
+
+#endif

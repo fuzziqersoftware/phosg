@@ -12,6 +12,8 @@
 using namespace std;
 
 
+#ifndef WINDOWS
+
 string get_python_process_output(const string& script, const string* stdin_data,
     bool python3) {
   auto r = run_process({python3 ? "python3" : "python", "-c", script}, stdin_data);
@@ -207,7 +209,6 @@ vector<TestCase> test_cases({
 });
 
 int main(int argc, char** argv) {
-
   for (const auto& c : test_cases) {
     c.run();
   }
@@ -215,3 +216,12 @@ int main(int argc, char** argv) {
   printf("%s: all tests passed\n", argv[0]);
   return 0;
 }
+
+#else  // WINDOWS
+
+int main(int argc, char** argv) {
+  printf("%s: tests do not run on Windows\n", argv[0]);
+  return 0;
+}
+
+#endif

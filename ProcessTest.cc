@@ -3,8 +3,11 @@
 #include <string.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
+
+#ifndef WINDOWS
+#include <sys/wait.h>
+#endif
 
 #include "Process.hh"
 #include "Strings.hh"
@@ -12,6 +15,8 @@
 
 using namespace std;
 
+
+#ifndef WINDOWS
 
 int main(int argc, char** argv) {
 
@@ -219,3 +224,12 @@ int main(int argc, char** argv) {
   printf("%s: all tests passed\n", argv[0]);
   return 0;
 }
+
+#else  // WINDOWS
+
+int main(int argc, char** argv) {
+  printf("%s: tests do not run on Windows\n", argv[0]);
+  return 0;
+}
+
+#endif

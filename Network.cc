@@ -1,5 +1,8 @@
 #include "Network.hh"
 
+// TODO: a lot of this can be implemented on windows; stop being lazy
+#ifndef WINDOWS
+
 #define _STDC_FORMAT_MACROS
 
 #include <arpa/inet.h>
@@ -8,8 +11,8 @@
 #include <inttypes.h>
 #include <netdb.h>
 #include <netinet/in.h>
-#include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <sys/un.h>
 #include <unistd.h>
 
@@ -221,3 +224,5 @@ string gethostname() {
   buf.resize(strlen(buf.c_str()));
   return buf;
 }
+
+#endif

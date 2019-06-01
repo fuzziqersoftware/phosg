@@ -11,8 +11,11 @@
 #include <stdexcept>
 
 #include "Filesystem.hh"
-#include "ImageTextFont.hh"
 #include "Strings.hh"
+
+#ifndef WINDOWS
+#include "ImageTextFont.hh"
+#endif
 
 using namespace std;
 
@@ -606,6 +609,7 @@ void Image::draw_vertical_line(ssize_t x, ssize_t y1, ssize_t y2,
   }
 }
 
+#ifndef WINDOWS
 void Image::draw_text(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
     uint8_t r, uint8_t g, uint8_t b, uint8_t a, uint8_t br, uint8_t bg,
     uint8_t bb, uint8_t ba, const char* fmt, ...) {
@@ -671,6 +675,7 @@ void Image::draw_text(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
 
   free(buffer);
 }
+#endif
 
 void Image::blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
     ssize_t h, ssize_t sx, ssize_t sy) {

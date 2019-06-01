@@ -3,11 +3,14 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <poll.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/uio.h>
 #include <unistd.h>
+
+#ifndef WINDOWS
+#include <poll.h>
+#include <sys/uio.h>
+#endif
 
 #include <functional>
 #include <memory>
@@ -20,8 +23,7 @@
 #include "Strings.hh"
 
 
-std::unordered_set<std::string> list_directory(const std::string& dirname,
-    std::function<bool(struct dirent*)> filter = NULL);
+std::unordered_set<std::string> list_directory(const std::string& dirname);
 
 std::string get_user_home_directory();
 
@@ -49,24 +51,29 @@ public:
 };
 
 struct stat stat(const std::string& filename);
+#ifndef WINDOWS
 struct stat lstat(const std::string& filename);
+#endif
 struct stat fstat(int fd);
 struct stat fstat(FILE* f);
 
 bool isfile(const struct stat& st);
 bool isdir(const struct stat& st);
-bool lisfile(const struct stat& st);
-bool lisdir(const struct stat& st);
+#ifndef WINDOWS
 bool islink(const struct stat& st);
+#endif
 
 bool isfile(const std::string& filename);
 bool isdir(const std::string& filename);
+
+#ifndef WINDOWS
 bool lisfile(const std::string& filename);
 bool lisdir(const std::string& filename);
 bool islink(const std::string& filename);
 
 std::string readlink(const std::string& filename);
 std::string realpath(const std::string& path);
+#endif
 
 class scoped_fd {
 public:
@@ -101,10 +108,12 @@ void writex(int fd, const void* data, size_t size);
 std::string readx(int fd, size_t size);
 void writex(int fd, const std::string& data);
 
+#ifndef WINDOWS
 void preadx(int fd, void* data, size_t size, off_t offset);
 void pwritex(int fd, const void* data, size_t size, off_t offset);
 std::string preadx(int fd, size_t size, off_t offset);
 void pwritex(int fd, const std::string& data, off_t offset);
+#endif
 
 void freadx(FILE* f, void* data, size_t size);
 void fwritex(FILE* f, const void* data, size_t size);
@@ -125,6 +134,7 @@ void writex(int fd, const T& t) {
   writex(fd, &t, sizeof(T));
 }
 
+#ifndef WINDOWS
 template <typename T>
 T preadx(int fd, off_t offset) {
   T t;
@@ -136,6 +146,7 @@ template <typename T>
 void pwritex(int fd, const T& t, off_t offset) {
   pwritex(fd, &t, sizeof(T), offset);
 }
+#endif
 
 template <typename T>
 T freadx(FILE* f) {
@@ -196,6 +207,8 @@ std::shared_ptr<FILE> fdopen_shared(int fd, const std::string& mode = "rb");
 void rename(const std::string& old_filename, const std::string& new_filename);
 void unlink(const std::string& filename, bool recursive = false);
 
+#ifndef WINDOWS
+
 std::pair<int, int> pipe();
 
 void make_fd_nonblocking(int fd);
@@ -213,3 +226,4 @@ public:
 private:
   std::vector<struct pollfd> poll_fds;
 };
+#endif

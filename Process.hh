@@ -1,5 +1,7 @@
 #pragma once
 
+#ifndef WINDOWS
+
 #include <stdio.h>
 #include <unistd.h>
 
@@ -73,3 +75,5 @@ SubprocessResult run_process(const std::vector<std::string>& cmd,
     const std::string* cwd = NULL,
     const std::unordered_map<std::string, std::string>* env = NULL,
     size_t timeout_secs = 0);
+
+#endif

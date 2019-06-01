@@ -18,6 +18,8 @@ std::wstring wstring_vprintf(const wchar_t* fmt, va_list va);
 
 uint8_t value_for_hex_char(char x);
 
+#ifndef WINDOWS
+
 #define DEBUG 0
 #define INFO 1
 #define WARNING 2
@@ -26,6 +28,8 @@ uint8_t value_for_hex_char(char x);
 int log_level();
 void set_log_level(int new_level);
 void log(int level, const char* fmt, ...);
+
+#endif
 
 std::vector<std::string> split(const std::string& s, char delim);
 std::vector<std::wstring> split(const std::wstring& s, wchar_t delim);

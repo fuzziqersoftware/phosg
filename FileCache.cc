@@ -6,6 +6,11 @@
 
 using namespace std;
 
+// windows doesn't have fork/exec, so O_CLOEXEC is meaningless
+#ifdef WINDOWS
+#define O_CLOEXEC 0
+#endif
+
 
 FileCache::File::File(const std::string& name, scoped_fd&& fd) : name(name),
     fd(move(fd)) { }

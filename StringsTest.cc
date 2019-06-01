@@ -1,3 +1,5 @@
+#define _STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include <assert.h>
 #include <sys/time.h>
 
@@ -149,8 +151,12 @@ int main(int argc, char** argv) {
   expect(!ends_with("abcdef", "ded"));
   expect(!ends_with("abcdef", "fef"));
 
-  fprintf(stderr, "-- string_printf\n");
-  expect_eq("lolz 1000 0x4f", string_printf("%s %llu %p", "lolz", 1000ULL, (void*)0x4F));
+  {
+    fprintf(stderr, "-- string_printf\n");
+    string result = string_printf("%s %llu 0x%04hX", "lolz", 1000ULL, 0x4F);
+    fprintf(stderr, "%s\n", result.c_str());
+    expect_eq("lolz 1000 0x004F", result);
+  }
 
   {
     fprintf(stderr, "-- split\n");

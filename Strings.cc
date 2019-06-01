@@ -3,6 +3,7 @@
 #define _STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
@@ -12,6 +13,13 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+#ifdef WINDOWS
+#include <windows.h>
+
+#define PRIX8 "hhX"
+#define PRIX64 "llX"
+#endif
 
 #include "Encoding.hh"
 #include "Filesystem.hh"
@@ -49,6 +57,28 @@ wstring wstring_printf(const wchar_t* fmt, ...) {
   va_end(va);
   return ret;
 }
+
+#ifdef WINDOWS
+static int vasprintf(char** out, const char *fmt, va_list va) {
+  int len = _vscprintf(fmt, va);
+  if (len < 0) {
+    return len;
+  }
+
+  char* s = reinterpret_cast<char*>(malloc(len + 1));
+  if (!s) {
+    return -1;
+  }
+
+  int r = vsprintf_s(s, len + 1, fmt, va);
+  if (r < 0) {
+    free(s);
+  } else {
+    *out = s;
+  }
+  return r;
+}
+#endif
 
 string string_vprintf(const char* fmt, va_list va) {
   char* result = NULL;
@@ -92,6 +122,8 @@ uint8_t value_for_hex_char(char x) {
   throw out_of_range(string_printf("invalid hex char: %c", x));
 }
 
+#ifndef WINDOWS
+
 static int current_log_level = INFO;
 
 int log_level() {
@@ -124,6 +156,8 @@ void log(int level, const char* fmt, ...) {
   va_end(va);
   putc('\n', stderr);
 }
+
+#endif
 
 vector<string> split(const string& s, char delim) {
   vector<string> elems;
@@ -232,7 +266,11 @@ size_t skip_word(const char* s, size_t offset) {
 
 std::string string_for_error(int error) {
   char buffer[1024] = "Unknown error";
+#ifndef WINDOWS
   strerror_r(error, buffer, sizeof(buffer));
+#else
+  strerror_s(buffer, sizeof(buffer), error);
+#endif
   return string_printf("%d (%s)", error, buffer);
 }
 
@@ -702,8 +740,9 @@ string format_time(struct timeval* tv) {
     gettimeofday(tv, NULL);
   }
 
+  time_t sec = tv->tv_sec;
   struct tm cooked;
-  localtime_r(&tv->tv_sec, &cooked);
+  localtime_r(&sec, &cooked);
 
   static const char* monthnames[] = {"January", "February", "March", "April",
       "May", "June", "July", "August", "September", "October", "November",

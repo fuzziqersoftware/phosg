@@ -1,8 +1,10 @@
 #pragma once
 
+// TODO: a lot of this can be implemented on windows; stop being lazy
+#ifndef WINDOWS
+
 #include <stdint.h>
 #include <sys/types.h>
-#include <sys/socket.h>
 
 #include <string>
 #include <utility>
@@ -46,3 +48,5 @@ void get_socket_addresses(int fd, struct sockaddr_storage* local,
 std::string render_netloc(const std::string& addr, int port);
 
 std::string gethostname();
+
+#endif

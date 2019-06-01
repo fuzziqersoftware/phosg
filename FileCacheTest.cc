@@ -9,8 +9,28 @@
 using namespace std;
 
 
+static void delete_test_files() {
+  if (isfile("./FileCacheTest-file1")) {
+    remove("./FileCacheTest-file1");
+  }
+  if (isfile("./FileCacheTest-file2")) {
+    remove("./FileCacheTest-file2");
+  }
+  if (isfile("./FileCacheTest-file3")) {
+    remove("./FileCacheTest-file3");
+  }
+  if (isfile("./FileCacheTest-file4")) {
+    remove("./FileCacheTest-file4");
+  }
+  if (isfile("./FileCacheTest-file5")) {
+    remove("./FileCacheTest-file5");
+  }
+}
+
 int main(int argc, char** argv) {
   try {
+    delete_test_files();
+
     FileCache c(3);
     expect_eq(0, c.size());
     expect_eq(false, isfile("./FileCacheTest-file1"));
@@ -82,20 +102,10 @@ int main(int argc, char** argv) {
     }
 
   } catch (...) {
-    if (isfile("./FileCacheTest-file1")) {
-      remove("./FileCacheTest-file1");
-    }
-    if (isfile("./FileCacheTest-file2")) {
-      remove("./FileCacheTest-file2");
-    }
-    if (isfile("./FileCacheTest-file3")) {
-      remove("./FileCacheTest-file3");
-    }
-    if (isfile("./FileCacheTest-file4")) {
-      remove("./FileCacheTest-file4");
-    }
+    delete_test_files();
     throw;
   }
+  delete_test_files();
 
   printf("%s: all tests passed\n", argv[0]);
   return 0;
