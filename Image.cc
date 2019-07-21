@@ -299,6 +299,9 @@ const Image& Image::operator=(const Image& im) {
   this->channel_width = im.channel_width;
   this->max_value = im.max_value;
   size_t num_bytes = this->get_data_size();
+  if (this->data) {
+    free(this->data);
+  }
   this->data = malloc(num_bytes);
   memcpy(this->data, im.data, num_bytes * sizeof(uint8_t));
   return *this;
@@ -326,6 +329,9 @@ const Image& Image::operator=(Image&& im) {
   this->has_alpha = im.has_alpha;
   this->channel_width = im.channel_width;
   this->max_value = im.max_value;
+  if (this->data) {
+    free(this->data);
+  }
   this->data = im.data;
 
   im.width = 0;
