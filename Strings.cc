@@ -28,6 +28,11 @@
 using namespace std;
 
 
+unique_ptr<void, void (*)(void*)> malloc_unique(size_t size) {
+  return unique_ptr<void, void (*)(void*)>(malloc(size), free);
+}
+
+
 bool starts_with(const string& s, const string& start) {
   if (s.length() >= start.length()) {
     return (0 == s.compare(0, start.length(), start));

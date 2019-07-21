@@ -1,6 +1,7 @@
 #include "Image.hh"
 
 #include <float.h>
+#include <inttypes.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -62,7 +63,7 @@ void Image::load(FILE* f) {
   char sig[2];
 
   // read signature. this will tell us what kind of file it is
-  fread(sig, 2, 1, f);
+  freadx(f, sig, 2);
 
   // find out what kind of image it is
   ImageFormat format;
@@ -78,23 +79,88 @@ void Image::load(FILE* f) {
   }
 
   if (format == GrayscalePPM || format == ColorPPM) {
-    unsigned char color_max = 0;
-    fscanf(f, "%zu", &this->width);
-    fscanf(f, "%zu", &this->height);
-    fscanf(f, "%hhu", &color_max);
-    fgetc(f); // skip the newline
+    size_t new_width, new_height;
+    uint64_t new_max_value;
+    if (fscanf(f, "%zu", &new_width) != 1) {
+      throw runtime_error("cannot read width field in PPM header");
+    }
+    if (fscanf(f, "%zu", &new_height) != 1) {
+      throw runtime_error("cannot read height field in PPM header");
+    }
+    if (fscanf(f, "%" PRIu64, &new_max_value) != 1) {
+      throw runtime_error("cannot read max value field in PPM header");
+    }
 
+    // according to the docs, this can be any whitespace character but is
+    // "usually" a newline. guess we shouldn't make assumptions here
+    char header_end_char = fgetc(f);
+    if ((header_end_char != ' ') && ((header_end_char != '\t') &&
+        (header_end_char != '\n'))) {
+      throw runtime_error("whitespace character not present after PPM header");
+    }
+
+    // the format docs say this is limited to 0xFFFF, but we'll support up to
+    // 64-bit channels anyway
+    uint8_t new_channel_width;
+    if (new_max_value > 0xFFFFFFFF) {
+      new_channel_width = 64;
+    } else if (new_max_value > 0xFFFF) {
+      new_channel_width = 32;
+    } else if (new_max_value > 0xFF) {
+      new_channel_width = 16;
+    } else {
+      new_channel_width = 8;
+    }
+
+    void* new_data = malloc(new_width * new_height * 3 * (new_channel_width / 8));
+    if (!new_data) {
+      throw bad_alloc();
+    }
+    freadx(f, new_data, new_width * new_height * (format == ColorPPM ? 3 : 1) * (new_channel_width / 8));
+
+    // if the read succeeded, we can commit the changes - nothing after here can
+    // throw an exception
+
+    this->width = new_width;
+    this->height = new_height;
     this->has_alpha = false;
-    this->data = new uint8_t[width * height * 3];
-    fread(this->data, width * height * (format == ColorPPM ? 3 : 1), 1, f);
+    this->channel_width = new_channel_width;
+    this->max_value = new_max_value;
+    this->data = new_data;
 
     // expand grayscale data into color data if necessary
     if (format == GrayscalePPM) {
-      for (ssize_t y = this->height - 1; y >= 0; y--) {
-        for (ssize_t x = this->width - 1; x >= 0; x--) {
-          this->data[(y * this->width + x) * 3 + 0] = this->data[y * this->width + x];
-          this->data[(y * this->width + x) * 3 + 1] = this->data[y * this->width + x];
-          this->data[(y * this->width + x) * 3 + 2] = this->data[y * this->width + x];
+      if (this->channel_width == 8) {
+        for (ssize_t y = this->height - 1; y >= 0; y--) {
+          for (ssize_t x = this->width - 1; x >= 0; x--) {
+            this->data8[(y * this->width + x) * 3 + 0] = this->data8[y * this->width + x];
+            this->data8[(y * this->width + x) * 3 + 1] = this->data8[y * this->width + x];
+            this->data8[(y * this->width + x) * 3 + 2] = this->data8[y * this->width + x];
+          }
+        }
+      } else if (this->channel_width == 16) {
+        for (ssize_t y = this->height - 1; y >= 0; y--) {
+          for (ssize_t x = this->width - 1; x >= 0; x--) {
+            this->data16[(y * this->width + x) * 3 + 0] = this->data16[y * this->width + x];
+            this->data16[(y * this->width + x) * 3 + 1] = this->data16[y * this->width + x];
+            this->data16[(y * this->width + x) * 3 + 2] = this->data16[y * this->width + x];
+          }
+        }
+      } else if (this->channel_width == 32) {
+        for (ssize_t y = this->height - 1; y >= 0; y--) {
+          for (ssize_t x = this->width - 1; x >= 0; x--) {
+            this->data32[(y * this->width + x) * 3 + 0] = this->data32[y * this->width + x];
+            this->data32[(y * this->width + x) * 3 + 1] = this->data32[y * this->width + x];
+            this->data32[(y * this->width + x) * 3 + 2] = this->data32[y * this->width + x];
+          }
+        }
+      } else if (this->channel_width == 64) {
+        for (ssize_t y = this->height - 1; y >= 0; y--) {
+          for (ssize_t x = this->width - 1; x >= 0; x--) {
+            this->data64[(y * this->width + x) * 3 + 0] = this->data64[y * this->width + x];
+            this->data64[(y * this->width + x) * 3 + 1] = this->data64[y * this->width + x];
+            this->data64[(y * this->width + x) * 3 + 2] = this->data64[y * this->width + x];
+          }
         }
       }
     }
@@ -102,7 +168,7 @@ void Image::load(FILE* f) {
   } else if (format == WindowsBitmap) {
     WindowsBitmapHeader header;
     memcpy(&header.file_header.magic, sig, 2);
-    fread(reinterpret_cast<uint8_t*>(&header) + 2, sizeof(header) - 2, 1, f);
+    freadx(f, reinterpret_cast<uint8_t*>(&header) + 2, sizeof(header) - 2);
     if (header.file_header.magic != 0x4D42) {
       throw runtime_error(string_printf("bad signature in bitmap file (%04hX)",
           header.file_header.magic));
@@ -121,7 +187,8 @@ void Image::load(FILE* f) {
     bool has_alpha;
     int32_t w = header.info_header.width;
     int32_t h = header.info_header.height * (reverse_row_order ? -1 : 1);
-    uint8_t* new_data = new uint8_t[w * h * 3];
+    auto new_data_unique = malloc_unique(w * h * 3);
+    uint8_t* new_data = reinterpret_cast<uint8_t*>(new_data_unique.get());
 
     if (header.info_header.compression == 0) { // BI_RGB
       if ((header.info_header.bit_depth != 24) && (header.info_header.bit_depth != 32)) {
@@ -132,9 +199,10 @@ void Image::load(FILE* f) {
       size_t pixel_bytes = header.info_header.bit_depth / 8;
       size_t row_padding_bytes = (4 - ((w * pixel_bytes) % 4)) % 4;
 
-      uint8_t* row_data = new uint8_t[w * pixel_bytes];
+      auto row_data_unique = malloc_unique(w * pixel_bytes);
+      uint8_t* row_data = reinterpret_cast<uint8_t*>(row_data_unique.get());
       for (int32_t y = h - 1; y >= 0; y--) {
-        fread(row_data, w * pixel_bytes, 1, f);
+        freadx(f, row_data, w * pixel_bytes);
         ssize_t target_y = reverse_row_order ? (h - y - 1) : y;
         ssize_t target_y_offset = target_y * w * 3;
         for (int32_t x = 0; x < w; x++) {
@@ -148,7 +216,6 @@ void Image::load(FILE* f) {
           fseek(f, row_padding_bytes, SEEK_CUR);
         }
       }
-      delete[] row_data;
 
     } else if (header.info_header.compression == 3) { // BI_BITFIELDS
       if (header.info_header.bit_depth != 32) {
@@ -171,9 +238,10 @@ void Image::load(FILE* f) {
         throw runtime_error("channel bit field is not 1-byte mask");
       }
 
-      uint8_t* row_data = new uint8_t[w * 4];
+      auto row_data_unique = malloc_unique(w * 4);
+      uint8_t* row_data = reinterpret_cast<uint8_t*>(row_data_unique.get());
       for (int32_t y = h - 1; y >= 0; y--) {
-        fread(row_data, w * 4, 1, f);
+        freadx(f, row_data, w * 4);
         ssize_t target_y = reverse_row_order ? (h - y - 1) : y;
         ssize_t target_y_offset = target_y * w * 4;
         for (int32_t x = 0; x < w; x++) {
@@ -184,7 +252,6 @@ void Image::load(FILE* f) {
           new_data[target_y_offset + x_offset + 3] = row_data[x_offset + a_offset];
         }
       }
-      delete[] row_data;
 
     } else {
       throw runtime_error("can only load uncompressed or bitfield bitmaps");
@@ -194,27 +261,34 @@ void Image::load(FILE* f) {
     this->width = w;
     this->height = h;
     this->has_alpha = has_alpha;
-    this->data = new_data;
+    this->channel_width = 8;
+    this->max_value = 0xFF;
+    this->data = new_data_unique.release();
   }
 }
 
 
 
-Image::Image(size_t x, size_t y, bool has_alpha) {
-  this->width = x;
-  this->height = y;
-  this->has_alpha = has_alpha;
-  size_t num_bytes = this->width * this->height * (3 + this->has_alpha);
-  this->data = new uint8_t[num_bytes];
+static const unordered_map<uint8_t, uint64_t> max_value_for_channel_width({
+  {8, 0xFF},
+  {16, 0xFFFF},
+  {32, 0xFFFFFFFF},
+  {64, 0xFFFFFFFFFFFFFFFF},
+});
+
+Image::Image(size_t x, size_t y, bool has_alpha, uint8_t channel_width) :
+    width(x), height(y), has_alpha(has_alpha), channel_width(channel_width),
+    max_value(max_value_for_channel_width.at(this->channel_width)) {
+  size_t num_bytes = this->get_data_size();
+  this->data = malloc(num_bytes);
   memset(this->data, 0, num_bytes * sizeof(uint8_t));
 }
 
-Image::Image(const Image& im) {
-  this->width = im.width;
-  this->height = im.height;
-  this->has_alpha = im.has_alpha;
-  size_t num_bytes = this->width * this->height * (3 + this->has_alpha);
-  this->data = new uint8_t[num_bytes];
+Image::Image(const Image& im) : width(im.width), height(im.height),
+    has_alpha(im.has_alpha), channel_width(im.channel_width),
+    max_value(im.max_value) {
+  size_t num_bytes = this->get_data_size();
+  this->data = malloc(num_bytes);
   memcpy(this->data, im.data, num_bytes * sizeof(uint8_t));
 }
 
@@ -222,8 +296,10 @@ const Image& Image::operator=(const Image& im) {
   this->width = im.width;
   this->height = im.height;
   this->has_alpha = im.has_alpha;
-  size_t num_bytes = this->width * this->height * (3 + this->has_alpha);
-  this->data = new uint8_t[num_bytes];
+  this->channel_width = im.channel_width;
+  this->max_value = im.max_value;
+  size_t num_bytes = this->get_data_size();
+  this->data = malloc(num_bytes);
   memcpy(this->data, im.data, num_bytes * sizeof(uint8_t));
   return *this;
 }
@@ -232,11 +308,15 @@ Image::Image(Image&& im) {
   this->width = im.width;
   this->height = im.height;
   this->has_alpha = im.has_alpha;
+  this->channel_width = im.channel_width;
+  this->max_value = im.max_value;
   this->data = im.data;
 
   im.width = 0;
   im.height = 0;
   im.has_alpha = false;
+  im.channel_width = 8;
+  im.max_value = 0xFF;
   im.data = NULL;
 }
 
@@ -244,11 +324,15 @@ const Image& Image::operator=(Image&& im) {
   this->width = im.width;
   this->height = im.height;
   this->has_alpha = im.has_alpha;
+  this->channel_width = im.channel_width;
+  this->max_value = im.max_value;
   this->data = im.data;
 
   im.width = 0;
   im.height = 0;
   im.has_alpha = false;
+  im.channel_width = 8;
+  im.max_value = 0xFF;
   im.data = NULL;
   return *this;
 }
@@ -268,8 +352,49 @@ Image::Image(const char* filename) {
 
 Image::Image(const string& filename) : Image(filename.c_str()) { }
 
+Image::Image(FILE* f, ssize_t width, ssize_t height, bool has_alpha,
+    uint8_t channel_width, uint64_t max_value) : width(width), height(height),
+    has_alpha(has_alpha), channel_width(channel_width),
+    max_value(max_value ? max_value : max_value_for_channel_width.at(this->channel_width)) {
+  size_t num_bytes = this->get_data_size();
+  this->data = malloc(num_bytes);
+  freadx(f, this->data, num_bytes);
+}
+
+Image::Image(const char* filename, ssize_t width, ssize_t height,
+    bool has_alpha, uint8_t channel_width, uint64_t max_value) : width(width),
+    height(height), has_alpha(has_alpha), channel_width(channel_width),
+    max_value(max_value ? max_value : max_value_for_channel_width.at(this->channel_width)) {
+  auto f = fopen_unique(filename, "rb");
+  size_t num_bytes = this->get_data_size();
+  this->data = malloc(num_bytes);
+  freadx(f.get(), this->data, num_bytes);
+}
+
+Image::Image(const std::string& filename, ssize_t width, ssize_t height,
+    bool has_alpha, uint8_t channel_width, uint64_t max_value) :
+    Image(filename.c_str(), width, height, has_alpha, channel_width, max_value) { }
+
 Image::~Image() {
-  delete[] this->data;
+  if (this->channel_width == 8) {
+    delete[] this->data8;
+  } else if (this->channel_width == 16) {
+    delete[] this->data16;
+  } else if (this->channel_width == 32) {
+    delete[] this->data32;
+  } else if (this->channel_width == 64) {
+    delete[] this->data64;
+  }
+}
+
+bool Image::operator==(const Image& other) {
+  if ((this->width != other.width) || (this->height != other.height) ||
+      (this->has_alpha != other.has_alpha) ||
+      (this->channel_width != other.channel_width) ||
+      (this->max_value != other.max_value)) {
+    return false;
+  }
+  return !memcmp(this->data, other.data, this->get_data_size());
 }
 
 const char* Image::mime_type_for_format(ImageFormat format) {
@@ -284,6 +409,18 @@ const char* Image::mime_type_for_format(ImageFormat format) {
   }
 }
 
+const char* Image::file_extension_for_format(ImageFormat format) {
+  switch (format) {
+    case GrayscalePPM:
+    case ColorPPM:
+      return "ppm";
+    case WindowsBitmap:
+      return "bmp";
+    default:
+      return "raw";
+  }
+}
+
 // save the image to an already-open file
 void Image::save(FILE* f, Image::ImageFormat format) const {
 
@@ -293,13 +430,17 @@ void Image::save(FILE* f, Image::ImageFormat format) const {
 
     case ColorPPM:
       if (this->has_alpha) {
-        throw runtime_error("cannot save color ppm with alpha");
+        throw runtime_error("can\'t save color ppm with alpha");
       }
-      fprintf(f, "P6 %zu %zu 255\n", this->width, this->height);
-      fwrite(this->data, this->width * this->height * 3, 1, f);
+      fprintf(f, "P6 %zu %zu %" PRIu64 "\n", this->width, this->height,
+          this->max_value);
+      fwritex(f, this->data, this->get_data_size());
       break;
 
     case WindowsBitmap: {
+      if (this->channel_width != 8) {
+        throw runtime_error("can\'t save bmp with more than 8-bit channels");
+      }
 
       size_t pixel_bytes = 3 + this->has_alpha;
       size_t row_padding_bytes = (4 - ((this->width * pixel_bytes) % 4)) % 4;
@@ -336,23 +477,23 @@ void Image::save(FILE* f, Image::ImageFormat format) const {
         // there's no padding and the bitmasks already specify how to read each
         // pixel; just write each row
         for (ssize_t y = this->height - 1; y >= 0; y--) {
-          fwrite(&this->data[y * this->width * 4], this->width * 4, 1, f);
+          fwrite(&this->data8[y * this->width * 4], this->width * 4, 1, f);
         }
 
       } else {
-        uint8_t* row_data = new uint8_t[this->width * 3];
+        auto row_data_unique = malloc_unique(this->width * 3);
+        uint8_t* row_data = reinterpret_cast<uint8_t*>(row_data_unique.get());
         for (ssize_t y = this->height - 1; y >= 0; y--) {
           for (ssize_t x = 0; x < this->width * 3; x += 3) {
-            row_data[x] = this->data[y * this->width * 3 + x + 2];
-            row_data[x + 1] = this->data[y * this->width * 3 + x + 1];
-            row_data[x + 2] = this->data[y * this->width * 3 + x];
+            row_data[x] = this->data8[y * this->width * 3 + x + 2];
+            row_data[x + 1] = this->data8[y * this->width * 3 + x + 1];
+            row_data[x + 2] = this->data8[y * this->width * 3 + x];
           }
           fwrite(row_data, this->width * 3, 1, f);
           if (row_padding_bytes) {
             fwrite(row_padding_data, row_padding_bytes, 1, f);
           }
         }
-        delete[] row_data;
       }
 
       break;
@@ -366,18 +507,26 @@ void Image::save(FILE* f, Image::ImageFormat format) const {
 // save the image to a string in memory
 string Image::save(Image::ImageFormat format) const {
 
+  // TODO: deduplicate this implementation with Image::save(FILE*)
+
   switch (format) {
     case GrayscalePPM:
       throw runtime_error("can\'t save grayscale ppm files");
 
     case ColorPPM: {
-      string s = string_printf("P6 %d %d 255\n", width, height);
-      s.append((const char*)this->data, this->width * this->height * 3);
+      if (this->has_alpha) {
+        throw runtime_error("can\'t save color ppm with alpha");
+      }
+      string s = string_printf("P6 %d %d %" PRIu64 "\n", this->width,
+          this->height, this->max_value);
+      s.append((const char*)this->data, this->get_data_size());
       return s;
     }
 
     case WindowsBitmap: {
-      // TODO: deduplicate this implementation with Image::save(FILE*)
+      if (this->channel_width != 8) {
+        throw runtime_error("can\'t save bmp with more than 8-bit channels");
+      }
 
       size_t pixel_bytes = 3 + this->has_alpha;
       size_t row_padding_bytes = (4 - ((this->width * pixel_bytes) % 4)) % 4;
@@ -416,23 +565,23 @@ string Image::save(Image::ImageFormat format) const {
         // there's no padding and the bitmasks already specify how to read each
         // pixel; just write each row
         for (ssize_t y = this->height - 1; y >= 0; y--) {
-          s.append((const char*)&this->data[y * this->width * 4], this->width * 4);
+          s.append((const char*)&this->data8[y * this->width * 4], this->width * 4);
         }
 
       } else {
-        uint8_t* row_data = new uint8_t[this->width * 3];
+        auto row_data_unique = malloc_unique(this->width * 3);
+        uint8_t* row_data = reinterpret_cast<uint8_t*>(row_data_unique.get());
         for (ssize_t y = this->height - 1; y >= 0; y--) {
           for (ssize_t x = 0; x < this->width * 3; x += 3) {
-            row_data[x] = this->data[y * this->width * 3 + x + 2];
-            row_data[x + 1] = this->data[y * this->width * 3 + x + 1];
-            row_data[x + 2] = this->data[y * this->width * 3 + x];
+            row_data[x] = this->data8[y * this->width * 3 + x + 2];
+            row_data[x + 1] = this->data8[y * this->width * 3 + x + 1];
+            row_data[x + 2] = this->data8[y * this->width * 3 + x];
           }
           s.append((const char*)row_data, this->width * 3);
           if (row_padding_bytes) {
             s.append(row_padding_data, row_padding_bytes);
           }
         }
-        delete[] row_data;
       }
 
       return s;
@@ -454,70 +603,127 @@ void Image::save(const char* filename, Image::ImageFormat format) const {
 }
 
 // fill the entire image with this color
-void Image::clear(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-  if (this->has_alpha) {
-    for (ssize_t x = 0; x < this->width * this->height; x++) {
-      this->data[x * 4 + 0] = r;
-      this->data[x * 4 + 1] = g;
-      this->data[x * 4 + 2] = b;
-      this->data[x * 4 + 3] = a;
-    }
-  } else {
-    for (ssize_t x = 0; x < this->width * this->height; x++) {
-      this->data[x * 3 + 0] = r;
-      this->data[x * 3 + 1] = g;
-      this->data[x * 3 + 2] = b;
+void Image::clear(uint64_t r, uint64_t g, uint64_t b, uint64_t a) {
+  for (ssize_t y = 0; y < this->height; y++) {
+    for (ssize_t x = 0; x < this->width; x++) {
+      this->write_pixel(x, y, r, g, b, a);
     }
   }
 }
 
 // read the specified pixel's rgb values
-void Image::read_pixel(ssize_t x, ssize_t y, uint8_t* r, uint8_t* g, uint8_t* b,
-    uint8_t* a) const {
+void Image::read_pixel(ssize_t x, ssize_t y, uint64_t* r, uint64_t* g,
+    uint64_t* b, uint64_t* a) const {
 
   // check coordinates
   if (x < 0 || y < 0 || x >= this->width || y >= this->height) {
     throw runtime_error("out of bounds");
   }
 
-  // read multiple channels
   size_t index = (y * this->width + x) * (this->has_alpha ? 4 : 3);
-  if (r) {
-    *r = this->data[index];
-  }
-  if (g) {
-    *g = this->data[index + 1];
-  }
-  if (b) {
-    *b = this->data[index + 2];
-  }
-  if (a) {
-    *a = this->has_alpha ? this->data[index + 3] : 0xFF;
+  if (this->channel_width == 8) {
+    if (r) {
+      *r = this->data8[index];
+    }
+    if (g) {
+      *g = this->data8[index + 1];
+    }
+    if (b) {
+      *b = this->data8[index + 2];
+    }
+    if (a) {
+      *a = this->has_alpha ? this->data8[index + 3] : this->max_value;
+    }
+  } else if (this->channel_width == 16) {
+    if (r) {
+      *r = this->data16[index];
+    }
+    if (g) {
+      *g = this->data16[index + 1];
+    }
+    if (b) {
+      *b = this->data16[index + 2];
+    }
+    if (a) {
+      *a = this->has_alpha ? this->data16[index + 3] : this->max_value;
+    }
+  } else if (this->channel_width == 32) {
+    if (r) {
+      *r = this->data32[index];
+    }
+    if (g) {
+      *g = this->data32[index + 1];
+    }
+    if (b) {
+      *b = this->data32[index + 2];
+    }
+    if (a) {
+      *a = this->has_alpha ? this->data32[index + 3] : this->max_value;
+    }
+  } else if (this->channel_width == 64) {
+    if (r) {
+      *r = this->data64[index];
+    }
+    if (g) {
+      *g = this->data64[index + 1];
+    }
+    if (b) {
+      *b = this->data64[index + 2];
+    }
+    if (a) {
+      *a = this->has_alpha ? this->data64[index + 3] : this->max_value;
+    }
+  } else {
+    throw logic_error("image channel width is not 8, 16, 32, or 64");
   }
 }
 
 // write the specified pixel's rgb values
-void Image::write_pixel(ssize_t x, ssize_t y, uint8_t r, uint8_t g, uint8_t b,
-    uint8_t a) {
+void Image::write_pixel(ssize_t x, ssize_t y, uint64_t r, uint64_t g,
+    uint64_t b, uint64_t a) {
 
   // check coordinates
   if (x < 0 || y < 0 || x >= this->width || y >= this->height) {
     throw runtime_error("out of bounds");
   }
 
-  // write channels
   size_t index = (y * this->width + x) * (this->has_alpha ? 4 : 3);
-  this->data[index] = r;
-  this->data[index + 1] = g;
-  this->data[index + 2] = b;
-  if (this->has_alpha) {
-    this->data[index + 3] = a;
+  if (this->channel_width == 8) {
+    this->data8[index] = r;
+    this->data8[index + 1] = g;
+    this->data8[index + 2] = b;
+    if (this->has_alpha) {
+      this->data8[index + 3] = a;
+    }
+  } else if (this->channel_width == 16) {
+    this->data16[index] = r;
+    this->data16[index + 1] = g;
+    this->data16[index + 2] = b;
+    if (this->has_alpha) {
+      this->data16[index + 3] = a;
+    }
+  } else if (this->channel_width == 32) {
+    this->data32[index] = r;
+    this->data32[index + 1] = g;
+    this->data32[index + 2] = b;
+    if (this->has_alpha) {
+      this->data32[index + 3] = a;
+    }
+  } else if (this->channel_width == 64) {
+    this->data64[index] = r;
+    this->data64[index + 1] = g;
+    this->data64[index + 2] = b;
+    if (this->has_alpha) {
+      this->data64[index + 3] = a;
+    }
+  } else {
+    throw logic_error("image channel width is not 8, 16, 32, or 64");
   }
 }
 
 // use the Bresenham algorithm to draw a line between the specified points
-void Image::draw_line(ssize_t x0, ssize_t y0, ssize_t x1, ssize_t y1, uint8_t r,
-    uint8_t g, uint8_t b, uint8_t a) {
+void Image::draw_line(ssize_t x0, ssize_t y0, ssize_t x1, ssize_t y1,
+    uint64_t r, uint64_t g, uint64_t b, uint64_t a) {
 
   // if both endpoints are outside the image, don't bother
   if ((x0 < 0 || x0 >= width || y0 < 0 || y0 >= height) &&
@@ -528,22 +734,22 @@ void Image::draw_line(ssize_t x0, ssize_t y0, ssize_t x1, ssize_t y1, uint8_t r,
   // line is too steep? then we step along y rather than x
   bool steep = abs(y1 - y0) > abs(x1 - x0);
   if (steep) {
-    y0 ^= x0;
-    x0 ^= y0;
-    y0 ^= x0;
-    y1 ^= x1;
-    x1 ^= y1;
-    y1 ^= x1;
+    ssize_t t = x0;
+    x0 = y0;
+    y0 = t;
+    t = x1;
+    x1 = y1;
+    y1 = t;
   }
 
   // line is backward? then switch the points
   if (x0 > x1) {
-    x1 ^= x0;
-    x0 ^= x1;
-    x1 ^= x0;
-    y1 ^= y0;
-    y0 ^= y1;
-    y1 ^= y0;
+    ssize_t t = x1;
+    x1 = x0;
+    x0 = t;
+    t = y1;
+    y1 = y0;
+    y0 = t;
   }
 
   // initialize variables for stepping along the line
@@ -580,7 +786,7 @@ void Image::draw_line(ssize_t x0, ssize_t y0, ssize_t x1, ssize_t y1, uint8_t r,
 }
 
 void Image::draw_horizontal_line(ssize_t x1, ssize_t x2, ssize_t y,
-    ssize_t dash_length, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+    ssize_t dash_length, uint64_t r, uint64_t g, uint64_t b, uint64_t a) {
 
   for (ssize_t x = x1; x <= x2; x++) {
     if (dash_length && ((x / dash_length) & 1)) {
@@ -595,7 +801,7 @@ void Image::draw_horizontal_line(ssize_t x1, ssize_t x2, ssize_t y,
 }
 
 void Image::draw_vertical_line(ssize_t x, ssize_t y1, ssize_t y2,
-    ssize_t dash_length, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+    ssize_t dash_length, uint64_t r, uint64_t g, uint64_t b, uint64_t a) {
 
   for (ssize_t y = y1; y <= y2; y++) {
     if (dash_length && ((y / dash_length) & 1)) {
@@ -611,8 +817,8 @@ void Image::draw_vertical_line(ssize_t x, ssize_t y1, ssize_t y2,
 
 #ifndef WINDOWS
 void Image::draw_text(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
-    uint8_t r, uint8_t g, uint8_t b, uint8_t a, uint8_t br, uint8_t bg,
-    uint8_t bb, uint8_t ba, const char* fmt, ...) {
+    uint64_t r, uint64_t g, uint64_t b, uint64_t a, uint64_t br, uint64_t bg,
+    uint64_t bb, uint64_t ba, const char* fmt, ...) {
 
   char* buffer;
   va_list va;
@@ -690,13 +896,13 @@ void Image::blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
   for (ssize_t yy = 0; yy < h; yy++) {
     for (ssize_t xx = 0; xx < w; xx++) {
       try {
-        uint8_t r, g, b, a;
+        uint64_t r, g, b, a;
         source.read_pixel(sx + xx, sy + yy, &r, &g, &b, &a);
         if (a == 0) {
           continue;
         }
         if (a != 0xFF) {
-          uint8_t sr, sg, sb, sa;
+          uint64_t sr, sg, sb, sa;
           this->read_pixel(x + xx, y + yy, &sr, &sg, &sb, &sa);
           r = (a * (uint32_t)r + (0xFF - a) * (uint32_t)sr) / 0xFF;
           g = (a * (uint32_t)g + (0xFF - a) * (uint32_t)sg) / 0xFF;
@@ -710,7 +916,7 @@ void Image::blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
 }
 
 void Image::mask_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
-    ssize_t h, ssize_t sx, ssize_t sy, uint8_t r, uint8_t g, uint8_t b) {
+    ssize_t h, ssize_t sx, ssize_t sy, uint64_t r, uint64_t g, uint64_t b) {
 
   if (w < 0) {
     w = source.get_width();
@@ -722,7 +928,7 @@ void Image::mask_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
   for (int yy = 0; yy < h; yy++) {
     for (int xx = 0; xx < w; xx++) {
       try {
-        uint8_t _r, _g, _b, _a;
+        uint64_t _r, _g, _b, _a;
         source.read_pixel(sx + xx, sy + yy, &_r, &_g, &_b, &_a);
         if (r != _r || g != _g || b != _b) {
           this->write_pixel(x + xx, y + yy, _r, _g, _b, _a);
@@ -749,7 +955,7 @@ void Image::mask_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
   for (ssize_t yy = 0; yy < h; yy++) {
     for (ssize_t xx = 0; xx < w; xx++) {
       try {
-        uint8_t r, g, b, a;
+        uint64_t r, g, b, a;
         mask.read_pixel(sx + xx, sy + yy, &r, &g, &b);
         if (r == 0xFF && g == 0xFF && b == 0xFF) {
           continue;
@@ -761,8 +967,8 @@ void Image::mask_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
   }
 }
 
-void Image::fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint8_t r,
-    uint8_t g, uint8_t b, uint8_t a) {
+void Image::fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint64_t r,
+    uint64_t g, uint64_t b, uint64_t a) {
 
   if (x < 0) {
     w += x;
@@ -791,7 +997,7 @@ void Image::fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint8_t r,
     for (ssize_t yy = 0; yy < h; yy++) {
       for (ssize_t xx = 0; xx < w; xx++) {
         try {
-          uint8_t _r = 0, _g = 0, _b = 0, _a = 0;
+          uint64_t _r = 0, _g = 0, _b = 0, _a = 0;
           this->read_pixel(x + xx, y + yy, &_r, &_g, &_b, &_a);
           _r = (a * (uint32_t)r + (0xFF - a) * (uint32_t)_r) / 0xFF;
           _g = (a * (uint32_t)g + (0xFF - a) * (uint32_t)_g) / 0xFF;
