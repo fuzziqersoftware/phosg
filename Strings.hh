@@ -113,7 +113,8 @@ public:
   void go(size_t offset);
   bool eof() const;
 
-  std::string read(size_t offset, bool advance = true);
+  std::string read(size_t size, bool advance = true);
+  size_t read_into(void* data, size_t size, bool advance = true);
   std::string pread(size_t offset, size_t size);
 
   template <typename T> T get(bool advance = true) {

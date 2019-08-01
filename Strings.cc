@@ -851,12 +851,31 @@ string StringReader::read(size_t size, bool advance) {
 
   string ret;
   if (this->offset + size > this->length) {
-    ret = string(reinterpret_cast<const char*>(this->data + offset), this->length - size);
+    ret = string(reinterpret_cast<const char*>(this->data + this->offset), this->length - size);
   } else {
-    ret = string(reinterpret_cast<const char*>(this->data + offset), size);
+    ret = string(reinterpret_cast<const char*>(this->data + this->offset), size);
   }
   if (advance) {
     this->offset += ret.size();
+  }
+  return ret;
+}
+
+size_t StringReader::read_into(void* data, size_t size, bool advance) {
+  if (this->offset >= this->length) {
+    return 0;
+  }
+
+  size_t ret;
+  if (this->offset + size > this->length) {
+    memcpy(data, this->data + this->offset, this->length - size);
+    ret = this->length - size;
+  } else {
+    memcpy(data, this->data + this->offset, size);
+    ret = size;
+  }
+  if (advance) {
+    this->offset += ret;
   }
   return ret;
 }
