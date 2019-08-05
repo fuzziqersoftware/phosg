@@ -844,6 +844,10 @@ bool StringReader::eof() const {
   return (this->offset >= this->length);
 }
 
+string StringReader::all() const {
+  return string(reinterpret_cast<const char*>(this->data), this->length);
+}
+
 string StringReader::read(size_t size, bool advance) {
   if (this->offset >= this->length) {
     return string();

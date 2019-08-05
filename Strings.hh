@@ -112,6 +112,7 @@ public:
   size_t size() const;
   void go(size_t offset);
   bool eof() const;
+  std::string all() const;
 
   std::string read(size_t size, bool advance = true);
   size_t read_into(void* data, size_t size, bool advance = true);
