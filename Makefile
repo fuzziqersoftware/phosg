@@ -41,7 +41,7 @@ libphosg.a: $(OBJECTS)
 jsonformat$(EXE_EXTENSION): JSON.o JSONPickle.o Strings.o Filesystem.o Process.o Time.o JSONFormat.o
 	$(CXX) $(LDFLAGS) $^ -o $@
 
-test: ConsistentHashRingTest$(EXE_EXTENSION) EncodingTest$(EXE_EXTENSION) FileCacheTest$(EXE_EXTENSION) FilesystemTest$(EXE_EXTENSION) HashTest$(EXE_EXTENSION) ImageTest$(EXE_EXTENSION) JSONPickleTest$(EXE_EXTENSION) JSONTest$(EXE_EXTENSION) LRUSetTest$(EXE_EXTENSION) ProcessTest$(EXE_EXTENSION) StringsTest$(EXE_EXTENSION) TimeTest$(EXE_EXTENSION) UnitTestTest$(EXE_EXTENSION)
+test: ConsistentHashRingTest$(EXE_EXTENSION) EncodingTest$(EXE_EXTENSION) FileCacheTest$(EXE_EXTENSION) FilesystemTest$(EXE_EXTENSION) HashTest$(EXE_EXTENSION) ImageTest$(EXE_EXTENSION) JSONPickleTest$(EXE_EXTENSION) JSONTest$(EXE_EXTENSION) KDTreeTest$(EXE_EXTENSION) LRUSetTest$(EXE_EXTENSION) ProcessTest$(EXE_EXTENSION) StringsTest$(EXE_EXTENSION) TimeTest$(EXE_EXTENSION) UnitTestTest$(EXE_EXTENSION)
 	./ConsistentHashRingTest$(EXE_EXTENSION)
 	./EncodingTest$(EXE_EXTENSION)
 	./FileCacheTest$(EXE_EXTENSION)
@@ -50,6 +50,7 @@ test: ConsistentHashRingTest$(EXE_EXTENSION) EncodingTest$(EXE_EXTENSION) FileCa
 	./ImageTest$(EXE_EXTENSION)
 	./JSONPickleTest$(EXE_EXTENSION)
 	./JSONTest$(EXE_EXTENSION)
+	./KDTreeTest$(EXE_EXTENSION)
 	./LRUSetTest$(EXE_EXTENSION)
 	./ProcessTest$(EXE_EXTENSION)
 	./StringsTest$(EXE_EXTENSION)
