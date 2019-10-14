@@ -1,10 +1,11 @@
+#include "KDTree.hh"
+
 #include <inttypes.h>
 #include <stdio.h>
 
 #include <string>
 #include <set>
 
-#include "KDTree.hh"
 #include "UnitTest.hh"
 
 using namespace std;
