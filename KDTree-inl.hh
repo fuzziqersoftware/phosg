@@ -104,19 +104,39 @@ KDTree<CoordType, dimensions, ValueType>::~KDTree() {
 }
 
 template <typename CoordType, size_t dimensions, typename ValueType>
-void KDTree<CoordType, dimensions, ValueType>::insert(
-    const Point& pt, const ValueType& v) {
+typename KDTree<CoordType, dimensions, ValueType>::Iterator
+KDTree<CoordType, dimensions, ValueType>::insert(const Point& pt,
+    const ValueType& v) {
+  Node* n = new Node(pt, v);
+  this->link_node(n);
+  return Iterator(n);
+}
+
+template <typename CoordType, size_t dimensions, typename ValueType>
+template <typename... Args>
+typename KDTree<CoordType, dimensions, ValueType>::Iterator
+KDTree<CoordType, dimensions, ValueType>::emplace(
+    const Point& pt, Args&&... args) {
+  Node* n = new Node(pt, std::forward(args)...);
+  this->link_node(n);
+  return Iterator(n);
+}
+
+template <typename CoordType, size_t dimensions, typename ValueType>
+void KDTree<CoordType, dimensions, ValueType>::link_node(Node* new_node) {
   if (this->root == NULL) {
-    this->root = new Node(pt, 0, v, NULL);
+    this->root = new_node;
     this->node_count++;
     return;
   }
 
   Node* n = this->root;
   for (;;) {
-    if (pt.coords[n->dim] < n->pt.coords[n->dim]) {
+    if (new_node->pt.coords[n->dim] < n->pt.coords[n->dim]) {
       if (n->before == NULL) {
-        n->before = new Node(pt, (n->dim + 1) % dimensions, v, n);
+        new_node->dim = (n->dim + 1) % dimensions;
+        new_node->parent = n;
+        n->before = new_node;
         this->node_count++;
         return;
       } else {
@@ -124,7 +144,9 @@ void KDTree<CoordType, dimensions, ValueType>::insert(
       }
     } else {
       if (n->after == NULL) {
-        n->after = new Node(pt, (n->dim + 1) % dimensions, v, n);
+        new_node->dim = (n->dim + 1) % dimensions;
+        new_node->parent = n;
+        n->after = new_node;
         this->node_count++;
         return;
       } else {
@@ -236,6 +258,48 @@ KDTree<CoordType, dimensions, ValueType>::within(
   return ret;
 }
 
+// TODO: somehow deduplicate this code with within()
+template <typename CoordType, size_t dimensions, typename ValueType>
+bool KDTree<CoordType, dimensions, ValueType>::exists(const Point& low,
+    const Point& high) const {
+  if (this->root == NULL) {
+    return false;
+  }
+
+  std::deque<Node*> level_nodes;
+  level_nodes.emplace_back(this->root);
+  while (!level_nodes.empty()) {
+    Node* n = level_nodes.front();
+    level_nodes.pop_front();
+
+    // if this node is within the range, return it
+    {
+      size_t dim;
+      for (dim = 0; dim < dimensions; dim++) {
+        if ((n->pt.coords[dim] < low.coords[dim]) ||
+            (n->pt.coords[dim] >= high.coords[dim])) {
+          break;
+        }
+      }
+      if (dim == dimensions) {
+        return true;
+      }
+    }
+
+    // if the range falls entirely on one side of the node, move down to that
+    // node. otherwise, move down to both nodes
+    bool low_less = (low.coords[n->dim] < n->pt.coords[n->dim]);
+    bool high_greater = (high.coords[n->dim] >= n->pt.coords[n->dim]);
+    if (low_less && n->before) {
+      level_nodes.emplace_back(n->before);
+    }
+    if (high_greater && n->after) {
+      level_nodes.emplace_back(n->after);
+    }
+  }
+  return false;
+}
+
 template <typename CoordType, size_t dimensions, typename ValueType>
 size_t KDTree<CoordType, dimensions, ValueType>::size() const {
   return this->node_count;
@@ -261,8 +325,16 @@ size_t KDTree<CoordType, dimensions, ValueType>::depth_recursive(Node* n,
 
 template <typename CoordType, size_t dimensions, typename ValueType>
 KDTree<CoordType, dimensions, ValueType>::Node::Node(
-    const Point& pt, size_t dim, const ValueType& v, Node* parent) : pt(pt),
+    Node* parent, const Point& pt, size_t dim, const ValueType& v) : pt(pt),
       dim(dim), before(NULL), after(NULL), parent(parent), value(v) { }
+
+template <typename CoordType, size_t dimensions, typename ValueType>
+template <typename... Args>
+KDTree<CoordType, dimensions, ValueType>::Node::Node(
+    const Point& pt, Args&&... args) : pt(pt), dim(0), before(NULL),
+    after(NULL), parent(NULL), value(std::forward<Args>(args)...) { }
+
+
 
 template <typename CoordType, size_t dimensions, typename ValueType>
 size_t KDTree<CoordType, dimensions, ValueType>::count_subtree(const Node* n) {
@@ -529,28 +601,4 @@ template <typename CoordType, size_t dimensions, typename ValueType>
 typename KDTree<CoordType, dimensions, ValueType>::Iterator
 KDTree<CoordType, dimensions, ValueType>::end() const {
   return Iterator(NULL);
-}
-
-
-
-
-
-
-template <typename CoordType, size_t dimensions, typename ValueType>
-void KDTree<CoordType, dimensions, ValueType>::print_structure_int64_2(FILE* stream) const {
-  this->print_structure_int64_2_recursive(stream, this->root, 0, "root");
-}
-
-template <typename CoordType, size_t dimensions, typename ValueType>
-void KDTree<CoordType, dimensions, ValueType>::print_structure_int64_2_recursive(
-    FILE* stream, const Node* n, size_t depth, const char* label) const {
-  std::string indent_str(depth * 2, ' ');
-  if (!n) {
-    fprintf(stream, "%s%s = NULL\n", indent_str.c_str(), label);
-  } else {
-    fprintf(stream, "%s%s = %p with x=%" PRId64 " y=%" PRId64 " value=%" PRId64 " dim=%zu\n",
-        indent_str.c_str(), label, n, n->pt.coords[0], n->pt.coords[1], n->value, n->dim);
-    this->print_structure_int64_2_recursive(stream, n->before, depth + 1, "before");
-    this->print_structure_int64_2_recursive(stream, n->after, depth + 1, "after");
-  }
 }

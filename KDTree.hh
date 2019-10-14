@@ -30,7 +30,10 @@ private:
 
     ValueType value;
 
-    Node(const Point& pt, size_t dim, const ValueType& v, Node* parent = NULL);
+    Node(Node* parent, const Point& pt, size_t dim, const ValueType& v);
+
+    template<typename... Args>
+    Node(const Point& pt, Args&&... args);
   };
 
   Node* root;
@@ -40,6 +43,8 @@ private:
   static size_t count_subtree(const Node* n);
   static size_t depth_recursive(Node* n, size_t depth);
   void collect_into(Node* n, std::vector<Node*>& ret);
+
+  void link_node(Node* new_node);
 
   bool delete_node(Node* n);
 
@@ -85,23 +90,24 @@ public:
   KDTree& operator=(const KDTree&) = delete;
   KDTree& operator=(KDTree&&) = delete;
 
-  void insert(const Point& pt, const ValueType& v);
+  Iterator insert(const Point& pt, const ValueType& v);
+
+  template <typename... Args>
+  Iterator emplace(const Point& pt, Args&&... args);
+
   bool erase(const Point& pt, const ValueType& v);
   void erase_advance(Iterator& it);
 
   const ValueType& at(const Point& pt) const;
   bool exists(const Point& pt) const;
   std::vector<std::pair<Point, ValueType>> within(const Point& low, const Point& high) const;
+  bool exists(const Point& low, const Point& high) const;
 
   size_t size() const;
   size_t depth() const;
 
   Iterator begin() const;
   Iterator end() const;
-
-  // TODO remove this
-  void print_structure_int64_2(FILE* stream) const;
-  void print_structure_int64_2_recursive(FILE* stream, const Node* n, size_t depth, const char* label) const;
 };
 
 #include "KDTree-inl.hh"

@@ -43,9 +43,9 @@ void run_randomized_test() {
     }
   }
 
-  printf("--   erase\n");
+  printf("--   erase 1\n");
   {
-    // delete all points where x + y is an even number
+    // delete all points where x + y is an odd number
     for (auto it = t.begin(); it != t.end(); ) {
       expect_eq(1, points.count(make_pair(it->first.coords[0], it->first.coords[1])));
       if ((it->first.coords[0] + it->first.coords[1]) % 2) {
@@ -60,6 +60,28 @@ void run_randomized_test() {
       expect_eq(0, (it.first.coords[0] + it.first.coords[1]) % 2);
     }
   }
+
+  printf("--   erase 2\n");
+  {
+    // delete all points in (250, 250) -> (750, 750)
+    for (auto it = t.begin(); it != t.end(); ) {
+      expect_eq(1, points.count(make_pair(it->first.coords[0], it->first.coords[1])));
+      if ((it->first.coords[0] >= 250) && (it->first.coords[1] >= 250) &&
+          (it->first.coords[0] < 750) && (it->first.coords[1] < 750)) {
+        t.erase_advance(it);
+      } else {
+        ++it;
+      }
+    }
+    fprintf(stderr, "--     tree: size=%zu, depth=%zu\n", t.size(), t.depth());
+    for (auto it : t) {
+      expect_eq(1, points.count(make_pair(it.first.coords[0], it.first.coords[1])));
+      expect_eq(0, (it.first.coords[0] + it.first.coords[1]) % 2);
+    }
+  }
+
+  expect_eq(false, t.exists({250, 250}, {750, 750}));
+  expect_eq(true, t.exists({0, 0}, {1000, 1000}));
 }
 
 
