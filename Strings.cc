@@ -724,16 +724,25 @@ string parse_data_string(const string& s, string* mask) {
 }
 
 string format_data_string(const string& data, const string* mask) {
+  if (mask && (mask->size() != data.size())) {
+    throw logic_error("data and mask sizes do not match");
+  }
+  return format_data_string(data.data(), data.size(), mask ? mask->data() : NULL);
+}
+
+string format_data_string(const void* vdata, size_t size, const void* vmask) {
+  const uint8_t* data = reinterpret_cast<const uint8_t*>(vdata);
+  const uint8_t* mask = reinterpret_cast<const uint8_t*>(vmask);
 
   string ret;
   bool mask_enabled = true;
   size_t x;
-  for (x = 0; x < data.size(); x++) {
-    if (mask && ((bool)mask->at(x) != mask_enabled)) {
+  for (x = 0; x < size; x++) {
+    if (mask && ((bool)mask[x] != mask_enabled)) {
       mask_enabled = !mask_enabled;
       ret += '?';
     }
-    ret += string_printf("%02X", (uint8_t)data[x]);
+    ret += string_printf("%02X", data[x]);
   }
   return ret;
 }
