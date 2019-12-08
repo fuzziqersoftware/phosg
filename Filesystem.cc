@@ -254,21 +254,18 @@ scoped_fd::scoped_fd(scoped_fd&& other) : fd(other.fd) {
 }
 
 scoped_fd::~scoped_fd() {
-  if (this->fd >= 0) {
-    ::close(this->fd);
-  }
+  this->close();
 }
 
 scoped_fd& scoped_fd::operator=(scoped_fd&& other) {
+  this->close();
   this->fd = other.fd;
   other.fd = -1;
   return *this;
 }
 
 scoped_fd& scoped_fd::operator=(int other) {
-  if (this->fd >= 0) {
-    ::close(this->fd);
-  }
+  this->close();
   this->fd = other;
   return *this;
 }
@@ -278,6 +275,7 @@ scoped_fd::operator int() const {
 }
 
 void scoped_fd::open(const char* filename, int mode, mode_t perm) {
+  this->close();
   this->fd = ::open(filename, mode | O_BINARY, perm);
   if (this->fd < 0) {
     throw cannot_open_file(filename);
@@ -285,6 +283,7 @@ void scoped_fd::open(const char* filename, int mode, mode_t perm) {
 }
 
 void scoped_fd::open(const string& filename, int mode, mode_t perm) {
+  this->close();
   this->open(filename.c_str(), mode, perm);
 }
 
