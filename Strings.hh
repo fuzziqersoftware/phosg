@@ -175,3 +175,19 @@ public:
 private:
   std::string data;
 };
+
+template <typename T>
+class StringBuffer : std::string {
+public:
+  StringBuffer(size_t size = sizeof(T)) : std::string(size, '\0') { }
+  virtual ~StringBuffer() = default;
+
+  T* buffer() {
+    return reinterpret_cast<T*>(const_cast<char*>(this->data()));
+  }
+};
+
+template <typename T>
+T* data_at(std::string& s, size_t offset = 0) {
+  return reinterpret_cast<T*>(const_cast<char*>(s.data() + offset));
+}
