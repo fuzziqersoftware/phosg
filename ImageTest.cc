@@ -136,8 +136,6 @@ int main(int argc, char** argv) {
       {
         fprintf(stderr, "-- [%hhu-bit/%s] compare with reference\n", channel_width, ext);
         Image ref(reference_filename);
-        ref.save("ImageTestDebugRef.ppm", Image::ImageFormat::ColorPPM);
-        img.save("ImageTestDebugImg.ppm", Image::ImageFormat::ColorPPM);
         expect_eq(ref, img);
       }
 
