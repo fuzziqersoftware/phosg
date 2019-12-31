@@ -47,6 +47,21 @@ bool ends_with(const string& s, const string& end) {
   return false;
 }
 
+string escape_quotes(const string& s) {
+  string ret;
+  for (size_t x = 0; x < s.size(); x++) {
+    char ch = s[x];
+    if (ch == '\"') {
+      ret += "\\\"";
+    } else if (ch < 0x20 || ch > 0x7E) {
+      ret += string_printf("\\x%02X", ch);
+    } else {
+      ret += ch;
+    }
+  }
+  return ret;
+}
+
 string string_printf(const char* fmt, ...) {
   va_list va;
   va_start(va, fmt);
