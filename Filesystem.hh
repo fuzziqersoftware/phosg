@@ -46,6 +46,7 @@ public:
 class io_error : virtual public std::runtime_error {
 public:
   io_error(int fd);
+  io_error(int fd, const std::string& what);
 
   int error;
 };

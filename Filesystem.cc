@@ -113,19 +113,22 @@ cannot_stat_file::cannot_stat_file(int fd) :
 
 cannot_stat_file::cannot_stat_file(const string& filename) :
     runtime_error("can\'t stat file " + filename + ": " + string_for_error(errno)),
-    error(errno) {}
+    error(errno) { }
 
 cannot_open_file::cannot_open_file(int fd) :
     runtime_error("can\'t open fd " + to_string(fd) + ": " + string_for_error(errno)),
-    error(errno) {}
+    error(errno) { }
 
 cannot_open_file::cannot_open_file(const string& filename) :
     runtime_error("can\'t open file " + filename + ": " + string_for_error(errno)),
-    error(errno) {}
+    error(errno) { }
 
 io_error::io_error(int fd) :
     runtime_error("io error on fd " + to_string(fd) + ": " + string_for_error(errno)),
-    error(errno) {}
+    error(errno) { }
+
+io_error::io_error(int fd, const string& what) :
+    runtime_error(string_printf("io error on fd %d: %s", fd, what.c_str())), error(-1) { }
 
 struct stat stat(const string& filename) {
   struct stat st;
@@ -365,14 +368,20 @@ string read_all(FILE* f) {
 }
 
 void readx(int fd, void* data, size_t size) {
-  if (read(fd, data, size) != (ssize_t)size) {
+  ssize_t ret_size = read(fd, data, size);
+  if (ret_size < 0) {
     throw io_error(fd);
+  } else if (ret_size != static_cast<ssize_t>(size)) {
+    throw io_error(fd, string_printf("expected %zu bytes, read %zd bytes", size, ret_size));
   }
 }
 
 void writex(int fd, const void* data, size_t size) {
-  if (write(fd, data, size) != (ssize_t)size) {
+  ssize_t ret_size = write(fd, data, size);
+  if (ret_size < 0) {
     throw io_error(fd);
+  } else if (ret_size != static_cast<ssize_t>(size)) {
+    throw io_error(fd, string_printf("expected %zu bytes, wrote %zd bytes", size, ret_size));
   }
 }
 
@@ -389,14 +398,20 @@ void writex(int fd, const string& data) {
 #ifndef WINDOWS
 
 void preadx(int fd, void* data, size_t size, off_t offset) {
-  if (pread(fd, data, size, offset) != (ssize_t)size) {
+  ssize_t ret_size = pread(fd, data, size, offset);
+  if (ret_size < 0) {
     throw io_error(fd);
+  } else if (ret_size != static_cast<ssize_t>(size)) {
+    throw io_error(fd, string_printf("expected %zu bytes, read %zd bytes", size, ret_size));
   }
 }
 
 void pwritex(int fd, const void* data, size_t size, off_t offset) {
-  if (pwrite(fd, data, size, offset) != (ssize_t)size) {
+  ssize_t ret_size = pwrite(fd, data, size, offset);
+  if (ret_size < 0) {
     throw io_error(fd);
+  } else if (ret_size != static_cast<ssize_t>(size)) {
+    throw io_error(fd, string_printf("expected %zu bytes, wrote %zd bytes", size, ret_size));
   }
 }
 
@@ -413,14 +428,20 @@ void pwritex(int fd, const string& data, off_t offset) {
 #endif
 
 void freadx(FILE* f, void* data, size_t size) {
-  if (fread(data, 1, size, f) != size) {
+  ssize_t ret_size = fread(data, 1, size, f);
+  if (ret_size < 0) {
     throw io_error(fileno(f));
+  } else if (ret_size != static_cast<ssize_t>(size)) {
+    throw io_error(fileno(f), string_printf("expected %zu bytes, read %zd bytes", size, ret_size));
   }
 }
 
 void fwritex(FILE* f, const void* data, size_t size) {
-  if (fwrite(data, 1, size, f) != size) {
+  ssize_t ret_size = fwrite(data, 1, size, f);
+  if (ret_size < 0) {
     throw io_error(fileno(f));
+  } else if (ret_size != static_cast<ssize_t>(size)) {
+    throw io_error(fileno(f), string_printf("expected %zu bytes, wrote %zd bytes", size, ret_size));
   }
 }
 
