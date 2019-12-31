@@ -164,17 +164,14 @@ void fwritex(FILE* f, const T& t) {
 
 
 template <typename T>
-T load_object_file(const std::string& filename) {
+T load_object_file(const std::string& filename, bool allow_oversize = false) {
   scoped_fd fd(filename, O_RDONLY);
-  if (fstat(fd).st_size != sizeof(T)) {
+  if (!allow_oversize && (fstat(fd).st_size != sizeof(T))) {
     throw std::runtime_error("size of " + filename + " is incorrect");
   }
 
   T ret;
-  if (read(fd, &ret, sizeof(ret)) != sizeof(ret)) {
-    throw std::runtime_error("can\'t read from " + filename + ": " + string_for_error(errno));
-  }
-
+  readx(fd, &ret, sizeof(ret));
   return ret;
 }
 
@@ -186,10 +183,7 @@ std::vector<T> load_vector_file(const std::string& filename) {
   size_t read_size = item_count * sizeof(T);
 
   std::vector<T> ret(item_count);
-  if (read(fd, ret.data(), read_size) != read_size) {
-    throw std::runtime_error("can\'t read from " + filename + ": " + string_for_error(errno));
-  }
-
+  readx(fd, ret.data(), read_size);
   return ret;
 }
 
