@@ -94,6 +94,7 @@ public:
 
   void save(FILE* f, ImageFormat format) const;
   void save(const char* filename, ImageFormat format) const;
+  void save(const std::string& filename, ImageFormat format) const;
   std::string save(ImageFormat format) const;
 
   // read/write functions

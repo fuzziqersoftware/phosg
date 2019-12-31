@@ -598,7 +598,7 @@ string Image::save(Image::ImageFormat format) const {
   }
 }
 
-// saves the Image as a PPM (P6) file. if NULL is given, writes to stdout
+// saves the Image. if NULL is given for filename, writes to stdout
 void Image::save(const char* filename, Image::ImageFormat format) const {
   if (filename) {
     auto f = fopen_unique(filename, "wb");
@@ -606,6 +606,12 @@ void Image::save(const char* filename, Image::ImageFormat format) const {
   } else {
     this->save(stdout, format);
   }
+}
+
+// saves the Image
+void Image::save(const string& filename, Image::ImageFormat format) const {
+  auto f = fopen_unique(filename, "wb");
+  this->save(f.get(), format);
 }
 
 // fill the entire image with this color
