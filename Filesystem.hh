@@ -101,6 +101,15 @@ private:
   int fd;
 };
 
+namespace std {
+  template <>
+  struct hash<scoped_fd> {
+    size_t operator()(const scoped_fd& fd) const {
+      return std::hash<int>()(static_cast<int>(fd));
+    }
+  };
+}
+
 std::string read_all(int fd);
 std::string read_all(FILE* f);
 
