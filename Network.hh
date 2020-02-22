@@ -46,6 +46,8 @@ void get_socket_addresses(int fd, struct sockaddr_storage* local,
     struct sockaddr_storage* remote);
 
 std::string render_netloc(const std::string& addr, int port);
+std::pair<std::string, uint16_t> parse_netloc(const std::string& netloc,
+    int default_port = 0);
 
 std::string gethostname();
 

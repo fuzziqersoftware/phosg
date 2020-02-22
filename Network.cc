@@ -216,6 +216,14 @@ string render_netloc(const string& addr, int port) {
   }
 }
 
+pair<string, uint16_t> parse_netloc(const string& netloc, int default_port) {
+  size_t colon_loc = netloc.find(':');
+  if (colon_loc == string::npos) {
+    return make_pair(netloc, default_port);
+  }
+  return make_pair(netloc.substr(0, colon_loc), stod(netloc.substr(colon_loc + 1)));
+}
+
 string gethostname() {
   string buf(sysconf(_SC_HOST_NAME_MAX) + 1, 0);
   if (gethostname(const_cast<char*>(buf.data()), buf.size())) {
