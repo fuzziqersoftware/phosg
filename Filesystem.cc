@@ -244,11 +244,11 @@ scoped_fd::scoped_fd() : fd(-1) { }
 
 scoped_fd::scoped_fd(int fd) : fd(fd) { }
 
-scoped_fd::scoped_fd(const char* filename, int mode, mode_t perm) {
+scoped_fd::scoped_fd(const char* filename, int mode, mode_t perm) : fd(-1) {
   this->open(filename, mode, perm);
 }
 
-scoped_fd::scoped_fd(const string& filename, int mode, mode_t perm) {
+scoped_fd::scoped_fd(const string& filename, int mode, mode_t perm) : fd(-1) {
   this->open(filename.c_str(), mode, perm);
 }
 
