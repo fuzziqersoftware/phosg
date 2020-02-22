@@ -187,8 +187,7 @@ void Image::load(FILE* f) {
     bool has_alpha;
     int32_t w = header.info_header.width;
     int32_t h = header.info_header.height * (reverse_row_order ? -1 : 1);
-    auto new_data_unique = malloc_unique(w * h * 3);
-    uint8_t* new_data = reinterpret_cast<uint8_t*>(new_data_unique.get());
+    unique_ptr<void, void(*)(void*)> new_data_unique(nullptr, free);
 
     if (header.info_header.compression == 0) { // BI_RGB
       if ((header.info_header.bit_depth != 24) && (header.info_header.bit_depth != 32)) {
@@ -198,6 +197,9 @@ void Image::load(FILE* f) {
       has_alpha = false;
       size_t pixel_bytes = header.info_header.bit_depth / 8;
       size_t row_padding_bytes = (4 - ((w * pixel_bytes) % 4)) % 4;
+
+      new_data_unique = malloc_unique(w * h * 3);
+      uint8_t* new_data = reinterpret_cast<uint8_t*>(new_data_unique.get());
 
       auto row_data_unique = malloc_unique(w * pixel_bytes);
       uint8_t* row_data = reinterpret_cast<uint8_t*>(row_data_unique.get());
@@ -237,6 +239,9 @@ void Image::load(FILE* f) {
       } catch (const out_of_range&) {
         throw runtime_error("channel bit field is not 1-byte mask");
       }
+
+      new_data_unique = malloc_unique(w * h * 4);
+      uint8_t* new_data = reinterpret_cast<uint8_t*>(new_data_unique.get());
 
       auto row_data_unique = malloc_unique(w * 4);
       uint8_t* row_data = reinterpret_cast<uint8_t*>(row_data_unique.get());
