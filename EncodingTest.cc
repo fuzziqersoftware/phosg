@@ -27,6 +27,23 @@ int main(int argc, char* argv[]) {
   expect_eq(3.1, bswap64f((uint64_t)0xCDCCCCCCCCCC0840));
   expect_eq(0xCDCCCCCCCCCC0840, bswap64f(3.1));
 
+  // TODO: test custom alphabets
+  expect_eq("", base64_encode("", 0));
+  expect_eq("MQ==", base64_encode("1", 1));
+  expect_eq("MTE=", base64_encode("11", 2));
+  expect_eq("MTEx", base64_encode("111", 3));
+  expect_eq("MTExMg==", base64_encode("1112", 4));
+  expect_eq("MTExMjI=", base64_encode("11122", 5));
+  expect_eq("MTExMjIy", base64_encode("111222", 6));
+
+  expect_eq("", base64_decode("", 0));
+  expect_eq("1", base64_decode("MQ==", 4));
+  expect_eq("11", base64_decode("MTE=", 4));
+  expect_eq("111", base64_decode("MTEx", 4));
+  expect_eq("1112", base64_decode("MTExMg==", 8));
+  expect_eq("11122", base64_decode("MTExMjI=", 8));
+  expect_eq("111222", base64_decode("MTExMjIy", 8));
+
   printf("%s: all tests passed\n", argv[0]);
   return 0;
 }

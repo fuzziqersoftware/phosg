@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include <string>
+
 
 static inline uint8_t bswap8(uint8_t a) {
   return a;
@@ -65,3 +67,14 @@ static inline uint64_t bswap64f(double a) {
   uint64_t i = *(uint64_t*)(&a);
   return bswap64(i);
 }
+
+extern const char* DEFAULT_ALPHABET;
+extern const char* URLSAFE_ALPHABET;
+
+std::string base64_encode(const void* data, size_t size,
+    const char* alphabet = NULL);
+std::string base64_encode(const std::string& data, const char* alphabet = NULL);
+std::string base64_decode(const void* data, size_t size,
+    const char* alphabet = NULL);
+std::string base64_decode(const std::string& data, const char* alphabet = NULL);
+
