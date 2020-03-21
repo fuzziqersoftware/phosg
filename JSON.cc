@@ -587,7 +587,7 @@ string JSONObject::serialize() const {
 
     case List: {
       string ret = "[";
-      for (const std::shared_ptr<JSONObject>& o : this->list_data) {
+      for (const shared_ptr<JSONObject>& o : this->list_data) {
         if (ret.size() > 1) {
           ret += ',';
         }
@@ -625,7 +625,7 @@ string JSONObject::format(size_t indent) const {
       }
 
       string ret = "[";
-      for (const std::shared_ptr<JSONObject>& o : this->list_data) {
+      for (const shared_ptr<JSONObject>& o : this->list_data) {
         if (ret.size() > 1) {
           ret += ',';
         }
@@ -651,4 +651,60 @@ string JSONObject::format(size_t indent) const {
   }
 
   throw JSONObject::parse_error("unknown object type");
+}
+
+
+shared_ptr<JSONObject> make_json_null() {
+  return shared_ptr<JSONObject>(new JSONObject());
+}
+
+shared_ptr<JSONObject> make_json_bool(bool x) {
+  return shared_ptr<JSONObject>(new JSONObject(x));
+}
+
+shared_ptr<JSONObject> make_json_num(double x) {
+  return shared_ptr<JSONObject>(new JSONObject(x));
+}
+
+shared_ptr<JSONObject> make_json_int(int64_t x) {
+  return shared_ptr<JSONObject>(new JSONObject(x));
+}
+
+shared_ptr<JSONObject> make_json_str(const char* s) {
+  return shared_ptr<JSONObject>(new JSONObject(s));
+}
+
+shared_ptr<JSONObject> make_json_str(const string& s) {
+  return shared_ptr<JSONObject>(new JSONObject(s));
+}
+shared_ptr<JSONObject> make_json_str(string&& s) {
+  return shared_ptr<JSONObject>(new JSONObject(move(s)));
+}
+
+shared_ptr<JSONObject> make_json_list(vector<shared_ptr<JSONObject>>&& values) {
+  return shared_ptr<JSONObject>(new JSONObject(move(values)));
+}
+
+shared_ptr<JSONObject> make_json_list(
+    initializer_list<shared_ptr<JSONObject>> values) {
+  vector<shared_ptr<JSONObject>> vec(values);
+  return shared_ptr<JSONObject>(new JSONObject(move(vec)));
+}
+
+shared_ptr<JSONObject> make_json_dict(
+    initializer_list<pair<const char*, shared_ptr<JSONObject>>> values) {
+  unordered_map<string, shared_ptr<JSONObject>> dict;
+  for (const auto& i : values) {
+    dict.emplace(i.first, i.second);
+  }
+  return shared_ptr<JSONObject>(new JSONObject(move(dict)));
+}
+
+shared_ptr<JSONObject> make_json_dict(
+    initializer_list<pair<string, shared_ptr<JSONObject>>> values) {
+  unordered_map<string, shared_ptr<JSONObject>> dict;
+  for (const auto& i : values) {
+    dict.emplace(i.first, i.second);
+  }
+  return shared_ptr<JSONObject>(new JSONObject(move(dict)));
 }

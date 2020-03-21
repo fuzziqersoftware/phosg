@@ -8,6 +8,7 @@
 #include <vector>
 
 
+
 class JSONObject {
 public:
 
@@ -141,3 +142,65 @@ private:
   std::string string_data;
   bool bool_data;
 };
+
+
+std::shared_ptr<JSONObject> make_json_null();
+std::shared_ptr<JSONObject> make_json_bool(bool x);
+std::shared_ptr<JSONObject> make_json_num(double x);
+std::shared_ptr<JSONObject> make_json_int(int64_t x);
+std::shared_ptr<JSONObject> make_json_str(const char* s);
+std::shared_ptr<JSONObject> make_json_str(const std::string& s);
+std::shared_ptr<JSONObject> make_json_str(std::string&& s);
+std::shared_ptr<JSONObject> make_json_list(
+    std::vector<std::shared_ptr<JSONObject>>&& values);
+std::shared_ptr<JSONObject> make_json_list(
+    std::initializer_list<std::shared_ptr<JSONObject>> values);
+std::shared_ptr<JSONObject> make_json_dict(
+    std::initializer_list<std::pair<const char*, std::shared_ptr<JSONObject>>> values);
+
+template <typename T>
+std::shared_ptr<JSONObject> make_json_list(const std::vector<T>& values) {
+  std::vector<std::shared_ptr<JSONObject>> vec;
+  vec.reserve(values.size());
+  for (const auto& it : values) {
+    vec.emplace_back(new JSONObject(it));
+  }
+  return std::shared_ptr<JSONObject>(new JSONObject(move(vec)));
+}
+
+template <typename T>
+std::shared_ptr<JSONObject> make_json_list(std::initializer_list<T> values) {
+  std::vector<std::shared_ptr<JSONObject>> vec;
+  vec.reserve(values.size());
+  for (const auto& it : values) {
+    vec.emplace_back(new JSONObject(it));
+  }
+  return std::shared_ptr<JSONObject>(new JSONObject(move(vec)));
+}
+
+template <typename V>
+std::shared_ptr<JSONObject> make_json_dict(const std::unordered_map<std::string, V>& values) {
+  std::unordered_map<std::string, std::shared_ptr<JSONObject>> dict;
+  for (const auto& it : values) {
+    dict.emplace(it.first, new JSONObject(it.second));
+  }
+  return std::shared_ptr<JSONObject>(new JSONObject(move(dict)));
+}
+
+template <typename V>
+std::shared_ptr<JSONObject> make_json_dict(std::initializer_list<std::pair<std::string, V>> values) {
+  std::unordered_map<std::string, std::shared_ptr<JSONObject>> dict;
+  for (const auto& it : values) {
+    dict.emplace(it.first, new JSONObject(it.second));
+  }
+  return std::shared_ptr<JSONObject>(new JSONObject(move(dict)));
+}
+
+template <typename V>
+std::shared_ptr<JSONObject> make_json_dict(std::initializer_list<std::pair<const char*, V>> values) {
+  std::unordered_map<std::string, std::shared_ptr<JSONObject>> dict;
+  for (const auto& it : values) {
+    dict.emplace(it.first, new JSONObject(it.second));
+  }
+  return std::shared_ptr<JSONObject>(new JSONObject(move(dict)));
+}
