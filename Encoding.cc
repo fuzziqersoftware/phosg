@@ -1,5 +1,7 @@
 #include "Encoding.hh"
 
+#include <stdexcept>
+
 using namespace std;
 
 
