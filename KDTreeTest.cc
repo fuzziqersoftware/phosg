@@ -2,6 +2,7 @@
 
 #include <inttypes.h>
 #include <stdio.h>
+#include <time.h>
 
 #include <string>
 #include <set>

@@ -1,5 +1,6 @@
 #include "Image.hh"
 
+#define __STDC_FORMAT_MACROS
 #include <float.h>
 #include <inttypes.h>
 #include <math.h>
