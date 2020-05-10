@@ -12,5 +12,3 @@ std::string sha1(const std::string& data);
 
 std::string md5(const void* data, size_t size);
 std::string md5(const std::string& data);
-
-std::string get_random_data(size_t size);

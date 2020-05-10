@@ -568,6 +568,23 @@ void unlink(const string& filename, bool recursive) {
   }
 }
 
+void make_fd_nonblocking(int fd) {
+#ifdef WINDOWS
+  unsigned long nonblocking = 1;
+  if (ioctlsocket(fd, FIONBIO, &nonblocking) == SOCKET_ERROR) {
+    throw runtime_error("can\'t make socket nonblocking: " + string_for_error(errno));
+  }
+#else
+  int flags = fcntl(fd, F_GETFL, 0);
+  if (flags < 0) {
+    throw runtime_error("can\'t get socket flags: " + string_for_error(errno));
+  }
+  if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+    throw runtime_error("can\'t set socket flags: " + string_for_error(errno));
+  }
+#endif
+}
+
 #ifndef WINDOWS
 
 pair<int, int> pipe() {
@@ -576,16 +593,6 @@ pair<int, int> pipe() {
     throw runtime_error("pipe failed: " + string_for_error(errno));
   }
   return make_pair(fds[0], fds[1]);
-}
-
-void make_fd_nonblocking(int fd) {
-  int flags = fcntl(fd, F_GETFL, 0);
-  if (flags < 0) {
-    throw runtime_error("can\'t get socket flags: " + string_for_error(errno));
-  }
-  if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
-    throw runtime_error("can\'t set socket flags: " + string_for_error(errno));
-  }
 }
 
 void Poll::add(int fd, short events) {

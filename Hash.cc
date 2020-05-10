@@ -216,11 +216,3 @@ string md5(const void* data, size_t size) {
 string md5(const std::string& data) {
   return md5(data.data(), data.size());
 }
-
-string get_random_data(size_t size) {
-  static FILE* random_file = NULL;
-  if (!random_file) {
-    random_file = fopen("/dev/urandom", "rb");
-  }
-  return freadx(random_file, size);
-}

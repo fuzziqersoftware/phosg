@@ -1,8 +1,5 @@
 #pragma once
 
-// TODO: a lot of this can be implemented on windows; stop being lazy
-#ifndef WINDOWS
-
 #include <stdint.h>
 #include <sys/types.h>
 
@@ -50,5 +47,3 @@ std::pair<std::string, uint16_t> parse_netloc(const std::string& netloc,
     int default_port = 0);
 
 std::string gethostname();
-
-#endif

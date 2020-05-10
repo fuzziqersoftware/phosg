@@ -142,8 +142,6 @@ uint8_t value_for_hex_char(char x) {
   throw out_of_range(string_printf("invalid hex char: %c", x));
 }
 
-#ifndef WINDOWS
-
 static int current_log_level = INFO;
 
 int log_level() {
@@ -168,7 +166,12 @@ void log(int level, const char* fmt, ...) {
   struct tm now_tm;
   localtime_r(&now_secs, &now_tm);
   strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", &now_tm);
+#ifdef WINDOWS
+  // don't include the pid on windows
+  fprintf(stderr, "%c %s - ", log_level_chars[level], time_buffer);
+#else
   fprintf(stderr, "%c %d %s - ", log_level_chars[level], getpid_cached(), time_buffer);
+#endif
 
   va_list va;
   va_start(va, fmt);
@@ -176,8 +179,6 @@ void log(int level, const char* fmt, ...) {
   va_end(va);
   putc('\n', stderr);
 }
-
-#endif
 
 vector<string> split(const string& s, char delim) {
   vector<string> elems;

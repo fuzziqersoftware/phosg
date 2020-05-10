@@ -211,11 +211,11 @@ std::shared_ptr<FILE> fdopen_shared(int fd, const std::string& mode = "rb");
 void rename(const std::string& old_filename, const std::string& new_filename);
 void unlink(const std::string& filename, bool recursive = false);
 
+void make_fd_nonblocking(int fd);
+
 #ifndef WINDOWS
 
 std::pair<int, int> pipe();
-
-void make_fd_nonblocking(int fd);
 
 class Poll {
 public:
