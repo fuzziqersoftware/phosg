@@ -69,11 +69,11 @@ int main(int argc, char** argv) {
   }
   {
     fprintf(stderr, "-- run_process stderr data\n");
-    auto ret = run_process({"ls", string(argv[0]) + "_this_file_should_not_exist"}, NULL, false);
+    auto ret = run_process({"python3", "-c", "import sys; sys.stderr.write('this should go to stderr\\n'); sys.stderr.flush()"}, NULL, false);
     expect(WIFEXITED(ret.exit_status));
-    expect_ne(0, WEXITSTATUS(ret.exit_status));
+    expect_eq(0, WEXITSTATUS(ret.exit_status));
     expect_eq("", ret.stdout_contents);
-    expect_ne(string::npos, ret.stderr_contents.find("No such file or directory"));
+    expect_eq("this should go to stderr\n", ret.stderr_contents);
   }
 
   // test run_process with stdin data
