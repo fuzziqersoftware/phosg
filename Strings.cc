@@ -874,42 +874,22 @@ string StringReader::all() const {
 }
 
 string StringReader::read(size_t size, bool advance) {
-  if (this->offset >= this->length) {
-    return string();
-  }
-
-  string ret;
-  if (this->offset + size > this->length) {
-    ret = string(reinterpret_cast<const char*>(this->data + this->offset), this->length - size);
-  } else {
-    ret = string(reinterpret_cast<const char*>(this->data + this->offset), size);
-  }
-  if (advance) {
+  string ret = this->pread(this->offset, size);
+  if (ret.size() && advance) {
     this->offset += ret.size();
   }
   return ret;
 }
 
 size_t StringReader::read_into(void* data, size_t size, bool advance) {
-  if (this->offset >= this->length) {
-    return 0;
-  }
-
-  size_t ret;
-  if (this->offset + size > this->length) {
-    memcpy(data, this->data + this->offset, this->length - size);
-    ret = this->length - size;
-  } else {
-    memcpy(data, this->data + this->offset, size);
-    ret = size;
-  }
-  if (advance) {
+  size_t ret = this->pread_into(this->offset, data, size);
+  if (ret && advance) {
     this->offset += ret;
   }
   return ret;
 }
 
-string StringReader::pread(size_t offset, size_t size) {
+string StringReader::pread(size_t offset, size_t size) const {
   if (offset >= this->length) {
     return string();
   }
@@ -917,6 +897,22 @@ string StringReader::pread(size_t offset, size_t size) {
     return string(reinterpret_cast<const char*>(this->data + offset), this->length - size);
   }
   return string(reinterpret_cast<const char*>(this->data + offset), size);
+}
+
+size_t StringReader::pread_into(size_t offset, void* data, size_t size) const {
+  if (this->offset >= this->length) {
+    return 0;
+  }
+
+  size_t ret;
+  if (offset + size > this->length) {
+    memcpy(data, this->data + offset, this->length - offset);
+    ret = this->length - offset;
+  } else {
+    memcpy(data, this->data + offset, size);
+    ret = size;
+  }
+  return ret;
 }
 
 uint8_t StringReader::get_u8(bool advance) {
