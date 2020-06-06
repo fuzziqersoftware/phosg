@@ -900,7 +900,7 @@ string StringReader::pread(size_t offset, size_t size) const {
 }
 
 size_t StringReader::pread_into(size_t offset, void* data, size_t size) const {
-  if (this->offset >= this->length) {
+  if (offset >= this->length) {
     return 0;
   }
 
