@@ -894,7 +894,7 @@ string StringReader::pread(size_t offset, size_t size) const {
     return string();
   }
   if (offset + size > this->length) {
-    return string(reinterpret_cast<const char*>(this->data + offset), this->length - size);
+    return string(reinterpret_cast<const char*>(this->data + offset), this->length - offset);
   }
   return string(reinterpret_cast<const char*>(this->data + offset), size);
 }
