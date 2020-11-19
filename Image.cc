@@ -739,6 +739,30 @@ void Image::write_pixel(ssize_t x, ssize_t y, uint64_t r, uint64_t g,
   }
 }
 
+void Image::reverse_horizontal() {
+  for (size_t y = 0; y < this->height; y++) {
+    for (size_t x = 0; x < this->width / 2; x++) {
+      uint64_t r1, g1, b1, a1, r2, g2, b2, a2;
+      this->read_pixel(x, y, &r1, &g1, &b1, &a1);
+      this->read_pixel(this->width - x - 1, y, &r2, &g2, &b2, &a2);
+      this->write_pixel(this->width - x - 1, y, r1, g1, b1, a1);
+      this->write_pixel(x, y, r2, g2, b2, a2);
+    }
+  }
+}
+
+void Image::reverse_vertical() {
+  for (size_t y = 0; y < this->height / 2; y++) {
+    for (size_t x = 0; x < this->width; x++) {
+      uint64_t r1, g1, b1, a1, r2, g2, b2, a2;
+      this->read_pixel(x, y, &r1, &g1, &b1, &a1);
+      this->read_pixel(x, this->height - y - 1, &r2, &g2, &b2, &a2);
+      this->write_pixel(x, this->height - y - 1, r1, g1, b1, a1);
+      this->write_pixel(x, y, r2, g2, b2, a2);
+    }
+  }
+}
+
 // use the Bresenham algorithm to draw a line between the specified points
 void Image::draw_line(ssize_t x0, ssize_t y0, ssize_t x1, ssize_t y1,
     uint64_t r, uint64_t g, uint64_t b, uint64_t a) {

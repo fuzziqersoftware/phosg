@@ -102,6 +102,10 @@ public:
   void read_pixel(ssize_t x, ssize_t y, uint64_t* r, uint64_t* g, uint64_t* b, uint64_t* a = NULL) const;
   void write_pixel(ssize_t x, ssize_t y, uint64_t r, uint64_t g, uint64_t b, uint64_t a = 0xFF);
 
+  // canvas functions
+  void reverse_horizontal();
+  void reverse_vertical();
+
   // drawing functions
   // note: no drawing functions respect the alpha channel - they all set it to
   // the given alpha value and ignore whatever's already in the image
