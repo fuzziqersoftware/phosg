@@ -141,6 +141,8 @@ public:
   int32_t get_s24(bool advance = true);
   uint32_t get_u32(bool advance = true);
   int32_t get_s32(bool advance = true);
+  uint64_t get_u48(bool advance = true);
+  int64_t get_s48(bool advance = true);
   uint64_t get_u64(bool advance = true);
   int64_t get_s64(bool advance = true);
 
@@ -150,6 +152,8 @@ public:
   int32_t get_s24r(bool advance = true);
   uint32_t get_u32r(bool advance = true);
   int32_t get_s32r(bool advance = true);
+  uint64_t get_u48r(bool advance = true);
+  int64_t get_s48r(bool advance = true);
   uint64_t get_u64r(bool advance = true);
   int64_t get_s64r(bool advance = true);
 

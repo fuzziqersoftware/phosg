@@ -1000,6 +1000,30 @@ int32_t StringReader::get_s32(bool advance) {
   return ret;
 }
 
+uint64_t StringReader::get_u48(bool advance) {
+  if (this->offset >= this->length - 5) {
+    throw out_of_range("end of string");
+  }
+  uint64_t ret = static_cast<uint64_t>(this->data[this->offset]) |
+      (static_cast<uint64_t>(this->data[this->offset + 1]) << 8) |
+      (static_cast<uint64_t>(this->data[this->offset + 2]) << 16) |
+      (static_cast<uint64_t>(this->data[this->offset + 3]) << 24) |
+      (static_cast<uint64_t>(this->data[this->offset + 4]) << 32) |
+      (static_cast<uint64_t>(this->data[this->offset + 5]) << 40);
+  if (advance) {
+    this->offset += 6;
+  }
+  return ret;
+}
+
+int64_t StringReader::get_s48(bool advance) {
+  uint32_t x = this->get_u48(advance);
+  if (x & 0x0000800000000000) {
+    return x | 0xFFFF000000000000;
+  }
+  return x;
+}
+
 uint64_t StringReader::get_u64(bool advance) {
   if (this->offset >= this->length - 7) {
     throw out_of_range("end of string");
@@ -1044,6 +1068,14 @@ uint32_t StringReader::get_u32r(bool advance) {
 
 int32_t StringReader::get_s32r(bool advance) {
   return bswap32(this->get_s32(advance));
+}
+
+uint64_t StringReader::get_u48r(bool advance) {
+  return bswap48(this->get_u48(advance));
+}
+
+int64_t StringReader::get_s48r(bool advance) {
+  return bswap48s(this->get_s48(advance));
 }
 
 uint64_t StringReader::get_u64r(bool advance) {

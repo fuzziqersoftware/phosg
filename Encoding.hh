@@ -35,6 +35,23 @@ static inline uint32_t bswap32(uint32_t a) {
          ((a << 24) & 0xFF000000);
 }
 
+static inline uint64_t bswap48(uint64_t a) {
+  return ((a >> 40) & 0x00000000000000FF) |
+         ((a >> 24) & 0x000000000000FF00) |
+         ((a >> 8)  & 0x0000000000FF0000) |
+         ((a << 8)  & 0x00000000FF000000) |
+         ((a << 24) & 0x000000FF00000000) |
+         ((a << 40) & 0x0000FF0000000000);
+}
+
+static inline int64_t bswap48s(int64_t a) {
+  int64_t r = bswap48(a);
+  if (r & 0x0000800000000000) {
+    return r | 0xFFFF000000000000;
+  }
+  return r;
+}
+
 static inline uint64_t bswap64(uint64_t a) {
   return ((a >> 56) & 0x00000000000000FF) |
          ((a >> 40) & 0x000000000000FF00) |
