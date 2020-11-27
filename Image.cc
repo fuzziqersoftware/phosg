@@ -740,8 +740,8 @@ void Image::write_pixel(ssize_t x, ssize_t y, uint64_t r, uint64_t g,
 }
 
 void Image::reverse_horizontal() {
-  for (size_t y = 0; y < this->height; y++) {
-    for (size_t x = 0; x < this->width / 2; x++) {
+  for (ssize_t y = 0; y < this->height; y++) {
+    for (ssize_t x = 0; x < this->width / 2; x++) {
       uint64_t r1, g1, b1, a1, r2, g2, b2, a2;
       this->read_pixel(x, y, &r1, &g1, &b1, &a1);
       this->read_pixel(this->width - x - 1, y, &r2, &g2, &b2, &a2);
@@ -752,8 +752,8 @@ void Image::reverse_horizontal() {
 }
 
 void Image::reverse_vertical() {
-  for (size_t y = 0; y < this->height / 2; y++) {
-    for (size_t x = 0; x < this->width; x++) {
+  for (ssize_t y = 0; y < this->height / 2; y++) {
+    for (ssize_t x = 0; x < this->width; x++) {
       uint64_t r1, g1, b1, a1, r2, g2, b2, a2;
       this->read_pixel(x, y, &r1, &g1, &b1, &a1);
       this->read_pixel(x, this->height - y - 1, &r2, &g2, &b2, &a2);
