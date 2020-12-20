@@ -836,6 +836,41 @@ string format_size(size_t size, bool include_bytes) {
   }
 }
 
+size_t parse_size(const char* str) {
+  // input is like [0-9](\.[0-9]+)? *[KkMmGgTtPpEe]?[Bb]?
+  // fortunately this can just be parsed left-to-right
+  double fractional_part = 0.0;
+  size_t integer_part = 0;
+  size_t unit_scale = 1;
+  for (; isdigit(*str); str++) {
+    integer_part = integer_part * 10 + (*str - '0');
+  }
+  if (*str == '.') {
+    str++;
+    double factor = 0.1;
+    for (; isdigit(*str); str++) {
+      fractional_part += factor * (*str - '0');
+      factor *= 0.1;
+    }
+  }
+  for (; *str == ' '; str++) { }
+  if (*str == 'K' || *str == 'k') {
+    unit_scale = KB_SIZE;
+  } else if (*str == 'M' || *str == 'm') {
+    unit_scale = MB_SIZE;
+  } else if (*str == 'G' || *str == 'g') {
+    unit_scale = GB_SIZE;
+  } else if (*str == 'T' || *str == 't') {
+    unit_scale = TB_SIZE;
+  } else if (*str == 'P' || *str == 'p') {
+    unit_scale = PB_SIZE;
+  } else if (*str == 'E' || *str == 'e') {
+    unit_scale = EB_SIZE;
+  }
+
+  return integer_part * unit_scale + static_cast<size_t>(fractional_part * unit_scale);
+}
+
 StringReader::StringReader(shared_ptr<string> data, size_t offset) :
     owned_data(data), data(reinterpret_cast<const uint8_t*>(data->data())),
     length(data->size()), offset(offset) { }

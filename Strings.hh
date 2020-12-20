@@ -104,6 +104,7 @@ std::string format_data_string(const void* data, size_t size, const void* mask =
 
 std::string format_time(struct timeval* tv = NULL);
 std::string format_size(size_t size, bool include_bytes = false);
+size_t parse_size(const char* str);
 
 class StringReader {
 public:

@@ -279,6 +279,17 @@ int main(int argc, char** argv) {
     expect_eq("1073741824 bytes (1.00 GB)", format_size(1073741824, true));
   }
 
+  fprintf(stderr, "-- parse_size\n");
+  {
+    expect_eq(0, parse_size("0"));
+    expect_eq(0, parse_size("0B"));
+    expect_eq(0, parse_size("0 B"));
+    expect_eq(0, parse_size("0 bytes"));
+    expect_eq(1000, parse_size("1000 bytes"));
+    expect_eq(1536, parse_size("1.5 KB"));
+    expect_eq(3 * 1024 * 1024, parse_size("3 MB"));
+  }
+
   print_data_test();
 
   // TODO: test string_vprintf
