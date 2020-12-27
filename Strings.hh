@@ -119,19 +119,30 @@ public:
   std::string all() const;
 
   std::string read(size_t size, bool advance = true);
+  std::string readx(size_t size, bool advance = true);
   size_t read_into(void* data, size_t size, bool advance = true);
+  void readx_into(void* data, size_t size, bool advance = true);
   std::string pread(size_t offset, size_t size) const;
+  std::string preadx(size_t offset, size_t size) const;
   size_t pread_into(size_t offset, void* data, size_t size) const;
+  void preadx_into(size_t offset, void* data, size_t size) const;
 
-  template <typename T> T get(bool advance = true) {
+  template <typename T> const T& get(bool advance = true) {
     if (this->offset > this->length - sizeof(T)) {
       throw std::out_of_range("end of string");
     }
-    T ret = *reinterpret_cast<const T*>(this->data + this->offset);
+    const T& ret = *reinterpret_cast<const T*>(this->data + this->offset);
     if (advance) {
       this->offset += sizeof(T);
     }
     return ret;
+  }
+
+  template <typename T> const T& pget(size_t offset) {
+    if (offset > this->length - sizeof(T)) {
+      throw std::out_of_range("end of string");
+    }
+    return *reinterpret_cast<const T*>(this->data + offset);
   }
 
   uint8_t get_u8(bool advance = true);

@@ -906,6 +906,14 @@ string StringReader::read(size_t size, bool advance) {
   return ret;
 }
 
+string StringReader::readx(size_t size, bool advance) {
+  string ret = this->preadx(this->offset, size);
+  if (advance) {
+    this->offset += ret.size();
+  }
+  return ret;
+}
+
 size_t StringReader::read_into(void* data, size_t size, bool advance) {
   size_t ret = this->pread_into(this->offset, data, size);
   if (ret && advance) {
@@ -914,12 +922,26 @@ size_t StringReader::read_into(void* data, size_t size, bool advance) {
   return ret;
 }
 
+void StringReader::readx_into(void* data, size_t size, bool advance) {
+  this->preadx_into(this->offset, data, size);
+  if (advance) {
+    this->offset += size;
+  }
+}
+
 string StringReader::pread(size_t offset, size_t size) const {
   if (offset >= this->length) {
     return string();
   }
   if (offset + size > this->length) {
     return string(reinterpret_cast<const char*>(this->data + offset), this->length - offset);
+  }
+  return string(reinterpret_cast<const char*>(this->data + offset), size);
+}
+
+string StringReader::preadx(size_t offset, size_t size) const {
+  if ((offset >= this->length) || (offset + size > this->length)) {
+    throw out_of_range("not enough data to read");
   }
   return string(reinterpret_cast<const char*>(this->data + offset), size);
 }
@@ -938,6 +960,13 @@ size_t StringReader::pread_into(size_t offset, void* data, size_t size) const {
     ret = size;
   }
   return ret;
+}
+
+void StringReader::preadx_into(size_t offset, void* data, size_t size) const {
+  if ((offset >= this->length) || (offset + size > this->length)) {
+    throw out_of_range("not enough data to read");
+  }
+  memcpy(data, this->data + offset, size);
 }
 
 uint8_t StringReader::get_u8(bool advance) {
