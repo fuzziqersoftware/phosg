@@ -23,6 +23,9 @@
 #include "Strings.hh"
 
 
+std::string basename(const std::string& filename);
+std::string dirname(const std::string& filename);
+
 std::unordered_set<std::string> list_directory(const std::string& dirname);
 
 std::string get_user_home_directory();

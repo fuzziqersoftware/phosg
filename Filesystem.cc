@@ -31,6 +31,16 @@ using namespace std;
 
 #ifndef WINDOWS
 
+std::string basename(const std::string& filename) {
+  size_t slash_pos = filename.rfind('/');
+  return (slash_pos == string::npos) ? filename : filename.substr(slash_pos + 1);
+}
+
+std::string dirname(const std::string& filename) {
+  size_t slash_pos = filename.rfind('/');
+  return (slash_pos == string::npos) ? filename : filename.substr(0, slash_pos);
+}
+
 unordered_set<string> list_directory(const string& dirname) {
   unordered_set<string> files;
 
