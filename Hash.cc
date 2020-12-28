@@ -21,8 +21,8 @@ uint64_t fnv1a64(const void* data, size_t size, uint64_t hash) {
   return hash;
 }
 
-uint64_t fnv1a64(const string& data) {
-  return fnv1a64(data.data(), data.size());
+uint64_t fnv1a64(const string& data, uint64_t hash) {
+  return fnv1a64(data.data(), data.size(), hash);
 }
 
 static void sha1_process_block(const void* block, uint32_t& h0, uint32_t& h1,
