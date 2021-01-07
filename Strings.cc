@@ -1148,6 +1148,91 @@ void StringWriter::write(const std::string& data) {
   this->data.append(data);
 }
 
-std::string& StringWriter::get() {
-  return this->data;
+void StringWriter::put_u8(uint8_t v) {
+  this->data.append(1, static_cast<char>(v));
+}
+
+void StringWriter::put_s8(int8_t v) {
+  this->data.append(1, static_cast<char>(v));
+}
+
+void StringWriter::put_u16(uint16_t v) {
+  this->data.append(reinterpret_cast<char*>(&v), sizeof(v));
+}
+
+void StringWriter::put_s16(int16_t v) {
+  this->data.append(reinterpret_cast<char*>(&v), sizeof(v));
+}
+
+void StringWriter::put_u24(uint32_t v) {
+  this->data.append(reinterpret_cast<char*>(&v), 3);
+}
+
+void StringWriter::put_s24(int32_t v) {
+  this->data.append(reinterpret_cast<char*>(&v), 3);
+}
+
+void StringWriter::put_u32(uint32_t v) {
+  this->data.append(reinterpret_cast<char*>(&v), sizeof(v));
+}
+
+void StringWriter::put_s32(int32_t v) {
+  this->data.append(reinterpret_cast<char*>(&v), sizeof(v));
+}
+
+void StringWriter::put_u48(uint64_t v) {
+  this->data.append(reinterpret_cast<char*>(&v), 6);
+}
+
+void StringWriter::put_s48(int64_t v) {
+  this->data.append(reinterpret_cast<char*>(&v), 6);
+}
+
+void StringWriter::put_u64(uint64_t v) {
+  this->data.append(reinterpret_cast<char*>(&v), sizeof(v));
+}
+
+void StringWriter::put_s64(int64_t v) {
+  this->data.append(reinterpret_cast<char*>(&v), sizeof(v));
+}
+
+
+void StringWriter::put_u16r(uint16_t v) {
+  this->put_u16(bswap16(v));
+}
+
+void StringWriter::put_s16r(int16_t v) {
+  this->put_s16(bswap16(v));
+}
+
+void StringWriter::put_u24r(uint32_t v) {
+  this->put_u24(bswap24(v));
+}
+
+void StringWriter::put_s24r(int32_t v) {
+  this->put_s24(bswap24(v));
+}
+
+void StringWriter::put_u32r(uint32_t v) {
+  this->put_u32(bswap32(v));
+}
+
+void StringWriter::put_s32r(int32_t v) {
+  this->put_s32(bswap32(v));
+}
+
+void StringWriter::put_u48r(uint64_t v) {
+  this->put_u48(bswap48(v));
+}
+
+void StringWriter::put_s48r(int64_t v) {
+  this->put_s48(bswap48(v));
+}
+
+void StringWriter::put_u64r(uint64_t v) {
+  this->put_u64(bswap64(v));
+}
+
+void StringWriter::put_s64r(int64_t v) {
+  this->put_s64(bswap64(v));
 }

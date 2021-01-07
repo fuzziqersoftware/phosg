@@ -185,11 +185,37 @@ public:
 
   void write(const std::string& data);
 
-  template <typename T> void write(T v) {
+  template <typename T> void put(T v) {
     this->data.append(reinterpret_cast<const char*>(&v), sizeof(v));
   }
 
-  std::string& get();
+  void put_u8(uint8_t v);
+  void put_s8(int8_t v);
+  void put_u16(uint16_t v);
+  void put_s16(int16_t v);
+  void put_u24(uint32_t v);
+  void put_s24(int32_t v);
+  void put_u32(uint32_t v);
+  void put_s32(int32_t v);
+  void put_u48(uint64_t v);
+  void put_s48(int64_t v);
+  void put_u64(uint64_t v);
+  void put_s64(int64_t v);
+
+  void put_u16r(uint16_t v);
+  void put_s16r(int16_t v);
+  void put_u24r(uint32_t v);
+  void put_s24r(int32_t v);
+  void put_u32r(uint32_t v);
+  void put_s32r(int32_t v);
+  void put_u48r(uint64_t v);
+  void put_s48r(int64_t v);
+  void put_u64r(uint64_t v);
+  void put_s64r(int64_t v);
+
+  inline std::string& str() {
+    return data;
+  }
 
 private:
   std::string data;
