@@ -12,18 +12,20 @@
 // image as a PPM or Windows BMP file.
 class Image {
 private:
+  union DataPtrs {
+    void* raw;
+    uint8_t* as8;
+    uint16_t* as16;
+    uint32_t* as32;
+    uint64_t* as64;
+  };
+
   ssize_t width;
   ssize_t height;
   bool has_alpha;
   uint8_t channel_width;
   uint64_t max_value;
-  union {
-    void* data;
-    uint8_t* data8;
-    uint16_t* data16;
-    uint32_t* data32;
-    uint64_t* data64;
-  };
+  DataPtrs data;
 
   void load(FILE* f);
 
@@ -69,7 +71,7 @@ public:
     return this->has_alpha;
   }
   inline const void* get_data() const {
-    return this->data;
+    return this->data.raw;
   }
   inline uint8_t get_channel_width() const {
     return this->channel_width;
@@ -105,6 +107,7 @@ public:
   // canvas functions
   void reverse_horizontal();
   void reverse_vertical();
+  void set_has_alpha(bool has_alpha);
 
   // drawing functions
   // note: no drawing functions respect the alpha channel - they all set it to

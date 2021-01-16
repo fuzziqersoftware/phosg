@@ -113,11 +113,12 @@ void Image::load(FILE* f) {
       new_channel_width = 8;
     }
 
-    void* new_data = malloc(new_width * new_height * 3 * (new_channel_width / 8));
-    if (!new_data) {
+    DataPtrs new_data;
+    new_data.raw = malloc(new_width * new_height * 3 * (new_channel_width / 8));
+    if (!new_data.raw) {
       throw bad_alloc();
     }
-    freadx(f, new_data, new_width * new_height * (format == ColorPPM ? 3 : 1) * (new_channel_width / 8));
+    freadx(f, new_data.raw, new_width * new_height * (format == ColorPPM ? 3 : 1) * (new_channel_width / 8));
 
     // if the read succeeded, we can commit the changes - nothing after here can
     // throw an exception
@@ -127,40 +128,40 @@ void Image::load(FILE* f) {
     this->has_alpha = false;
     this->channel_width = new_channel_width;
     this->max_value = new_max_value;
-    this->data = new_data;
+    this->data.raw = new_data.raw;
 
     // expand grayscale data into color data if necessary
     if (format == GrayscalePPM) {
       if (this->channel_width == 8) {
         for (ssize_t y = this->height - 1; y >= 0; y--) {
           for (ssize_t x = this->width - 1; x >= 0; x--) {
-            this->data8[(y * this->width + x) * 3 + 0] = this->data8[y * this->width + x];
-            this->data8[(y * this->width + x) * 3 + 1] = this->data8[y * this->width + x];
-            this->data8[(y * this->width + x) * 3 + 2] = this->data8[y * this->width + x];
+            this->data.as8[(y * this->width + x) * 3 + 0] = this->data.as8[y * this->width + x];
+            this->data.as8[(y * this->width + x) * 3 + 1] = this->data.as8[y * this->width + x];
+            this->data.as8[(y * this->width + x) * 3 + 2] = this->data.as8[y * this->width + x];
           }
         }
       } else if (this->channel_width == 16) {
         for (ssize_t y = this->height - 1; y >= 0; y--) {
           for (ssize_t x = this->width - 1; x >= 0; x--) {
-            this->data16[(y * this->width + x) * 3 + 0] = this->data16[y * this->width + x];
-            this->data16[(y * this->width + x) * 3 + 1] = this->data16[y * this->width + x];
-            this->data16[(y * this->width + x) * 3 + 2] = this->data16[y * this->width + x];
+            this->data.as16[(y * this->width + x) * 3 + 0] = this->data.as16[y * this->width + x];
+            this->data.as16[(y * this->width + x) * 3 + 1] = this->data.as16[y * this->width + x];
+            this->data.as16[(y * this->width + x) * 3 + 2] = this->data.as16[y * this->width + x];
           }
         }
       } else if (this->channel_width == 32) {
         for (ssize_t y = this->height - 1; y >= 0; y--) {
           for (ssize_t x = this->width - 1; x >= 0; x--) {
-            this->data32[(y * this->width + x) * 3 + 0] = this->data32[y * this->width + x];
-            this->data32[(y * this->width + x) * 3 + 1] = this->data32[y * this->width + x];
-            this->data32[(y * this->width + x) * 3 + 2] = this->data32[y * this->width + x];
+            this->data.as32[(y * this->width + x) * 3 + 0] = this->data.as32[y * this->width + x];
+            this->data.as32[(y * this->width + x) * 3 + 1] = this->data.as32[y * this->width + x];
+            this->data.as32[(y * this->width + x) * 3 + 2] = this->data.as32[y * this->width + x];
           }
         }
       } else if (this->channel_width == 64) {
         for (ssize_t y = this->height - 1; y >= 0; y--) {
           for (ssize_t x = this->width - 1; x >= 0; x--) {
-            this->data64[(y * this->width + x) * 3 + 0] = this->data64[y * this->width + x];
-            this->data64[(y * this->width + x) * 3 + 1] = this->data64[y * this->width + x];
-            this->data64[(y * this->width + x) * 3 + 2] = this->data64[y * this->width + x];
+            this->data.as64[(y * this->width + x) * 3 + 0] = this->data.as64[y * this->width + x];
+            this->data.as64[(y * this->width + x) * 3 + 1] = this->data.as64[y * this->width + x];
+            this->data.as64[(y * this->width + x) * 3 + 2] = this->data.as64[y * this->width + x];
           }
         }
       }
@@ -269,7 +270,7 @@ void Image::load(FILE* f) {
     this->has_alpha = has_alpha;
     this->channel_width = 8;
     this->max_value = 0xFF;
-    this->data = new_data_unique.release();
+    this->data.raw = new_data_unique.release();
   }
 }
 
@@ -286,16 +287,16 @@ Image::Image(size_t x, size_t y, bool has_alpha, uint8_t channel_width) :
     width(x), height(y), has_alpha(has_alpha), channel_width(channel_width),
     max_value(max_value_for_channel_width.at(this->channel_width)) {
   size_t num_bytes = this->get_data_size();
-  this->data = malloc(num_bytes);
-  memset(this->data, 0, num_bytes * sizeof(uint8_t));
+  this->data.raw = malloc(num_bytes);
+  memset(this->data.raw, 0, num_bytes * sizeof(uint8_t));
 }
 
 Image::Image(const Image& im) : width(im.width), height(im.height),
     has_alpha(im.has_alpha), channel_width(im.channel_width),
     max_value(im.max_value) {
   size_t num_bytes = this->get_data_size();
-  this->data = malloc(num_bytes);
-  memcpy(this->data, im.data, num_bytes * sizeof(uint8_t));
+  this->data.raw = malloc(num_bytes);
+  memcpy(this->data.raw, im.data.raw, num_bytes * sizeof(uint8_t));
 }
 
 const Image& Image::operator=(const Image& im) {
@@ -305,11 +306,11 @@ const Image& Image::operator=(const Image& im) {
   this->channel_width = im.channel_width;
   this->max_value = im.max_value;
   size_t num_bytes = this->get_data_size();
-  if (this->data) {
-    free(this->data);
+  if (this->data.raw) {
+    free(this->data.raw);
   }
-  this->data = malloc(num_bytes);
-  memcpy(this->data, im.data, num_bytes * sizeof(uint8_t));
+  this->data.raw = malloc(num_bytes);
+  memcpy(this->data.raw, im.data.raw, num_bytes * sizeof(uint8_t));
   return *this;
 }
 
@@ -326,7 +327,7 @@ Image::Image(Image&& im) {
   im.has_alpha = false;
   im.channel_width = 8;
   im.max_value = 0xFF;
-  im.data = NULL;
+  im.data.raw = NULL;
 }
 
 const Image& Image::operator=(Image&& im) {
@@ -335,17 +336,17 @@ const Image& Image::operator=(Image&& im) {
   this->has_alpha = im.has_alpha;
   this->channel_width = im.channel_width;
   this->max_value = im.max_value;
-  if (this->data) {
-    free(this->data);
+  if (this->data.raw) {
+    free(this->data.raw);
   }
-  this->data = im.data;
+  this->data.raw = im.data.raw;
 
   im.width = 0;
   im.height = 0;
   im.has_alpha = false;
   im.channel_width = 8;
   im.max_value = 0xFF;
-  im.data = NULL;
+  im.data.raw = NULL;
   return *this;
 }
 
@@ -369,8 +370,8 @@ Image::Image(FILE* f, ssize_t width, ssize_t height, bool has_alpha,
     has_alpha(has_alpha), channel_width(channel_width),
     max_value(max_value ? max_value : max_value_for_channel_width.at(this->channel_width)) {
   size_t num_bytes = this->get_data_size();
-  this->data = malloc(num_bytes);
-  freadx(f, this->data, num_bytes);
+  this->data.raw = malloc(num_bytes);
+  freadx(f, this->data.raw, num_bytes);
 }
 
 Image::Image(const char* filename, ssize_t width, ssize_t height,
@@ -379,8 +380,8 @@ Image::Image(const char* filename, ssize_t width, ssize_t height,
     max_value(max_value ? max_value : max_value_for_channel_width.at(this->channel_width)) {
   auto f = fopen_unique(filename, "rb");
   size_t num_bytes = this->get_data_size();
-  this->data = malloc(num_bytes);
-  freadx(f.get(), this->data, num_bytes);
+  this->data.raw = malloc(num_bytes);
+  freadx(f.get(), this->data.raw, num_bytes);
 }
 
 Image::Image(const std::string& filename, ssize_t width, ssize_t height,
@@ -388,15 +389,7 @@ Image::Image(const std::string& filename, ssize_t width, ssize_t height,
     Image(filename.c_str(), width, height, has_alpha, channel_width, max_value) { }
 
 Image::~Image() {
-  if (this->channel_width == 8) {
-    delete[] this->data8;
-  } else if (this->channel_width == 16) {
-    delete[] this->data16;
-  } else if (this->channel_width == 32) {
-    delete[] this->data32;
-  } else if (this->channel_width == 64) {
-    delete[] this->data64;
-  }
+  free(this->data.raw);
 }
 
 bool Image::operator==(const Image& other) {
@@ -406,7 +399,7 @@ bool Image::operator==(const Image& other) {
       (this->max_value != other.max_value)) {
     return false;
   }
-  return !memcmp(this->data, other.data, this->get_data_size());
+  return !memcmp(this->data.raw, other.data.raw, this->get_data_size());
 }
 
 const char* Image::mime_type_for_format(ImageFormat format) {
@@ -446,7 +439,7 @@ void Image::save(FILE* f, Image::ImageFormat format) const {
       }
       fprintf(f, "P6 %zu %zu %" PRIu64 "\n", this->width, this->height,
           this->max_value);
-      fwritex(f, this->data, this->get_data_size());
+      fwritex(f, this->data.raw, this->get_data_size());
       break;
 
     case WindowsBitmap: {
@@ -489,7 +482,7 @@ void Image::save(FILE* f, Image::ImageFormat format) const {
         // there's no padding and the bitmasks already specify how to read each
         // pixel; just write each row
         for (ssize_t y = this->height - 1; y >= 0; y--) {
-          fwrite(&this->data8[y * this->width * 4], this->width * 4, 1, f);
+          fwrite(&this->data.as8[y * this->width * 4], this->width * 4, 1, f);
         }
 
       } else {
@@ -497,9 +490,9 @@ void Image::save(FILE* f, Image::ImageFormat format) const {
         uint8_t* row_data = reinterpret_cast<uint8_t*>(row_data_unique.get());
         for (ssize_t y = this->height - 1; y >= 0; y--) {
           for (ssize_t x = 0; x < this->width * 3; x += 3) {
-            row_data[x] = this->data8[y * this->width * 3 + x + 2];
-            row_data[x + 1] = this->data8[y * this->width * 3 + x + 1];
-            row_data[x + 2] = this->data8[y * this->width * 3 + x];
+            row_data[x] = this->data.as8[y * this->width * 3 + x + 2];
+            row_data[x + 1] = this->data.as8[y * this->width * 3 + x + 1];
+            row_data[x + 2] = this->data.as8[y * this->width * 3 + x];
           }
           fwrite(row_data, this->width * 3, 1, f);
           if (row_padding_bytes) {
@@ -531,7 +524,7 @@ string Image::save(Image::ImageFormat format) const {
       }
       string s = string_printf("P6 %d %d %" PRIu64 "\n", this->width,
           this->height, this->max_value);
-      s.append((const char*)this->data, this->get_data_size());
+      s.append(reinterpret_cast<const char*>(this->data.raw), this->get_data_size());
       return s;
     }
 
@@ -577,7 +570,7 @@ string Image::save(Image::ImageFormat format) const {
         // there's no padding and the bitmasks already specify how to read each
         // pixel; just write each row
         for (ssize_t y = this->height - 1; y >= 0; y--) {
-          s.append((const char*)&this->data8[y * this->width * 4], this->width * 4);
+          s.append((const char*)&this->data.as8[y * this->width * 4], this->width * 4);
         }
 
       } else {
@@ -585,9 +578,9 @@ string Image::save(Image::ImageFormat format) const {
         uint8_t* row_data = reinterpret_cast<uint8_t*>(row_data_unique.get());
         for (ssize_t y = this->height - 1; y >= 0; y--) {
           for (ssize_t x = 0; x < this->width * 3; x += 3) {
-            row_data[x] = this->data8[y * this->width * 3 + x + 2];
-            row_data[x + 1] = this->data8[y * this->width * 3 + x + 1];
-            row_data[x + 2] = this->data8[y * this->width * 3 + x];
+            row_data[x] = this->data.as8[y * this->width * 3 + x + 2];
+            row_data[x + 1] = this->data.as8[y * this->width * 3 + x + 1];
+            row_data[x + 2] = this->data.as8[y * this->width * 3 + x];
           }
           s.append((const char*)row_data, this->width * 3);
           if (row_padding_bytes) {
@@ -641,55 +634,55 @@ void Image::read_pixel(ssize_t x, ssize_t y, uint64_t* r, uint64_t* g,
   size_t index = (y * this->width + x) * (this->has_alpha ? 4 : 3);
   if (this->channel_width == 8) {
     if (r) {
-      *r = this->data8[index];
+      *r = this->data.as8[index];
     }
     if (g) {
-      *g = this->data8[index + 1];
+      *g = this->data.as8[index + 1];
     }
     if (b) {
-      *b = this->data8[index + 2];
+      *b = this->data.as8[index + 2];
     }
     if (a) {
-      *a = this->has_alpha ? this->data8[index + 3] : this->max_value;
+      *a = this->has_alpha ? this->data.as8[index + 3] : this->max_value;
     }
   } else if (this->channel_width == 16) {
     if (r) {
-      *r = this->data16[index];
+      *r = this->data.as16[index];
     }
     if (g) {
-      *g = this->data16[index + 1];
+      *g = this->data.as16[index + 1];
     }
     if (b) {
-      *b = this->data16[index + 2];
+      *b = this->data.as16[index + 2];
     }
     if (a) {
-      *a = this->has_alpha ? this->data16[index + 3] : this->max_value;
+      *a = this->has_alpha ? this->data.as16[index + 3] : this->max_value;
     }
   } else if (this->channel_width == 32) {
     if (r) {
-      *r = this->data32[index];
+      *r = this->data.as32[index];
     }
     if (g) {
-      *g = this->data32[index + 1];
+      *g = this->data.as32[index + 1];
     }
     if (b) {
-      *b = this->data32[index + 2];
+      *b = this->data.as32[index + 2];
     }
     if (a) {
-      *a = this->has_alpha ? this->data32[index + 3] : this->max_value;
+      *a = this->has_alpha ? this->data.as32[index + 3] : this->max_value;
     }
   } else if (this->channel_width == 64) {
     if (r) {
-      *r = this->data64[index];
+      *r = this->data.as64[index];
     }
     if (g) {
-      *g = this->data64[index + 1];
+      *g = this->data.as64[index + 1];
     }
     if (b) {
-      *b = this->data64[index + 2];
+      *b = this->data.as64[index + 2];
     }
     if (a) {
-      *a = this->has_alpha ? this->data64[index + 3] : this->max_value;
+      *a = this->has_alpha ? this->data.as64[index + 3] : this->max_value;
     }
   } else {
     throw logic_error("image channel width is not 8, 16, 32, or 64");
@@ -707,32 +700,32 @@ void Image::write_pixel(ssize_t x, ssize_t y, uint64_t r, uint64_t g,
 
   size_t index = (y * this->width + x) * (this->has_alpha ? 4 : 3);
   if (this->channel_width == 8) {
-    this->data8[index] = r;
-    this->data8[index + 1] = g;
-    this->data8[index + 2] = b;
+    this->data.as8[index] = r;
+    this->data.as8[index + 1] = g;
+    this->data.as8[index + 2] = b;
     if (this->has_alpha) {
-      this->data8[index + 3] = a;
+      this->data.as8[index + 3] = a;
     }
   } else if (this->channel_width == 16) {
-    this->data16[index] = r;
-    this->data16[index + 1] = g;
-    this->data16[index + 2] = b;
+    this->data.as16[index] = r;
+    this->data.as16[index + 1] = g;
+    this->data.as16[index + 2] = b;
     if (this->has_alpha) {
-      this->data16[index + 3] = a;
+      this->data.as16[index + 3] = a;
     }
   } else if (this->channel_width == 32) {
-    this->data32[index] = r;
-    this->data32[index + 1] = g;
-    this->data32[index + 2] = b;
+    this->data.as32[index] = r;
+    this->data.as32[index + 1] = g;
+    this->data.as32[index + 2] = b;
     if (this->has_alpha) {
-      this->data32[index + 3] = a;
+      this->data.as32[index + 3] = a;
     }
   } else if (this->channel_width == 64) {
-    this->data64[index] = r;
-    this->data64[index + 1] = g;
-    this->data64[index + 2] = b;
+    this->data.as64[index] = r;
+    this->data.as64[index + 1] = g;
+    this->data.as64[index + 2] = b;
     if (this->has_alpha) {
-      this->data64[index + 3] = a;
+      this->data.as64[index + 3] = a;
     }
   } else {
     throw logic_error("image channel width is not 8, 16, 32, or 64");
@@ -761,6 +754,54 @@ void Image::reverse_vertical() {
       this->write_pixel(x, y, r2, g2, b2, a2);
     }
   }
+}
+
+void Image::set_has_alpha(bool new_has_alpha) {
+  if (this->has_alpha == new_has_alpha) {
+    return;
+  }
+  this->has_alpha = new_has_alpha;
+
+  DataPtrs new_data;
+  new_data.raw = malloc(this->get_data_size());
+
+  for (size_t z = 0; z < this->width * this->height; z++) {
+    size_t src_index = z * (this->has_alpha ? 3 : 4);
+    size_t dst_index = z * (this->has_alpha ? 4 : 3);
+
+    if (this->channel_width == 8) {
+      new_data.as8[dst_index + 0] = this->data.as8[src_index + 0];
+      new_data.as8[dst_index + 1] = this->data.as8[src_index + 1];
+      new_data.as8[dst_index + 2] = this->data.as8[src_index + 2];
+      if (this->has_alpha) {
+        new_data.as8[dst_index + 3] = this->max_value;
+      }
+    } else if (this->channel_width == 16) {
+      new_data.as16[dst_index + 0] = this->data.as16[src_index + 0];
+      new_data.as16[dst_index + 1] = this->data.as16[src_index + 1];
+      new_data.as16[dst_index + 2] = this->data.as16[src_index + 2];
+      if (this->has_alpha) {
+        new_data.as16[dst_index + 3] = this->max_value;
+      }
+    } else if (this->channel_width == 32) {
+      new_data.as32[dst_index + 0] = this->data.as32[src_index + 0];
+      new_data.as32[dst_index + 1] = this->data.as32[src_index + 1];
+      new_data.as32[dst_index + 2] = this->data.as32[src_index + 2];
+      if (this->has_alpha) {
+        new_data.as32[dst_index + 3] = this->max_value;
+      }
+    } else if (this->channel_width == 64) {
+      new_data.as64[dst_index + 0] = this->data.as64[src_index + 0];
+      new_data.as64[dst_index + 1] = this->data.as64[src_index + 1];
+      new_data.as64[dst_index + 2] = this->data.as64[src_index + 2];
+      if (this->has_alpha) {
+        new_data.as64[dst_index + 3] = this->max_value;
+      }
+    }
+  }
+
+  free(this->data.raw);
+  this->data.raw = new_data.raw;
 }
 
 // use the Bresenham algorithm to draw a line between the specified points
