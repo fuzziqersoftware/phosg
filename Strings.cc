@@ -806,6 +806,10 @@ string format_size(size_t size, bool include_bytes) {
     if (size < GB_SIZE) {
       return string_printf("%zu bytes (%.02f MB)", size, (float)size / MB_SIZE);
     }
+#ifndef __x86_64__
+    // size_t can only represent up to 4GB in a 32-bit environment
+    return string_printf("%zu bytes (%.02f GB)", size, (float)size / GB_SIZE);
+#else
     if (size < TB_SIZE) {
       return string_printf("%zu bytes (%.02f GB)", size, (float)size / GB_SIZE);
     }
@@ -816,6 +820,7 @@ string format_size(size_t size, bool include_bytes) {
       return string_printf("%zu bytes (%.02f PB)", size, (float)size / PB_SIZE);
     }
     return string_printf("%zu bytes (%.02f EB)", size, (float)size / EB_SIZE);
+#endif
   } else {
     if (size < MB_SIZE) {
       return string_printf("%.02f KB", (float)size / KB_SIZE);
@@ -823,6 +828,10 @@ string format_size(size_t size, bool include_bytes) {
     if (size < GB_SIZE) {
       return string_printf("%.02f MB", (float)size / MB_SIZE);
     }
+#ifndef __x86_64__
+    // size_t can only represent up to 4GB in a 32-bit environment
+    return string_printf("%.02f GB", (float)size / GB_SIZE);
+#else
     if (size < TB_SIZE) {
       return string_printf("%.02f GB", (float)size / GB_SIZE);
     }
@@ -833,6 +842,7 @@ string format_size(size_t size, bool include_bytes) {
       return string_printf("%.02f PB", (float)size / PB_SIZE);
     }
     return string_printf("%.02f EB", (float)size / EB_SIZE);
+#endif
   }
 }
 
