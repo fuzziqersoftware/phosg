@@ -765,7 +765,7 @@ void Image::set_has_alpha(bool new_has_alpha) {
   DataPtrs new_data;
   new_data.raw = malloc(this->get_data_size());
 
-  for (size_t z = 0; z < this->width * this->height; z++) {
+  for (ssize_t z = 0; z < this->width * this->height; z++) {
     size_t src_index = z * (this->has_alpha ? 3 : 4);
     size_t dst_index = z * (this->has_alpha ? 4 : 3);
 
