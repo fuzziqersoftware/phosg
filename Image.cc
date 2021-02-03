@@ -1050,6 +1050,37 @@ void Image::mask_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
   }
 }
 
+void Image::blend_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
+    ssize_t h, ssize_t sx, ssize_t sy) {
+  if (w < 0) {
+    w = source.get_width();
+  }
+  if (h < 0) {
+    h = source.get_height();
+  }
+
+  for (int yy = 0; yy < h; yy++) {
+    for (int xx = 0; xx < w; xx++) {
+      try {
+        uint64_t sr, sg, sb, sa;
+        source.read_pixel(sx + xx, sy + yy, &sr, &sg, &sb, &sa);
+        if (sa == 0xFF) {
+          this->write_pixel(x + xx, y + yy, sr, sg, sb, sa);
+        } else if (sa != 0x00) {
+          uint64_t dr, dg, db, da;
+          this->read_pixel(sx + xx, sy + yy, &dr, &dg, &db, &da);
+          this->write_pixel(sx + xx, sy + yy,
+              (sr * sa + dr * (0xFF - sa)) / 0xFF,
+              (sg * sa + dg * (0xFF - sa)) / 0xFF,
+              (sb * sa + db * (0xFF - sa)) / 0xFF,
+              (sa * sa + da * (0xFF - sa)) / 0xFF);
+        }
+      } catch (const runtime_error& e) { }
+    }
+  }
+}
+
+
 void Image::fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint64_t r,
     uint64_t g, uint64_t b, uint64_t a) {
 
