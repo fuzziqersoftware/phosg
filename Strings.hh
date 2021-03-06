@@ -138,11 +138,23 @@ public:
     return ret;
   }
 
-  template <typename T> const T& pget(size_t offset) {
+  template <typename T> const T& pget(size_t offset) const {
     if (offset > this->length - sizeof(T)) {
       throw std::out_of_range("end of string");
     }
     return *reinterpret_cast<const T*>(this->data + offset);
+  }
+
+  template <typename T> T get_sw(bool advance = true) {
+    T ret = this->get<T>(advance);
+    ret.byteswap();
+    return ret;
+  }
+
+  template <typename T> T pget_sw(size_t offset) const {
+    T ret = this->pget<T>(offset);
+    ret.byteswap();
+    return ret;
   }
 
   uint8_t get_u8(bool advance = true);
@@ -168,6 +180,30 @@ public:
   int64_t get_s48r(bool advance = true);
   uint64_t get_u64r(bool advance = true);
   int64_t get_s64r(bool advance = true);
+
+  uint8_t pget_u8(size_t offset) const;
+  int8_t pget_s8(size_t offset) const;
+  uint16_t pget_u16(size_t offset) const;
+  int16_t pget_s16(size_t offset) const;
+  uint32_t pget_u24(size_t offset) const;
+  int32_t pget_s24(size_t offset) const;
+  uint32_t pget_u32(size_t offset) const;
+  int32_t pget_s32(size_t offset) const;
+  uint64_t pget_u48(size_t offset) const;
+  int64_t pget_s48(size_t offset) const;
+  uint64_t pget_u64(size_t offset) const;
+  int64_t pget_s64(size_t offset) const;
+
+  uint16_t pget_u16r(size_t offset) const;
+  int16_t pget_s16r(size_t offset) const;
+  uint32_t pget_u24r(size_t offset) const;
+  int32_t pget_s24r(size_t offset) const;
+  uint32_t pget_u32r(size_t offset) const;
+  int32_t pget_s32r(size_t offset) const;
+  uint64_t pget_u48r(size_t offset) const;
+  int64_t pget_s48r(size_t offset) const;
+  uint64_t pget_u64r(size_t offset) const;
+  int64_t pget_s64r(size_t offset) const;
 
 private:
   std::shared_ptr<std::string> owned_data;
