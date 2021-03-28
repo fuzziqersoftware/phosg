@@ -33,16 +33,16 @@ void JSONObject::save(const string& filename, bool format) const {
   }
 }
 
-static size_t skip_whitespace_or_comment(const string& s, size_t offset) {
+static size_t skip_whitespace_or_comment(const char* s, size_t offset, size_t size) {
   bool reading_comment = false;
-  while (offset < s.length()) {
+  while (offset < size) {
     char ch = s[offset];
     if (reading_comment) {
       if ((ch == '\n') || (ch == '\r')) {
         reading_comment = false;
       }
     } else {
-      if ((offset < s.length() - 1) && (ch == '/') && (s[offset + 1] == '/')) {
+      if ((offset < size - 1) && (ch == '/') && (s[offset + 1] == '/')) {
         reading_comment = true;
       } else if ((ch != ' ') && (ch != '\t') && (ch != '\r') && (ch != '\n')) {
         return offset;
@@ -53,9 +53,9 @@ static size_t skip_whitespace_or_comment(const string& s, size_t offset) {
   return offset;
 }
 
-shared_ptr<JSONObject> JSONObject::parse(const string& s, size_t offset) {
-  offset = skip_whitespace_or_comment(s, offset);
-  if (offset >= s.length()) {
+shared_ptr<JSONObject> JSONObject::parse(const char* s, size_t size) {
+  size_t offset = skip_whitespace_or_comment(s, 0, size);
+  if (offset >= size) {
     throw parse_error("empty string");
   }
   size_t start_offset = offset;
@@ -66,35 +66,35 @@ shared_ptr<JSONObject> JSONObject::parse(const string& s, size_t offset) {
     ret->type = Dict;
 
     char expected_separator = '{';
-    while (offset < s.length() && s[offset] != '}') {
+    while (offset < size && s[offset] != '}') {
       if (s[offset] != expected_separator) {
         throw parse_error("string is not a dictionary; pos=" + to_string(offset));
       }
       expected_separator = ',';
 
       offset++;
-      offset = skip_whitespace_or_comment(s, offset);
-      if (offset >= s.length() || s[offset] == '}') {
+      offset = skip_whitespace_or_comment(s, offset, size);
+      if (offset >= size || s[offset] == '}') {
         break;
       }
 
-      shared_ptr<JSONObject> key = JSONObject::parse(s, offset);
+      shared_ptr<JSONObject> key = JSONObject::parse(s + offset, size - offset);
       offset += key->source_length();
-      offset = skip_whitespace_or_comment(s, offset);
+      offset = skip_whitespace_or_comment(s, offset, size);
 
-      if (offset >= s.length() || s[offset] != ':') {
+      if (offset >= size || s[offset] != ':') {
         throw parse_error("dictionary does not contain key/value pairs; pos=" + to_string(offset));
       }
       offset++;
-      offset = skip_whitespace_or_comment(s, offset);
+      offset = skip_whitespace_or_comment(s, offset, size);
 
       ret->dict_data.emplace(piecewise_construct, make_tuple(key->as_string()),
-          make_tuple(JSONObject::parse(s, offset)));
+          make_tuple(JSONObject::parse(s + offset, size - offset)));
       offset += ret->dict_data[key->as_string()]->source_length();
-      offset = skip_whitespace_or_comment(s, offset);
+      offset = skip_whitespace_or_comment(s, offset, size);
     }
 
-    if (offset >= s.length()) {
+    if (offset >= size) {
       throw parse_error("incomplete dictionary definition; pos=" + to_string(offset));
     }
 
@@ -104,24 +104,25 @@ shared_ptr<JSONObject> JSONObject::parse(const string& s, size_t offset) {
     ret->type = List;
 
     char expected_separator = '[';
-    while (offset < s.length() && s[offset] != ']') {
+    while (offset < size && s[offset] != ']') {
       if (s[offset] != expected_separator) {
         throw parse_error("string is not a list; pos=" + to_string(offset));
       }
       expected_separator = ',';
       offset++;
-      offset = skip_whitespace_or_comment(s, offset);
-      if (offset >= s.length() || s[offset] == ']') {
+      offset = skip_whitespace_or_comment(s, offset, size);
+      if (offset >= size || s[offset] == ']') {
         break;
       }
 
-      ret->list_data.emplace_back(JSONObject::parse(s, offset));
+      ret->list_data.emplace_back(JSONObject::parse(s + offset, size - offset));
       offset += ret->list_data.back()->source_length();
-      offset = skip_whitespace_or_comment(s, offset);
+      offset = skip_whitespace_or_comment(s, offset, size);
     }
 
-    if (offset >= s.length())
+    if (offset >= size) {
       throw parse_error("incomplete list definition; pos=" + to_string(offset));
+    }
 
     offset++;
 
@@ -196,9 +197,9 @@ shared_ptr<JSONObject> JSONObject::parse(const string& s, size_t offset) {
     offset++;
 
     ret->string_data = "";
-    while (offset < s.length() && s[offset] != '\"') {
+    while (offset < size && s[offset] != '\"') {
       if (s[offset] == '\\') {
-        if (offset == s.length() - 1) {
+        if (offset == size - 1) {
           throw parse_error("incomplete string; pos=" + to_string(offset));
         }
         offset++;
@@ -219,7 +220,7 @@ shared_ptr<JSONObject> JSONObject::parse(const string& s, size_t offset) {
         } else if (s[offset] == 't') {
           ret->string_data.push_back('\t');
         } else if (s[offset] == 'u') {
-          if (offset >= s.length() - 5) {
+          if (offset >= size - 5) {
             throw parse_error("incomplete unicode escape sequence at end of string; pos=" + to_string(offset));
           }
           uint16_t value;
@@ -243,22 +244,23 @@ shared_ptr<JSONObject> JSONObject::parse(const string& s, size_t offset) {
       offset++;
     }
 
-    if (offset >= s.length())
+    if (offset >= size) {
       throw parse_error("incomplete string; pos=" + to_string(offset));
+    }
 
     offset++;
 
-  } else if (!strncmp(s.c_str() + offset, "true", 4)) {
+  } else if (!strncmp(s + offset, "true", 4)) {
     ret->type = Bool;
     ret->bool_data = true;
     offset += 4;
 
-  } else if (!strncmp(s.c_str() + offset, "false", 5)) {
+  } else if (!strncmp(s + offset, "false", 5)) {
     ret->type = Bool;
     ret->bool_data = false;
     offset += 5;
 
-  } else if (!strncmp(s.c_str() + offset, "null", 4)) {
+  } else if (!strncmp(s + offset, "null", 4)) {
     ret->type = Null;
     offset += 4;
 
@@ -269,6 +271,10 @@ shared_ptr<JSONObject> JSONObject::parse(const string& s, size_t offset) {
   ret->consumed_characters = offset - start_offset;
 
   return ret;
+}
+
+shared_ptr<JSONObject> JSONObject::parse(const string& s) {
+  return JSONObject::parse(s.c_str(), s.size());
 }
 
 JSONObject::JSONObject() : type(Null) { }
@@ -540,7 +546,7 @@ int JSONObject::source_length() const {
   return this->consumed_characters;
 }
 
-static string escape_string(const string& s) {
+string escape_json_string(const string& s) {
   string ret;
   for (auto ch : s) {
     if (ch == '\"')
@@ -572,7 +578,7 @@ string JSONObject::serialize() const {
       return this->bool_data ? "true" : "false";
 
     case String:
-      return "\"" + escape_string(this->string_data) + "\"";
+      return "\"" + escape_json_string(this->string_data) + "\"";
 
     case Integer:
       return to_string(this->int_data);
@@ -601,7 +607,7 @@ string JSONObject::serialize() const {
       for (const auto& o : this->dict_data) {
         if (ret.size() > 1)
           ret += ',';
-        ret += "\"" + escape_string(o.first) + "\":" + o.second->serialize();
+        ret += "\"" + escape_json_string(o.first) + "\":" + o.second->serialize();
       }
       return ret + "}";
     }
@@ -644,7 +650,7 @@ string JSONObject::format(size_t indent) const {
         if (ret.size() > 1) {
           ret += ',';
         }
-        ret += '\n' + string(indent + 2, ' ') + "\"" + escape_string(o.first) + "\": " + o.second->format(indent + 2);
+        ret += '\n' + string(indent + 2, ' ') + "\"" + escape_json_string(o.first) + "\": " + o.second->format(indent + 2);
       }
       return ret + '\n' + string(indent, ' ') + "}";
     }

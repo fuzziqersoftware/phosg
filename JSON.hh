@@ -9,6 +9,8 @@
 
 
 
+std::string escape_json_string(const std::string& s);
+
 class JSONObject {
 public:
 
@@ -54,7 +56,8 @@ public:
   static std::shared_ptr<JSONObject> load(const std::string& filename);
   void save(const std::string& filename, bool format = false) const;
 
-  static std::shared_ptr<JSONObject> parse(const std::string& s, size_t offset = 0);
+  static std::shared_ptr<JSONObject> parse(const char* s, size_t size);
+  static std::shared_ptr<JSONObject> parse(const std::string& s);
 
   // null
   JSONObject();

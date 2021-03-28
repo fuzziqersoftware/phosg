@@ -126,8 +126,8 @@ int main(int argc, char** argv) {
   assert(*root["dict1"] == *JSONObject::parse("{\"1\":1}"));
 
   // make sure serialize/deserialize result in the same object
-  assert(*JSONObject::parse(root.serialize(), 0) == root);
-  assert(*JSONObject::parse(root.format(), 0) == root);
+  assert(*JSONObject::parse(root.serialize()) == root);
+  assert(*JSONObject::parse(root.format()) == root);
 
   // make sure save/load result in the same object
   string temp_filename = string(argv[0]) + "-data.json";
@@ -165,7 +165,7 @@ int main(int argc, char** argv) {
   }
 
   try {
-    JSONObject::parse("{this isn\'t valid json}", 0);
+    JSONObject::parse("{this isn\'t valid json}");
     assert(false);
   } catch (const JSONObject::parse_error& e) {
   } catch (...) {
