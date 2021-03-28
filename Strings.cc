@@ -900,6 +900,10 @@ void StringReader::go(size_t offset) {
   this->offset = offset;
 }
 
+void StringReader::skip(size_t bytes) {
+  this->offset += bytes;
+}
+
 bool StringReader::eof() const {
   return (this->offset >= this->length);
 }
@@ -1246,6 +1250,27 @@ uint64_t StringReader::pget_u64r(size_t offset) const {
 
 int64_t StringReader::pget_s64r(size_t offset) const {
   return bswap64(this->pget_s64(offset));
+}
+
+string StringReader::get_cstr(bool advance) {
+  string ret = this->pget_cstr(this->offset);
+  if (advance) {
+    this->offset += (ret.size() + 1);
+  }
+  return ret;
+}
+
+string StringReader::pget_cstr(size_t offset) const {
+  string ret;
+  for (;;) {
+    uint8_t ch = this->pget_s8(offset + ret.size());
+    if (ch != 0) {
+      ret += ch;
+    } else {
+      break;
+    }
+  }
+  return ret;
 }
 
 size_t StringWriter::size() const {

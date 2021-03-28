@@ -115,6 +115,7 @@ public:
   size_t where() const;
   size_t size() const;
   void go(size_t offset);
+  void skip(size_t bytes);
   bool eof() const;
   std::string all() const;
 
@@ -204,6 +205,9 @@ public:
   int64_t pget_s48r(size_t offset) const;
   uint64_t pget_u64r(size_t offset) const;
   int64_t pget_s64r(size_t offset) const;
+
+  std::string get_cstr(bool advance = true);
+  std::string pget_cstr(size_t offset) const;
 
 private:
   std::shared_ptr<std::string> owned_data;
