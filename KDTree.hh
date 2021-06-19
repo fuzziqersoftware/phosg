@@ -26,7 +26,7 @@ private:
     size_t dim;
 
     Node* before;
-    Node* after; // technically after_or_equal
+    Node* after_or_equal;
     Node* parent;
 
     ValueType value;

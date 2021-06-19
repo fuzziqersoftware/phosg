@@ -97,8 +97,8 @@ KDTree<CoordType, dimensions, ValueType>::~KDTree() {
     if (n->before) {
       to_delete.emplace_back(n->before);
     }
-    if (n->after) {
-      to_delete.emplace_back(n->after);
+    if (n->after_or_equal) {
+      to_delete.emplace_back(n->after_or_equal);
     }
     delete n;
   }
@@ -144,14 +144,14 @@ void KDTree<CoordType, dimensions, ValueType>::link_node(Node* new_node) {
         n = n->before;
       }
     } else {
-      if (n->after == NULL) {
+      if (n->after_or_equal == NULL) {
         new_node->dim = (n->dim + 1) % dimensions;
         new_node->parent = n;
-        n->after = new_node;
+        n->after_or_equal = new_node;
         this->node_count++;
         return;
       } else {
-        n = n->after;
+        n = n->after_or_equal;
       }
     }
   }
@@ -169,7 +169,7 @@ bool KDTree<CoordType, dimensions, ValueType>::erase(
       this->delete_node(n);
       return true;
     }
-    n = (pt.coords[n->dim] < n->pt.coords[n->dim]) ? n->before : n->after;
+    n = (pt.coords[n->dim] < n->pt.coords[n->dim]) ? n->before : n->after_or_equal;
   }
   return false;
 }
@@ -201,7 +201,7 @@ const ValueType& KDTree<CoordType, dimensions, ValueType>::at(
     if (n->pt == pt) {
       return n->value;
     }
-    n = (pt.coords[n->dim] < n->pt.coords[n->dim]) ? n->before : n->after;
+    n = (pt.coords[n->dim] < n->pt.coords[n->dim]) ? n->before : n->after_or_equal;
   }
   throw std::out_of_range("no such item");
 }
@@ -252,8 +252,8 @@ KDTree<CoordType, dimensions, ValueType>::within(
     if (low_less && n->before) {
       level_nodes.emplace_back(n->before);
     }
-    if (high_greater && n->after) {
-      level_nodes.emplace_back(n->after);
+    if (high_greater && n->after_or_equal) {
+      level_nodes.emplace_back(n->after_or_equal);
     }
   }
   return ret;
@@ -294,8 +294,8 @@ bool KDTree<CoordType, dimensions, ValueType>::exists(const Point& low,
     if (low_less && n->before) {
       level_nodes.emplace_back(n->before);
     }
-    if (high_greater && n->after) {
-      level_nodes.emplace_back(n->after);
+    if (high_greater && n->after_or_equal) {
+      level_nodes.emplace_back(n->after_or_equal);
     }
   }
   return false;
@@ -318,8 +318,8 @@ size_t KDTree<CoordType, dimensions, ValueType>::depth_recursive(Node* n,
     return depth;
   }
   size_t before_depth = KDTree::depth_recursive(n->before, depth + 1);
-  size_t after_depth = KDTree::depth_recursive(n->after, depth + 1);
-  return (before_depth > after_depth) ? before_depth : after_depth;
+  size_t after_or_equal_depth = KDTree::depth_recursive(n->after_or_equal, depth + 1);
+  return (before_depth > after_or_equal_depth) ? before_depth : after_or_equal_depth;
 }
 
 
@@ -327,13 +327,13 @@ size_t KDTree<CoordType, dimensions, ValueType>::depth_recursive(Node* n,
 template <typename CoordType, size_t dimensions, typename ValueType>
 KDTree<CoordType, dimensions, ValueType>::Node::Node(
     Node* parent, const Point& pt, size_t dim, const ValueType& v) : pt(pt),
-      dim(dim), before(NULL), after(NULL), parent(parent), value(v) { }
+      dim(dim), before(NULL), after_or_equal(NULL), parent(parent), value(v) { }
 
 template <typename CoordType, size_t dimensions, typename ValueType>
 template <typename... Args>
 KDTree<CoordType, dimensions, ValueType>::Node::Node(
     const Point& pt, Args&&... args) : pt(pt), dim(0), before(NULL),
-    after(NULL), parent(NULL), value(std::forward<Args>(args)...) { }
+    after_or_equal(NULL), parent(NULL), value(std::forward<Args>(args)...) { }
 
 
 
@@ -343,7 +343,7 @@ size_t KDTree<CoordType, dimensions, ValueType>::count_subtree(const Node* n) {
   if (!n) {
     return 0;
   }
-  return 1 + KDTree::count_subtree(n->before) + KDTree::count_subtree(n->after);
+  return 1 + KDTree::count_subtree(n->before) + KDTree::count_subtree(n->after_or_equal);
 }
 
 template <typename CoordType, size_t dimensions, typename ValueType>
@@ -364,8 +364,8 @@ void KDTree<CoordType, dimensions, ValueType>::collect_into(Node* n,
     if (n->before) {
       level_nodes.emplace_back(n->before);
     }
-    if (n->after) {
-      level_nodes.emplace_back(n->after);
+    if (n->after_or_equal) {
+      level_nodes.emplace_back(n->after_or_equal);
     }
   }
 }
@@ -375,13 +375,13 @@ bool KDTree<CoordType, dimensions, ValueType>::delete_node(Node* n) {
   // replace the node with an appropriate node from its subtree, repeating until
   // the node is a leaf node
   bool was_leaf_node = true;
-  while (n->before || n->after) {
+  while (n->before || n->after_or_equal) {
     was_leaf_node = false;
     Node* target;
     if (n->before) {
       target = KDTree::find_subtree_min_max(n->before, n->dim, true);
-    } else if (n->after) {
-      target = KDTree::find_subtree_min_max(n->after, n->dim, false);
+    } else if (n->after_or_equal) {
+      target = KDTree::find_subtree_min_max(n->after_or_equal, n->dim, false);
     } else {
       throw std::logic_error("node is a leaf but still claims to be movable");
     }
@@ -397,8 +397,8 @@ bool KDTree<CoordType, dimensions, ValueType>::delete_node(Node* n) {
     if (n->parent->before == n) {
       n->parent->before = NULL;
     }
-    if (n->parent->after == n) {
-      n->parent->after = NULL;
+    if (n->parent->after_or_equal == n) {
+      n->parent->after_or_equal = NULL;
     }
   }
 
@@ -439,8 +439,8 @@ KDTree<CoordType, dimensions, ValueType>::find_subtree_min_max(Node* n,
     if (((n->dim != target_dim) || !find_max) && n->before) {
       pending.emplace_back(n->before);
     }
-    if (((n->dim != target_dim) || find_max) && n->after) {
-      pending.emplace_back(n->after);
+    if (((n->dim != target_dim) || find_max) && n->after_or_equal) {
+      pending.emplace_back(n->after_or_equal);
     }
   }
 
@@ -461,7 +461,7 @@ KDTree<CoordType, dimensions, ValueType>::delete_node(Node* n) {
   // collect the nodes we want to rebuild the subtree under
   std::vector<Node*> nodes_by_dim[dimensions];
   KDTree::collect_into(n->before, nodes_by_dim[0]);
-  KDTree::collect_into(n->after, nodes_by_dim[0]);
+  KDTree::collect_into(n->after_or_equal, nodes_by_dim[0]);
   for (size_t x = 1; x < dimensions; x++) {
     nodes_by_dim[x] = nodes_by_dim[0];
   }
@@ -504,10 +504,10 @@ KDTree<CoordType, dimensions, ValueType>::generate_balanced_subtree(
   size_t next_dim = (dim + 1) % dimensions;
   size_t orig_min = min;
   min = mid + 1; // min is a reference, so this changes min_x or min_y
-  new_root->after = generate_balanced_subtree(nodes_by_dim, min_by_dim,
+  new_root->after_or_equal = generate_balanced_subtree(nodes_by_dim, min_by_dim,
       max_by_dim, next_dim);
-  if (new_root->after) {
-    new_root->after->parent = new_root;
+  if (new_root->after_or_equal) {
+    new_root->after_or_equal->parent = new_root;
   }
   min = orig_min;
   max = mid;
@@ -540,8 +540,8 @@ KDTree<CoordType, dimensions, ValueType>::Iterator::operator++() {
   if (n->before) {
     this->pending.emplace_back(n->before);
   }
-  if (n->after) {
-    this->pending.emplace_back(n->after);
+  if (n->after_or_equal) {
+    this->pending.emplace_back(n->after_or_equal);
   }
 
   if (!this->pending.empty()) {
