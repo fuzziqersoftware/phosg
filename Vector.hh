@@ -42,12 +42,16 @@ struct Vector2 {
   // for usage in set/map
   bool operator<(const Vector2<T>& other) const;
 
+  T at(size_t dim) const;
+
   T norm1() const;
   double norm() const;
   T norm2() const;
   T dot(const Vector2<T>& other) const;
 
   std::string str() const;
+
+  static constexpr size_t dimensions();
 };
 
 template <typename T>
@@ -96,6 +100,8 @@ struct Vector3 {
   // for usage in set/map
   bool operator<(const Vector3<T>& other) const;
 
+  T at(size_t dim) const;
+
   T norm1() const;
   double norm() const;
   T norm2() const;
@@ -103,6 +109,8 @@ struct Vector3 {
   Vector3<T> cross(const Vector3<T>& other) const;
 
   std::string str() const;
+
+  static constexpr size_t dimensions();
 };
 
 template <typename T>
@@ -153,12 +161,16 @@ struct Vector4 {
   // for usage in set/map
   bool operator<(const Vector4<T>& other) const;
 
+  T at(size_t dim) const;
+
   T norm1() const;
   double norm() const;
   T norm2() const;
   T dot(const Vector4<T>& other) const;
 
   std::string str() const;
+
+  static constexpr size_t dimensions();
 };
 
 template <typename T>

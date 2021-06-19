@@ -11,83 +11,12 @@
 
 
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-bool KDTree<CoordType, dimensions, ValueType>::Point::operator==(const Point& other) {
-  for (size_t x = 0; x < dimensions; x++) {
-    if (this->coords[x] != other.coords[x]) {
-      return false;
-    }
-  }
-  return true;
-}
-
-template <typename CoordType, size_t dimensions, typename ValueType>
-bool KDTree<CoordType, dimensions, ValueType>::Point::operator!=(const Point& other) {
-  return !this->operator==(other);
-}
-
-
-
-template <typename CoordType, size_t dimensions, typename ValueType>
-typename KDTree<CoordType, dimensions, ValueType>::Point
-KDTree<CoordType, dimensions, ValueType>::make_point(CoordType x) {
-  if (dimensions != 1) {
-    throw std::logic_error("inorrect dimensional point constructor called");
-  }
-  Point pt;
-  pt.coords[0] = x;
-  return pt;
-}
-
-template <typename CoordType, size_t dimensions, typename ValueType>
-typename KDTree<CoordType, dimensions, ValueType>::Point
-KDTree<CoordType, dimensions, ValueType>::make_point(CoordType x, CoordType y) {
-  if (dimensions != 2) {
-    throw std::logic_error("inorrect dimensional point constructor called");
-  }
-  Point pt;
-  pt.coords[0] = x;
-  pt.coords[1] = y;
-  return pt;
-}
-
-template <typename CoordType, size_t dimensions, typename ValueType>
-typename KDTree<CoordType, dimensions, ValueType>::Point
-KDTree<CoordType, dimensions, ValueType>::make_point(CoordType x, CoordType y,
-    CoordType z) {
-  if (dimensions != 3) {
-    throw std::logic_error("inorrect dimensional point constructor called");
-  }
-  Point pt;
-  pt.coords[0] = x;
-  pt.coords[1] = y;
-  pt.coords[2] = z;
-  return pt;
-}
-
-template <typename CoordType, size_t dimensions, typename ValueType>
-typename KDTree<CoordType, dimensions, ValueType>::Point
-KDTree<CoordType, dimensions, ValueType>::make_point(CoordType x, CoordType y,
-    CoordType z, CoordType w) {
-  if (dimensions != 4) {
-    throw std::logic_error("inorrect dimensional point constructor called");
-  }
-  Point pt;
-  pt.coords[0] = x;
-  pt.coords[1] = y;
-  pt.coords[2] = z;
-  pt.coords[3] = w;
-  return pt;
-}
-
-
-
-template <typename CoordType, size_t dimensions, typename ValueType>
-KDTree<CoordType, dimensions, ValueType>::KDTree()
+template <typename CoordType, typename ValueType>
+KDTree<CoordType, ValueType>::KDTree()
   : root(nullptr), node_count(0) { }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-KDTree<CoordType, dimensions, ValueType>::~KDTree() {
+template <typename CoordType, typename ValueType>
+KDTree<CoordType, ValueType>::~KDTree() {
   std::deque<Node*> to_delete;
   to_delete.emplace_back(this->root);
   while (!to_delete.empty()) {
@@ -104,27 +33,25 @@ KDTree<CoordType, dimensions, ValueType>::~KDTree() {
   }
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-typename KDTree<CoordType, dimensions, ValueType>::Iterator
-KDTree<CoordType, dimensions, ValueType>::insert(const Point& pt,
-    const ValueType& v) {
+template <typename CoordType, typename ValueType>
+typename KDTree<CoordType, ValueType>::Iterator
+KDTree<CoordType, ValueType>::insert(const CoordType& pt, const ValueType& v) {
   Node* n = new Node(pt, v);
   this->link_node(n);
   return Iterator(n);
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
+template <typename CoordType, typename ValueType>
 template <typename... Args>
-typename KDTree<CoordType, dimensions, ValueType>::Iterator
-KDTree<CoordType, dimensions, ValueType>::emplace(
-    const Point& pt, Args&&... args) {
+typename KDTree<CoordType, ValueType>::Iterator
+KDTree<CoordType, ValueType>::emplace(const CoordType& pt, Args&&... args) {
   Node* n = new Node(pt, std::forward(args)...);
   this->link_node(n);
   return Iterator(n);
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-void KDTree<CoordType, dimensions, ValueType>::link_node(Node* new_node) {
+template <typename CoordType, typename ValueType>
+void KDTree<CoordType, ValueType>::link_node(Node* new_node) {
   if (this->root == nullptr) {
     this->root = new_node;
     this->node_count++;
@@ -133,9 +60,9 @@ void KDTree<CoordType, dimensions, ValueType>::link_node(Node* new_node) {
 
   Node* n = this->root;
   for (;;) {
-    if (new_node->pt.coords[n->dim] < n->pt.coords[n->dim]) {
+    if (new_node->pt.at(n->dim) < n->pt.at(n->dim)) {
       if (n->before == nullptr) {
-        new_node->dim = (n->dim + 1) % dimensions;
+        new_node->dim = (n->dim + 1) % CoordType::dimensions();
         new_node->parent = n;
         n->before = new_node;
         this->node_count++;
@@ -145,7 +72,7 @@ void KDTree<CoordType, dimensions, ValueType>::link_node(Node* new_node) {
       }
     } else {
       if (n->after_or_equal == nullptr) {
-        new_node->dim = (n->dim + 1) % dimensions;
+        new_node->dim = (n->dim + 1) % CoordType::dimensions();
         new_node->parent = n;
         n->after_or_equal = new_node;
         this->node_count++;
@@ -157,9 +84,9 @@ void KDTree<CoordType, dimensions, ValueType>::link_node(Node* new_node) {
   }
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-bool KDTree<CoordType, dimensions, ValueType>::erase(
-    const Point& pt, const ValueType& v) {
+template <typename CoordType, typename ValueType>
+bool KDTree<CoordType, ValueType>::erase(
+    const CoordType& pt, const ValueType& v) {
   if (this->root == nullptr) {
     return false;
   }
@@ -169,13 +96,13 @@ bool KDTree<CoordType, dimensions, ValueType>::erase(
       this->delete_node(n);
       return true;
     }
-    n = (pt.coords[n->dim] < n->pt.coords[n->dim]) ? n->before : n->after_or_equal;
+    n = (pt.at(n->dim) < n->pt.at(n->dim)) ? n->before : n->after_or_equal;
   }
   return false;
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-void KDTree<CoordType, dimensions, ValueType>::erase_advance(Iterator& it) {
+template <typename CoordType, typename ValueType>
+void KDTree<CoordType, ValueType>::erase_advance(Iterator& it) {
   // delete_node doesn't actually delete the node unless it was a leaf node. if
   // it wasn't a leaf, its value got replaced with a node we haven't seen yet,
   // so just leave the queue alone. if it was a leaf, then it got deleted, so
@@ -194,20 +121,20 @@ void KDTree<CoordType, dimensions, ValueType>::erase_advance(Iterator& it) {
   }
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-const ValueType& KDTree<CoordType, dimensions, ValueType>::at(
-    const Point& pt) const {
+template <typename CoordType, typename ValueType>
+const ValueType& KDTree<CoordType, ValueType>::at(
+    const CoordType& pt) const {
   for (Node* n = this->root; n;) {
     if (n->pt == pt) {
       return n->value;
     }
-    n = (pt.coords[n->dim] < n->pt.coords[n->dim]) ? n->before : n->after_or_equal;
+    n = (pt.at(n->dim) < n->pt.at(n->dim)) ? n->before : n->after_or_equal;
   }
   throw std::out_of_range("no such item");
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-bool KDTree<CoordType, dimensions, ValueType>::exists(const Point& pt) const {
+template <typename CoordType, typename ValueType>
+bool KDTree<CoordType, ValueType>::exists(const CoordType& pt) const {
   try {
     this->at(pt);
     return true;
@@ -216,17 +143,17 @@ bool KDTree<CoordType, dimensions, ValueType>::exists(const Point& pt) const {
   }
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-typename std::vector<std::pair<typename KDTree<CoordType, dimensions, ValueType>::Point, ValueType>>
-KDTree<CoordType, dimensions, ValueType>::within(
-    const Point& low, const Point& high) const {
+template <typename CoordType, typename ValueType>
+typename std::vector<std::pair<CoordType, ValueType>>
+KDTree<CoordType, ValueType>::within(
+    const CoordType& low, const CoordType& high) const {
   if (this->root == nullptr) {
     throw std::out_of_range("no such item");
   }
 
   std::deque<Node*> level_nodes;
   level_nodes.emplace_back(this->root);
-  std::vector<std::pair<Point, ValueType>> ret;
+  std::vector<std::pair<CoordType, ValueType>> ret;
   while (!level_nodes.empty()) {
     Node* n = level_nodes.front();
     level_nodes.pop_front();
@@ -234,21 +161,21 @@ KDTree<CoordType, dimensions, ValueType>::within(
     // if this node is within the range, return it
     {
       size_t dim;
-      for (dim = 0; dim < dimensions; dim++) {
-        if ((n->pt.coords[dim] < low.coords[dim]) ||
-            (n->pt.coords[dim] >= high.coords[dim])) {
+      for (dim = 0; dim < CoordType::dimensions(); dim++) {
+        if ((n->pt.at(dim) < low.at(dim)) ||
+            (n->pt.at(dim) >= high.at(dim))) {
           break;
         }
       }
-      if (dim == dimensions) {
+      if (dim == CoordType::dimensions()) {
         ret.emplace_back(std::make_pair(n->pt, n->value));
       }
     }
 
     // if the range falls entirely on one side of the node, move down to that
     // node. otherwise, move down to both nodes
-    bool low_less = (low.coords[n->dim] < n->pt.coords[n->dim]);
-    bool high_greater = (high.coords[n->dim] >= n->pt.coords[n->dim]);
+    bool low_less = (low.at(n->dim) < n->pt.at(n->dim));
+    bool high_greater = (high.at(n->dim) >= n->pt.at(n->dim));
     if (low_less && n->before) {
       level_nodes.emplace_back(n->before);
     }
@@ -260,9 +187,9 @@ KDTree<CoordType, dimensions, ValueType>::within(
 }
 
 // TODO: somehow deduplicate this code with within()
-template <typename CoordType, size_t dimensions, typename ValueType>
-bool KDTree<CoordType, dimensions, ValueType>::exists(const Point& low,
-    const Point& high) const {
+template <typename CoordType, typename ValueType>
+bool KDTree<CoordType, ValueType>::exists(const CoordType& low,
+    const CoordType& high) const {
   if (this->root == nullptr) {
     return false;
   }
@@ -276,21 +203,21 @@ bool KDTree<CoordType, dimensions, ValueType>::exists(const Point& low,
     // if this node is within the range, return it
     {
       size_t dim;
-      for (dim = 0; dim < dimensions; dim++) {
-        if ((n->pt.coords[dim] < low.coords[dim]) ||
-            (n->pt.coords[dim] >= high.coords[dim])) {
+      for (dim = 0; dim < CoordType::dimensions(); dim++) {
+        if ((n->pt.at(dim) < low.at(dim)) ||
+            (n->pt.at(dim) >= high.at(dim))) {
           break;
         }
       }
-      if (dim == dimensions) {
+      if (dim == CoordType::dimensions()) {
         return true;
       }
     }
 
     // if the range falls entirely on one side of the node, move down to that
     // node. otherwise, move down to both nodes
-    bool low_less = (low.coords[n->dim] < n->pt.coords[n->dim]);
-    bool high_greater = (high.coords[n->dim] >= n->pt.coords[n->dim]);
+    bool low_less = (low.at(n->dim) < n->pt.at(n->dim));
+    bool high_greater = (high.at(n->dim) >= n->pt.at(n->dim));
     if (low_less && n->before) {
       level_nodes.emplace_back(n->before);
     }
@@ -301,18 +228,18 @@ bool KDTree<CoordType, dimensions, ValueType>::exists(const Point& low,
   return false;
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-size_t KDTree<CoordType, dimensions, ValueType>::size() const {
+template <typename CoordType, typename ValueType>
+size_t KDTree<CoordType, ValueType>::size() const {
   return this->node_count;
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-size_t KDTree<CoordType, dimensions, ValueType>::depth() const {
+template <typename CoordType, typename ValueType>
+size_t KDTree<CoordType, ValueType>::depth() const {
   return this->depth_recursive(this->root, 0);
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-size_t KDTree<CoordType, dimensions, ValueType>::depth_recursive(Node* n,
+template <typename CoordType, typename ValueType>
+size_t KDTree<CoordType, ValueType>::depth_recursive(Node* n,
     size_t depth) {
   if (n == nullptr) {
     return depth;
@@ -324,21 +251,21 @@ size_t KDTree<CoordType, dimensions, ValueType>::depth_recursive(Node* n,
 
 
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-KDTree<CoordType, dimensions, ValueType>::Node::Node(
-    Node* parent, const Point& pt, size_t dim, const ValueType& v) : pt(pt),
+template <typename CoordType, typename ValueType>
+KDTree<CoordType, ValueType>::Node::Node(
+    Node* parent, const CoordType& pt, size_t dim, const ValueType& v) : pt(pt),
       dim(dim), before(nullptr), after_or_equal(nullptr), parent(parent), value(v) { }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
+template <typename CoordType, typename ValueType>
 template <typename... Args>
-KDTree<CoordType, dimensions, ValueType>::Node::Node(
-    const Point& pt, Args&&... args) : pt(pt), dim(0), before(nullptr),
+KDTree<CoordType, ValueType>::Node::Node(
+    const CoordType& pt, Args&&... args) : pt(pt), dim(0), before(nullptr),
     after_or_equal(nullptr), parent(nullptr), value(std::forward<Args>(args)...) { }
 
 
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-size_t KDTree<CoordType, dimensions, ValueType>::count_subtree(const Node* n) {
+template <typename CoordType, typename ValueType>
+size_t KDTree<CoordType, ValueType>::count_subtree(const Node* n) {
   // TODO: make this not recursive
   if (!n) {
     return 0;
@@ -346,8 +273,8 @@ size_t KDTree<CoordType, dimensions, ValueType>::count_subtree(const Node* n) {
   return 1 + KDTree::count_subtree(n->before) + KDTree::count_subtree(n->after_or_equal);
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-void KDTree<CoordType, dimensions, ValueType>::collect_into(Node* n,
+template <typename CoordType, typename ValueType>
+void KDTree<CoordType, ValueType>::collect_into(Node* n,
     std::vector<Node*>& ret) {
   if (!n) {
     return;
@@ -370,8 +297,8 @@ void KDTree<CoordType, dimensions, ValueType>::collect_into(Node* n,
   }
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-bool KDTree<CoordType, dimensions, ValueType>::delete_node(Node* n) {
+template <typename CoordType, typename ValueType>
+bool KDTree<CoordType, ValueType>::delete_node(Node* n) {
   // replace the node with an appropriate node from its subtree, repeating until
   // the node is a leaf node
   bool was_leaf_node = true;
@@ -409,9 +336,9 @@ bool KDTree<CoordType, dimensions, ValueType>::delete_node(Node* n) {
   return was_leaf_node;
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-typename KDTree<CoordType, dimensions, ValueType>::Node*
-KDTree<CoordType, dimensions, ValueType>::find_subtree_min_max(Node* n,
+template <typename CoordType, typename ValueType>
+typename KDTree<CoordType, ValueType>::Node*
+KDTree<CoordType, ValueType>::find_subtree_min_max(Node* n,
     size_t target_dim, bool find_max) {
 
   Node* ret = n;
@@ -424,11 +351,11 @@ KDTree<CoordType, dimensions, ValueType>::find_subtree_min_max(Node* n,
 
     // update the min/max if this point is more extreme
     if (find_max) {
-      if (n->pt.coords[target_dim] > ret->pt.coords[target_dim]) {
+      if (n->pt.at(target_dim) > ret->pt.at(target_dim)) {
         ret = n;
       }
     } else {
-      if (n->pt.coords[target_dim] < ret->pt.coords[target_dim]) {
+      if (n->pt.at(target_dim) < ret->pt.at(target_dim)) {
         ret = n;
       }
     }
@@ -454,15 +381,15 @@ KDTree<CoordType, dimensions, ValueType>::find_subtree_min_max(Node* n,
  * from all nodes_by_dim vectors, not only the current one. maybe could fix this
  * by marking nodes somehow (maybe using the dim field) but this would be hacky
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-typename KDTree<CoordType, dimensions, ValueType>::Node*
-KDTree<CoordType, dimensions, ValueType>::delete_node(Node* n) {
+template <typename CoordType, typename ValueType>
+typename KDTree<CoordType, ValueType>::Node*
+KDTree<CoordType, ValueType>::delete_node(Node* n) {
 
   // collect the nodes we want to rebuild the subtree under
-  std::vector<Node*> nodes_by_dim[dimensions];
+  std::vector<Node*> nodes_by_dim[CoordType::dimensions()];
   KDTree::collect_into(n->before, nodes_by_dim[0]);
   KDTree::collect_into(n->after_or_equal, nodes_by_dim[0]);
-  for (size_t x = 1; x < dimensions; x++) {
+  for (size_t x = 1; x < CoordType::dimensions(); x++) {
     nodes_by_dim[x] = nodes_by_dim[0];
   }
 
@@ -472,9 +399,9 @@ KDTree<CoordType, dimensions, ValueType>::delete_node(Node* n) {
   delete n;
 
   // generate sorted lists for each dimension
-  size_t min_by_dim[dimensions];
-  size_t max_by_dim[dimensions];
-  for (size_t x = 0; x < dimensions; x++) {
+  size_t min_by_dim[CoordType::dimensions()];
+  size_t max_by_dim[CoordType::dimensions()];
+  for (size_t x = 0; x < CoordType::dimensions(); x++) {
     std::sort(nodes_by_dim[x].begin(), nodes_by_dim[x].end(), [&](Node* a, Node* b) {
       return (a->pt.coords[x] < b->pt.coords[x]);
     });
@@ -487,9 +414,9 @@ KDTree<CoordType, dimensions, ValueType>::delete_node(Node* n) {
       max_by_dim, dim);
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-typename KDTree<CoordType, dimensions, ValueType>::Node*
-KDTree<CoordType, dimensions, ValueType>::generate_balanced_subtree(
+template <typename CoordType, typename ValueType>
+typename KDTree<CoordType, ValueType>::Node*
+KDTree<CoordType, ValueType>::generate_balanced_subtree(
     const std::vector<Node*>* nodes_by_dim, size_t* min_by_dim,
     size_t* max_by_dim, size_t dim) {
   size_t& min = min_by_dim[dim];
@@ -501,7 +428,7 @@ KDTree<CoordType, dimensions, ValueType>::generate_balanced_subtree(
   size_t mid = min + (max - min) / 2;
   Node* new_root = nodes_by_dim[dim][mid];
 
-  size_t next_dim = (dim + 1) % dimensions;
+  size_t next_dim = (dim + 1) % CoordType::dimensions();
   size_t orig_min = min;
   min = mid + 1; // min is a reference, so this changes min_x or min_y
   new_root->after_or_equal = generate_balanced_subtree(nodes_by_dim, min_by_dim,
@@ -523,17 +450,17 @@ KDTree<CoordType, dimensions, ValueType>::generate_balanced_subtree(
 
 
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-KDTree<CoordType, dimensions, ValueType>::Iterator::Iterator(Node* n) {
+template <typename CoordType, typename ValueType>
+KDTree<CoordType, ValueType>::Iterator::Iterator(Node* n) {
   if (n) {
     this->pending.emplace_back(n);
     this->current = std::make_pair(n->pt, n->value);
   }
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-typename KDTree<CoordType, dimensions, ValueType>::Iterator&
-KDTree<CoordType, dimensions, ValueType>::Iterator::operator++() {
+template <typename CoordType, typename ValueType>
+typename KDTree<CoordType, ValueType>::Iterator&
+KDTree<CoordType, ValueType>::Iterator::operator++() {
   const Node* n = this->pending.front();
   this->pending.pop_front();
 
@@ -552,16 +479,16 @@ KDTree<CoordType, dimensions, ValueType>::Iterator::operator++() {
   return *this;
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-typename KDTree<CoordType, dimensions, ValueType>::Iterator
-KDTree<CoordType, dimensions, ValueType>::Iterator::operator++(int) {
+template <typename CoordType, typename ValueType>
+typename KDTree<CoordType, ValueType>::Iterator
+KDTree<CoordType, ValueType>::Iterator::operator++(int) {
   Iterator ret = *this;
   this->operator++();
   return ret;
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-bool KDTree<CoordType, dimensions, ValueType>::Iterator::operator==(
+template <typename CoordType, typename ValueType>
+bool KDTree<CoordType, ValueType>::Iterator::operator==(
     const Iterator& other) const {
   bool this_empty = this->pending.empty();
   bool other_empty = other.pending.empty();
@@ -574,32 +501,32 @@ bool KDTree<CoordType, dimensions, ValueType>::Iterator::operator==(
   return this->pending.front() == other.pending.front();
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-bool KDTree<CoordType, dimensions, ValueType>::Iterator::operator!=(
+template <typename CoordType, typename ValueType>
+bool KDTree<CoordType, ValueType>::Iterator::operator!=(
     const Iterator& other) const {
   return !this->operator==(other);
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-const typename std::pair<typename KDTree<CoordType, dimensions, ValueType>::Point, ValueType>&
-KDTree<CoordType, dimensions, ValueType>::Iterator::operator*() const {
+template <typename CoordType, typename ValueType>
+const typename std::pair<CoordType, ValueType>&
+KDTree<CoordType, ValueType>::Iterator::operator*() const {
   return this->current;
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-const typename std::pair<typename KDTree<CoordType, dimensions, ValueType>::Point, ValueType>*
-KDTree<CoordType, dimensions, ValueType>::Iterator::operator->() const {
+template <typename CoordType, typename ValueType>
+const typename std::pair<CoordType, ValueType>*
+KDTree<CoordType, ValueType>::Iterator::operator->() const {
   return &this->current;
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-typename KDTree<CoordType, dimensions, ValueType>::Iterator
-KDTree<CoordType, dimensions, ValueType>::begin() const {
+template <typename CoordType, typename ValueType>
+typename KDTree<CoordType, ValueType>::Iterator
+KDTree<CoordType, ValueType>::begin() const {
   return Iterator(this->root);
 }
 
-template <typename CoordType, size_t dimensions, typename ValueType>
-typename KDTree<CoordType, dimensions, ValueType>::Iterator
-KDTree<CoordType, dimensions, ValueType>::end() const {
+template <typename CoordType, typename ValueType>
+typename KDTree<CoordType, ValueType>::Iterator
+KDTree<CoordType, ValueType>::end() const {
   return Iterator(nullptr);
 }

@@ -2,8 +2,9 @@
 
 #include <math.h>
 
-#include <phosg/Strings.hh>
 #include <stdexcept>
+
+#include "Strings.hh"
 
 
 
@@ -129,6 +130,11 @@ bool Vector2<T>::operator<(const Vector2<T>& other) const {
 }
 
 template <typename T>
+T Vector2<T>::at(size_t dim) const {
+  return reinterpret_cast<const T*>(this)[dim];
+}
+
+template <typename T>
 T Vector2<T>::norm1() const {
   return this->x + this->y;
 }
@@ -152,6 +158,12 @@ template <typename T>
 std::string Vector2<T>::str() const {
   return string_printf("[%g, %g]", this->x, this->y);
 }
+
+template <typename T>
+constexpr size_t Vector2<T>::dimensions() {
+  return 2;
+}
+
 
 
 
@@ -293,6 +305,11 @@ bool Vector3<T>::operator<(const Vector3<T>& other) const {
 }
 
 template <typename T>
+T Vector3<T>::at(size_t dim) const {
+  return reinterpret_cast<const T*>(this)[dim];
+}
+
+template <typename T>
 T Vector3<T>::norm1() const {
   return this->x + this->y + this->z;
 }
@@ -324,6 +341,12 @@ template <typename T>
 std::string Vector3<T>::str() const {
   return string_printf("[%g, %g, %g]", this->x, this->y, this->z);
 }
+
+template <typename T>
+constexpr size_t Vector3<T>::dimensions() {
+  return 3;
+}
+
 
 
 
@@ -489,6 +512,11 @@ bool Vector4<T>::operator<(const Vector4<T>& other) const {
 }
 
 template <typename T>
+T Vector4<T>::at(size_t dim) const {
+  return reinterpret_cast<const T*>(this)[dim];
+}
+
+template <typename T>
 T Vector4<T>::norm1() const {
   return this->x + this->y + this->z + this->w;
 }
@@ -513,6 +541,11 @@ T Vector4<T>::dot(const Vector4<T>& other) const {
 template <typename T>
 std::string Vector4<T>::str() const {
   return string_printf("[%g, %g, %g, %g]", this->x, this->y, this->z, this->w);
+}
+
+template <typename T>
+constexpr size_t Vector4<T>::dimensions() {
+  return 4;
 }
 
 

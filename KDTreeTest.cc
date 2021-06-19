@@ -7,6 +7,7 @@
 #include <string>
 #include <set>
 
+#include "Vector.hh"
 #include "UnitTest.hh"
 
 using namespace std;
@@ -18,7 +19,7 @@ void run_randomized_test() {
 
   printf("--   construction/insert\n");
   srand(time(nullptr));
-  KDTree<int64_t, 2, int64_t> t;
+  KDTree<Vector2<int64_t>, int64_t> t;
   set<pair<int64_t, int64_t>> points;
   while (points.size() < 1000) {
     int64_t x = rand() % 1000;
@@ -33,11 +34,11 @@ void run_randomized_test() {
   {
     set<pair<int64_t, int64_t>> remaining_points = points;
     for (const auto& it : t.within({250, 250}, {750, 750})) {
-      expect_ge(it.first.coords[0], 250);
-      expect_lt(it.first.coords[0], 750);
-      expect_ge(it.first.coords[1], 250);
-      expect_lt(it.first.coords[1], 750);
-      expect_eq(1, remaining_points.erase(make_pair(it.first.coords[0], it.first.coords[1])));
+      expect_ge(it.first.x, 250);
+      expect_lt(it.first.x, 750);
+      expect_ge(it.first.y, 250);
+      expect_lt(it.first.y, 750);
+      expect_eq(1, remaining_points.erase(make_pair(it.first.x, it.first.y)));
     }
     for (const auto& it : remaining_points) {
       expect((it.first < 250) || (it.first >= 750) || (it.second < 250) || (it.second >= 750));
@@ -48,8 +49,8 @@ void run_randomized_test() {
   {
     // delete all points where x + y is an odd number
     for (auto it = t.begin(); it != t.end(); ) {
-      expect_eq(1, points.count(make_pair(it->first.coords[0], it->first.coords[1])));
-      if ((it->first.coords[0] + it->first.coords[1]) % 2) {
+      expect_eq(1, points.count(make_pair(it->first.x, it->first.y)));
+      if ((it->first.x + it->first.y) % 2) {
         t.erase_advance(it);
       } else {
         ++it;
@@ -57,8 +58,8 @@ void run_randomized_test() {
     }
     fprintf(stderr, "--     tree: size=%zu, depth=%zu\n", t.size(), t.depth());
     for (auto it : t) {
-      expect_eq(1, points.count(make_pair(it.first.coords[0], it.first.coords[1])));
-      expect_eq(0, (it.first.coords[0] + it.first.coords[1]) % 2);
+      expect_eq(1, points.count(make_pair(it.first.x, it.first.y)));
+      expect_eq(0, (it.first.x + it.first.y) % 2);
     }
   }
 
@@ -66,9 +67,9 @@ void run_randomized_test() {
   {
     // delete all points in (250, 250) -> (750, 750)
     for (auto it = t.begin(); it != t.end(); ) {
-      expect_eq(1, points.count(make_pair(it->first.coords[0], it->first.coords[1])));
-      if ((it->first.coords[0] >= 250) && (it->first.coords[1] >= 250) &&
-          (it->first.coords[0] < 750) && (it->first.coords[1] < 750)) {
+      expect_eq(1, points.count(make_pair(it->first.x, it->first.y)));
+      if ((it->first.x >= 250) && (it->first.y >= 250) &&
+          (it->first.x < 750) && (it->first.y < 750)) {
         t.erase_advance(it);
       } else {
         ++it;
@@ -76,8 +77,8 @@ void run_randomized_test() {
     }
     fprintf(stderr, "--     tree: size=%zu, depth=%zu\n", t.size(), t.depth());
     for (auto it : t) {
-      expect_eq(1, points.count(make_pair(it.first.coords[0], it.first.coords[1])));
-      expect_eq(0, (it.first.coords[0] + it.first.coords[1]) % 2);
+      expect_eq(1, points.count(make_pair(it.first.x, it.first.y)));
+      expect_eq(0, (it.first.x + it.first.y) % 2);
     }
   }
 
@@ -92,7 +93,7 @@ void run_basic_test() {
 
   printf("--   construction\n");
 
-  KDTree<int64_t, 2, int64_t> t;
+  KDTree<Vector2<int64_t>, int64_t> t;
   expect_eq(t.size(), 0);
 
   struct Entry {
@@ -149,7 +150,7 @@ void run_basic_test() {
     remaining_entries.insert({2, 3, 0});
     remaining_entries.insert({4, 7, 3});
     for (const auto& it : t.within({0, 0}, {5, 10})) {
-      expect_eq(1, remaining_entries.erase({it.first.coords[0], it.first.coords[1], it.second}));
+      expect_eq(1, remaining_entries.erase({it.first.x, it.first.y, it.second}));
     }
     expect_eq(0, remaining_entries.size());
   }
@@ -167,7 +168,7 @@ void run_basic_test() {
     set<Entry> remaining_entries(entries.begin(), entries.end());
     expect_eq(1, remaining_entries.erase({9, 6, 2}));
     for (const auto& it : t) {
-      expect_eq(1, remaining_entries.erase({it.first.coords[0], it.first.coords[1], it.second}));
+      expect_eq(1, remaining_entries.erase({it.first.x, it.first.y, it.second}));
     }
     expect_eq(0, remaining_entries.size());
   }
@@ -177,8 +178,8 @@ void run_basic_test() {
     set<Entry> remaining_entries(entries.begin(), entries.end());
     expect_eq(1, remaining_entries.erase({9, 6, 2}));
     for (auto it = t.begin(); it != t.end();) {
-      expect_eq(1, remaining_entries.erase({it->first.coords[0], it->first.coords[1], it->second}));
-      if (it->first.coords[0] == 4) {
+      expect_eq(1, remaining_entries.erase({it->first.x, it->first.y, it->second}));
+      if (it->first.x == 4) {
         t.erase_advance(it);
       } else {
         ++it;
@@ -193,7 +194,7 @@ void run_basic_test() {
     expect_eq(1, remaining_entries.erase({9, 6, 2}));
     expect_eq(1, remaining_entries.erase({4, 7, 3}));
     for (const auto& it : t) {
-      expect_eq(1, remaining_entries.erase({it.first.coords[0], it.first.coords[1], it.second}));
+      expect_eq(1, remaining_entries.erase({it.first.x, it.first.y, it.second}));
     }
     expect_eq(0, remaining_entries.size());
   }
@@ -203,7 +204,7 @@ void run_basic_test() {
     set<Entry> remaining_entries;
     remaining_entries.insert({2, 3, 0});
     for (const auto& it : t.within({0, 0}, {5, 10})) {
-      expect_eq(1, remaining_entries.erase({it.first.coords[0], it.first.coords[1], it.second}));
+      expect_eq(1, remaining_entries.erase({it.first.x, it.first.y, it.second}));
     }
     expect_eq(0, remaining_entries.size());
   }
