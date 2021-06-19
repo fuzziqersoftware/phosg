@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
   // test run_process failure
   {
     fprintf(stderr, "-- run_process failure\n");
-    auto ret = run_process({"false"}, NULL, false);
+    auto ret = run_process({"false"}, nullptr, false);
     expect(WIFEXITED(ret.exit_status));
     expect_eq(1, WEXITSTATUS(ret.exit_status));
   }
@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
   // test run_process with stdout/stderr data
   {
     fprintf(stderr, "-- run_process stdout data\n");
-    auto ret = run_process({"ls", argv[0]}, NULL, false);
+    auto ret = run_process({"ls", argv[0]}, nullptr, false);
     expect(WIFEXITED(ret.exit_status));
     expect_eq(0, WEXITSTATUS(ret.exit_status));
     expect_eq(string(argv[0]) + "\n", ret.stdout_contents);
@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
   }
   {
     fprintf(stderr, "-- run_process stderr data\n");
-    auto ret = run_process({"python3", "-c", "import sys; sys.stderr.write('this should go to stderr\\n'); sys.stderr.flush()"}, NULL, false);
+    auto ret = run_process({"python3", "-c", "import sys; sys.stderr.write('this should go to stderr\\n'); sys.stderr.flush()"}, nullptr, false);
     expect(WIFEXITED(ret.exit_status));
     expect_eq(0, WEXITSTATUS(ret.exit_status));
     expect_eq("", ret.stdout_contents);
@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
   // test run_process with stdin data
   {
     fprintf(stderr, "-- run_process stdin missing\n");
-    auto ret = run_process({"cat"}, NULL, false);
+    auto ret = run_process({"cat"}, nullptr, false);
     expect(WIFEXITED(ret.exit_status));
     expect_eq(0, WEXITSTATUS(ret.exit_status));
     expect_eq("", ret.stdout_contents);

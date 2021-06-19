@@ -20,7 +20,7 @@ void random_data(void* data, size_t bytes) {
   static thread_local HCRYPTPROV crypt_prov;
 
   if (!crypt_prov_valid) {
-    if (!CryptAcquireContext(&crypt_prov, NULL, "Microsoft Base Cryptographic Provider v1.0", PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
+    if (!CryptAcquireContext(&crypt_prov, nullptr, "Microsoft Base Cryptographic Provider v1.0", PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
       throw runtime_error("can\'t acquire crypt context");
     }
     crypt_prov_valid = true;

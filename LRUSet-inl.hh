@@ -7,11 +7,11 @@
 
 template <typename K>
 LRUSet<K>::Item::Item(size_t size) :
-    prev(NULL), next(NULL), key(NULL), size(size) { }
+    prev(nullptr), next(nullptr), key(nullptr), size(size) { }
 
 template <typename K>
 LRUSet<K>::LRUSet() :
-    head(NULL), tail(NULL), items(), total_size(0) { }
+    head(nullptr), tail(nullptr), items(), total_size(0) { }
 
 template <typename K>
 LRUSet<K>::~LRUSet() {
@@ -75,8 +75,8 @@ bool LRUSet<K>::erase(const K& k) {
 
 template <typename K>
 void LRUSet<K>::clear() {
-  this->head = NULL;
-  this->tail = NULL;
+  this->head = nullptr;
+  this->tail = nullptr;
   this->items.clear();
   this->total_size = 0;
 }
@@ -125,8 +125,8 @@ void LRUSet<K>::unlink_item(Item* i) {
   if (i->next) {
     i->next->prev = i->prev;
   }
-  i->prev = NULL;
-  i->next = NULL;
+  i->prev = nullptr;
+  i->next = nullptr;
 }
 
 template <typename K>

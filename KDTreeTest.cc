@@ -17,7 +17,7 @@ void run_randomized_test() {
   printf("-- randomized\n");
 
   printf("--   construction/insert\n");
-  srand(time(NULL));
+  srand(time(nullptr));
   KDTree<int64_t, 2, int64_t> t;
   set<pair<int64_t, int64_t>> points;
   while (points.size() < 1000) {

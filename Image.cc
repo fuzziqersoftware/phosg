@@ -327,7 +327,7 @@ Image::Image(Image&& im) {
   im.has_alpha = false;
   im.channel_width = 8;
   im.max_value = 0xFF;
-  im.data.raw = NULL;
+  im.data.raw = nullptr;
 }
 
 const Image& Image::operator=(Image&& im) {
@@ -346,7 +346,7 @@ const Image& Image::operator=(Image&& im) {
   im.has_alpha = false;
   im.channel_width = 8;
   im.max_value = 0xFF;
-  im.data.raw = NULL;
+  im.data.raw = nullptr;
   return *this;
 }
 
@@ -597,7 +597,7 @@ string Image::save(Image::ImageFormat format) const {
   }
 }
 
-// saves the Image. if NULL is given for filename, writes to stdout
+// saves the Image. if nullptr is given for filename, writes to stdout
 void Image::save(const char* filename, Image::ImageFormat format) const {
   if (filename) {
     auto f = fopen_unique(filename, "wb");

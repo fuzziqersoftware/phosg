@@ -74,7 +74,7 @@ struct TestCase {
     expect_eq(this->object, *reparsed);
 
     for (int python3 = 0; python3 < 2; python3++) {
-      const string* expected_repr = NULL;
+      const string* expected_repr = nullptr;
       string actual_repr;
 
       if (!this->sorted_python_repr.empty()) {

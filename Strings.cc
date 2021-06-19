@@ -101,10 +101,10 @@ static int vasprintf(char** out, const char *fmt, va_list va) {
 #endif
 
 string string_vprintf(const char* fmt, va_list va) {
-  char* result = NULL;
+  char* result = nullptr;
   int length = vasprintf(&result, fmt, va);
 
-  if (result == NULL) {
+  if (result == nullptr) {
     throw bad_alloc();
   }
 
@@ -162,7 +162,7 @@ void log(int level, const char* fmt, ...) {
   }
 
   char time_buffer[32];
-  time_t now_secs = time(NULL);
+  time_t now_secs = time(nullptr);
   struct tm now_tm;
   localtime_r(&now_secs, &now_tm);
   strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", &now_tm);
@@ -743,7 +743,7 @@ string format_data_string(const string& data, const string* mask) {
   if (mask && (mask->size() != data.size())) {
     throw logic_error("data and mask sizes do not match");
   }
-  return format_data_string(data.data(), data.size(), mask ? mask->data() : NULL);
+  return format_data_string(data.data(), data.size(), mask ? mask->data() : nullptr);
 }
 
 string format_data_string(const void* vdata, size_t size, const void* vmask) {
@@ -767,7 +767,7 @@ string format_time(struct timeval* tv) {
   struct timeval local_tv;
   if (!tv) {
     tv = &local_tv;
-    gettimeofday(tv, NULL);
+    gettimeofday(tv, nullptr);
   }
 
   time_t sec = tv->tv_sec;

@@ -84,7 +84,7 @@ KDTree<CoordType, dimensions, ValueType>::make_point(CoordType x, CoordType y,
 
 template <typename CoordType, size_t dimensions, typename ValueType>
 KDTree<CoordType, dimensions, ValueType>::KDTree()
-  : root(NULL), node_count(0) { }
+  : root(nullptr), node_count(0) { }
 
 template <typename CoordType, size_t dimensions, typename ValueType>
 KDTree<CoordType, dimensions, ValueType>::~KDTree() {
@@ -125,7 +125,7 @@ KDTree<CoordType, dimensions, ValueType>::emplace(
 
 template <typename CoordType, size_t dimensions, typename ValueType>
 void KDTree<CoordType, dimensions, ValueType>::link_node(Node* new_node) {
-  if (this->root == NULL) {
+  if (this->root == nullptr) {
     this->root = new_node;
     this->node_count++;
     return;
@@ -134,7 +134,7 @@ void KDTree<CoordType, dimensions, ValueType>::link_node(Node* new_node) {
   Node* n = this->root;
   for (;;) {
     if (new_node->pt.coords[n->dim] < n->pt.coords[n->dim]) {
-      if (n->before == NULL) {
+      if (n->before == nullptr) {
         new_node->dim = (n->dim + 1) % dimensions;
         new_node->parent = n;
         n->before = new_node;
@@ -144,7 +144,7 @@ void KDTree<CoordType, dimensions, ValueType>::link_node(Node* new_node) {
         n = n->before;
       }
     } else {
-      if (n->after_or_equal == NULL) {
+      if (n->after_or_equal == nullptr) {
         new_node->dim = (n->dim + 1) % dimensions;
         new_node->parent = n;
         n->after_or_equal = new_node;
@@ -160,11 +160,11 @@ void KDTree<CoordType, dimensions, ValueType>::link_node(Node* new_node) {
 template <typename CoordType, size_t dimensions, typename ValueType>
 bool KDTree<CoordType, dimensions, ValueType>::erase(
     const Point& pt, const ValueType& v) {
-  if (this->root == NULL) {
+  if (this->root == nullptr) {
     return false;
   }
 
-  for (Node* n = this->root; n != NULL;) {
+  for (Node* n = this->root; n != nullptr;) {
     if ((n->pt == pt) && (n->value == v)) {
       this->delete_node(n);
       return true;
@@ -220,7 +220,7 @@ template <typename CoordType, size_t dimensions, typename ValueType>
 typename std::vector<std::pair<typename KDTree<CoordType, dimensions, ValueType>::Point, ValueType>>
 KDTree<CoordType, dimensions, ValueType>::within(
     const Point& low, const Point& high) const {
-  if (this->root == NULL) {
+  if (this->root == nullptr) {
     throw std::out_of_range("no such item");
   }
 
@@ -263,7 +263,7 @@ KDTree<CoordType, dimensions, ValueType>::within(
 template <typename CoordType, size_t dimensions, typename ValueType>
 bool KDTree<CoordType, dimensions, ValueType>::exists(const Point& low,
     const Point& high) const {
-  if (this->root == NULL) {
+  if (this->root == nullptr) {
     return false;
   }
 
@@ -314,7 +314,7 @@ size_t KDTree<CoordType, dimensions, ValueType>::depth() const {
 template <typename CoordType, size_t dimensions, typename ValueType>
 size_t KDTree<CoordType, dimensions, ValueType>::depth_recursive(Node* n,
     size_t depth) {
-  if (n == NULL) {
+  if (n == nullptr) {
     return depth;
   }
   size_t before_depth = KDTree::depth_recursive(n->before, depth + 1);
@@ -327,13 +327,13 @@ size_t KDTree<CoordType, dimensions, ValueType>::depth_recursive(Node* n,
 template <typename CoordType, size_t dimensions, typename ValueType>
 KDTree<CoordType, dimensions, ValueType>::Node::Node(
     Node* parent, const Point& pt, size_t dim, const ValueType& v) : pt(pt),
-      dim(dim), before(NULL), after_or_equal(NULL), parent(parent), value(v) { }
+      dim(dim), before(nullptr), after_or_equal(nullptr), parent(parent), value(v) { }
 
 template <typename CoordType, size_t dimensions, typename ValueType>
 template <typename... Args>
 KDTree<CoordType, dimensions, ValueType>::Node::Node(
-    const Point& pt, Args&&... args) : pt(pt), dim(0), before(NULL),
-    after_or_equal(NULL), parent(NULL), value(std::forward<Args>(args)...) { }
+    const Point& pt, Args&&... args) : pt(pt), dim(0), before(nullptr),
+    after_or_equal(nullptr), parent(nullptr), value(std::forward<Args>(args)...) { }
 
 
 
@@ -391,14 +391,14 @@ bool KDTree<CoordType, dimensions, ValueType>::delete_node(Node* n) {
   }
 
   // unlink the node from its parent
-  if (n->parent == NULL) {
-    this->root = NULL;
+  if (n->parent == nullptr) {
+    this->root = nullptr;
   } else {
     if (n->parent->before == n) {
-      n->parent->before = NULL;
+      n->parent->before = nullptr;
     }
     if (n->parent->after_or_equal == n) {
-      n->parent->after_or_equal = NULL;
+      n->parent->after_or_equal = nullptr;
     }
   }
 
@@ -496,7 +496,7 @@ KDTree<CoordType, dimensions, ValueType>::generate_balanced_subtree(
   size_t& max = max_by_dim[dim];
 
   if (min >= max) {
-    return NULL;
+    return nullptr;
   }
   size_t mid = min + (max - min) / 2;
   Node* new_root = nodes_by_dim[dim][mid];
@@ -601,5 +601,5 @@ KDTree<CoordType, dimensions, ValueType>::begin() const {
 template <typename CoordType, size_t dimensions, typename ValueType>
 typename KDTree<CoordType, dimensions, ValueType>::Iterator
 KDTree<CoordType, dimensions, ValueType>::end() const {
-  return Iterator(NULL);
+  return Iterator(nullptr);
 }

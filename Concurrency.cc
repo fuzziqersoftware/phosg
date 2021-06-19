@@ -10,7 +10,7 @@ rw_lock::rw_lock() {
   pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
   pthread_rwlock_init(&this->lock, &attr);
 #else
-  pthread_rwlock_init(&this->lock, NULL);
+  pthread_rwlock_init(&this->lock, nullptr);
 #endif
 }
 
@@ -35,7 +35,7 @@ rw_guard::rw_guard(pthread_rwlock_t* lock, bool exclusive) : lock(lock) {
 }
 
 rw_guard::rw_guard(rw_guard&& g) : lock(g.lock) {
-  g.lock = NULL;
+  g.lock = nullptr;
 }
 
 rw_guard::~rw_guard() {

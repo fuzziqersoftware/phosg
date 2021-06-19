@@ -60,13 +60,13 @@ pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const string& addr,
 
   } else {
     struct addrinfo *res0;
-    if (getaddrinfo(addr.c_str(), NULL, NULL, &res0)) {
+    if (getaddrinfo(addr.c_str(), nullptr, nullptr, &res0)) {
       throw runtime_error("can\'t resolve hostname " + addr + ": " + string_for_error(errno));
     }
 
     std::unique_ptr<struct addrinfo, void(*)(struct addrinfo*)> res0_unique(
         res0, freeaddrinfo);
-    struct addrinfo *res4 = NULL, *res6 = NULL;
+    struct addrinfo *res4 = nullptr, *res6 = nullptr;
     for (struct addrinfo* res = res0; res; res = res->ai_next) {
       if (!res4 && (res->ai_family == AF_INET)) {
         res4 = res;

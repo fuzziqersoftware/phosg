@@ -101,7 +101,7 @@ public:
 
   // read/write functions
   void clear(uint64_t r, uint64_t g, uint64_t b, uint64_t a = 0xFF);
-  void read_pixel(ssize_t x, ssize_t y, uint64_t* r, uint64_t* g, uint64_t* b, uint64_t* a = NULL) const;
+  void read_pixel(ssize_t x, ssize_t y, uint64_t* r, uint64_t* g, uint64_t* b, uint64_t* a = nullptr) const;
   void write_pixel(ssize_t x, ssize_t y, uint64_t r, uint64_t g, uint64_t b, uint64_t a = 0xFF);
 
   // canvas functions

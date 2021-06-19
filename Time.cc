@@ -10,7 +10,7 @@ using namespace std;
 
 uint64_t now() {
   timeval t;
-  gettimeofday(&t, NULL);
+  gettimeofday(&t, nullptr);
   return (uint64_t)t.tv_sec * 1000000 + (uint64_t)t.tv_usec;
 }
 

@@ -37,8 +37,8 @@ uint64_t this_process_start_time();
 class Subprocess {
 public:
   Subprocess(const std::vector<std::string>& cmd, int stdin_fd = -1,
-      int stdout_fd = -1, int stderr_fd = -1, const std::string* cwd = NULL,
-      const std::unordered_map<std::string, std::string>* env = NULL);
+      int stdout_fd = -1, int stderr_fd = -1, const std::string* cwd = nullptr,
+      const std::unordered_map<std::string, std::string>* env = nullptr);
   ~Subprocess();
 
   int stdin();
@@ -71,9 +71,9 @@ struct SubprocessResult {
 };
 
 SubprocessResult run_process(const std::vector<std::string>& cmd,
-    const std::string* stdin_data = NULL, bool check = true,
-    const std::string* cwd = NULL,
-    const std::unordered_map<std::string, std::string>* env = NULL,
+    const std::string* stdin_data = nullptr, bool check = true,
+    const std::string* cwd = nullptr,
+    const std::unordered_map<std::string, std::string>* env = nullptr,
     size_t timeout_secs = 0);
 
 #endif

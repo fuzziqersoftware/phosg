@@ -45,7 +45,7 @@ unordered_set<string> list_directory(const string& dirname) {
   unordered_set<string> files;
 
   DIR* dir = opendir(dirname.c_str());
-  if (dir == NULL) {
+  if (dir == nullptr) {
     throw cannot_open_file(dirname);
   }
 
@@ -107,7 +107,7 @@ string get_user_home_directory() {
   }
 
   char buffer[bufsize];
-  struct passwd pwd, *result = NULL;
+  struct passwd pwd, *result = nullptr;
   if (getpwuid_r(getuid(), &pwd, buffer, bufsize, &result) != 0 || !result) {
     throw runtime_error("can\'t get home directory for current user");
   }

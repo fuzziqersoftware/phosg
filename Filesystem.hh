@@ -204,11 +204,11 @@ void save_file(const std::string& filename, const void* data, size_t size);
 void save_file(const std::string& filename, const std::string& data);
 
 std::unique_ptr<FILE, void(*)(FILE*)> fopen_unique(const std::string& filename,
-    const std::string& mode = "rb", FILE* dash_file = NULL);
+    const std::string& mode = "rb", FILE* dash_file = nullptr);
 std::unique_ptr<FILE, void(*)(FILE*)> fdopen_unique(int fd,
     const std::string& mode = "rb");
 std::shared_ptr<FILE> fopen_shared(const std::string& filename,
-    const std::string& mode = "rb", FILE* dash_file = NULL);
+    const std::string& mode = "rb", FILE* dash_file = nullptr);
 std::shared_ptr<FILE> fdopen_shared(int fd, const std::string& mode = "rb");
 
 void rename(const std::string& old_filename, const std::string& new_filename);

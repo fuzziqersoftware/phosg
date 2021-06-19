@@ -19,7 +19,7 @@ void print_data_test_case(const string& expected_output, const string& data,
   {
     auto f = fopen_unique("StringsTest-data", "w");
     print_data(f.get(), data.data(), data.size(), address,
-        prev.empty() ? NULL : prev.data(), flags);
+        prev.empty() ? nullptr : prev.data(), flags);
   }
   string output_data = load_file("StringsTest-data");
 
@@ -260,7 +260,7 @@ int main(int argc, char** argv) {
 
     {
       string expected_formatted_input("0304001E7F006461726BFFFFFFFF63006F006C0064004260D5BFBC749318045605C0");
-      string formatted_input = format_data_string(output_data, NULL);
+      string formatted_input = format_data_string(output_data, nullptr);
       expect_eq(expected_formatted_input, formatted_input);
 
       output_data = parse_data_string(input, &output_mask);

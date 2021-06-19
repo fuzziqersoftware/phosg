@@ -200,7 +200,7 @@ static void clear_cached_pid_vars() {
 
 static void maybe_add_atfork_handler() {
   if (!atfork_handler_added) {
-    pthread_atfork(NULL, NULL, clear_cached_pid_vars);
+    pthread_atfork(nullptr, nullptr, clear_cached_pid_vars);
     atfork_handler_added = true;
   }
 }

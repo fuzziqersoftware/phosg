@@ -93,16 +93,16 @@ enum PrintDataFlags {
 };
 
 void print_data(FILE* stream, const void* _data, uint64_t size,
-    uint64_t address = 0, const void* _prev = NULL,
+    uint64_t address = 0, const void* _prev = nullptr,
     uint64_t flags = PrintDataFlags::PrintAscii);
 void print_data(FILE* stream, const std::string& data, uint64_t address = 0,
-    const void* prev = NULL, uint64_t flags = PrintDataFlags::PrintAscii);
+    const void* prev = nullptr, uint64_t flags = PrintDataFlags::PrintAscii);
 
-std::string parse_data_string(const std::string& s, std::string* mask = NULL);
-std::string format_data_string(const std::string& data, const std::string* mask = NULL);
-std::string format_data_string(const void* data, size_t size, const void* mask = NULL);
+std::string parse_data_string(const std::string& s, std::string* mask = nullptr);
+std::string format_data_string(const std::string& data, const std::string* mask = nullptr);
+std::string format_data_string(const void* data, size_t size, const void* mask = nullptr);
 
-std::string format_time(struct timeval* tv = NULL);
+std::string format_time(struct timeval* tv = nullptr);
 std::string format_size(size_t size, bool include_bytes = false);
 size_t parse_size(const char* str);
 
