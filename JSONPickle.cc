@@ -266,7 +266,8 @@ shared_ptr<JSONObject> parse_pickle(const void* data, size_t size) {
       }
 
       case '\x8D': // BINUNICODE8     - push very long string
-      case '\x8E': { // BINBYTES8       - push very long bytes string
+      case '\x8E': // BINBYTES8       - push very long bytes string
+      case '\x96': { // BYTEARRAY8    - push bytearray (phosg just returns this as a normal string)
         if (size - offset < 8) {
           throw JSONObject::parse_error("no space for 8-byte string length");
         }
@@ -670,6 +671,12 @@ shared_ptr<JSONObject> parse_pickle(const void* data, size_t size) {
         break;
       }
 
+      case '\x98': // READONLY_BUFFER - make top of stack readonly
+        // in python, this would prevent the bytearray at the top of the stack
+        // from being written to again. here we just ignore it since there's no
+        // equivalent in JSON.
+        break;
+
       case 'P':    // PERSID          - push persistent object; id is taken from string arg
       case 'Q':    // BINPERSID       -  "       "         "  ;  "  "   "     "  stack
       case 'R':    // REDUCE          - apply callable to argtuple, both on stack
@@ -684,6 +691,8 @@ shared_ptr<JSONObject> parse_pickle(const void* data, size_t size) {
       case '\x92': // NEWOBJ_EX       - like NEWOBJ but work with keyword only arguments
       case '\x93': // STACK_GLOBAL    - same as GLOBAL but using names on the stacks
         throw JSONObject::parse_error("pickled python objects not supported");
+      case '\x97': // NEXT_BUFFER     - push next out-of-band buffer
+        throw JSONObject::parse_error("out-of-band buffers are not supported");
     }
 
     if (!mark_stk.empty() && (mark_stk.back() > stk.size())) {
