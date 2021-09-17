@@ -16,7 +16,7 @@ Phosg also includes an executable (jsonformat) that reformats JSON and converts
 to/from Python's pickle format.
 
 Building & installing on macOS or Linux:
-0. Make sure you have Make, g++ and Python 2 and 3 installed.
+0. Make sure you have Make, g++ and Python 3 installed.
 1. `make`
 2. `sudo make install`
 
