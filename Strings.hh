@@ -14,6 +14,8 @@ std::unique_ptr<void, void (*)(void*)> malloc_unique(size_t size);
 bool starts_with(const std::string& s, const std::string& start);
 bool ends_with(const std::string& s, const std::string& end);
 
+void strip_trailing_zeroes(std::string& s);
+
 std::string escape_quotes(const std::string& s);
 
 std::string string_printf(const char* fmt, ...);

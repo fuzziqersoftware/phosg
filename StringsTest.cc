@@ -152,6 +152,19 @@ int main(int argc, char** argv) {
   expect(!ends_with("abcdef", "fef"));
 
   {
+    fprintf(stderr, "-- strip_trailing_zeroes\n");
+    string s1 = "abcdef";
+    strip_trailing_zeroes(s1);
+    expect_eq(s1, "abcdef");
+    string s2 = "abcdef\0";
+    strip_trailing_zeroes(s2);
+    expect_eq(s2, "abcdef");
+    string s3 = "abcdef\0\0\0\0\0";
+    strip_trailing_zeroes(s3);
+    expect_eq(s3, "abcdef");
+  }
+
+  {
     fprintf(stderr, "-- string_printf\n");
     string result = string_printf("%s %llu 0x%04hX", "lolz", 1000ULL, 0x4F);
     fprintf(stderr, "%s\n", result.c_str());

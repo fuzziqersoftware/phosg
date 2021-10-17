@@ -47,6 +47,13 @@ bool ends_with(const string& s, const string& end) {
   return false;
 }
 
+void strip_trailing_zeroes(string& s) {
+  size_t index = s.find_last_not_of('\0');
+  if (index != string::npos) {
+    s.resize(index + 1);
+  }
+}
+
 string escape_quotes(const string& s) {
   string ret;
   for (size_t x = 0; x < s.size(); x++) {
