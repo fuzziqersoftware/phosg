@@ -162,6 +162,12 @@ int main(int argc, char** argv) {
     string s3 = "abcdef\0\0\0\0\0";
     strip_trailing_zeroes(s3);
     expect_eq(s3, "abcdef");
+    string s4 = "";
+    strip_trailing_zeroes(s4);
+    expect_eq(s4, "");
+    string s5 = "\0\0\0\0\0";
+    strip_trailing_zeroes(s5);
+    expect_eq(s5, "");
   }
 
   {

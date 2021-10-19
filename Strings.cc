@@ -51,6 +51,8 @@ void strip_trailing_zeroes(string& s) {
   size_t index = s.find_last_not_of('\0');
   if (index != string::npos) {
     s.resize(index + 1);
+  } else if (!s.empty() && s[0] == '\0') {
+    s.resize(0); // String is entirely zeroes
   }
 }
 
