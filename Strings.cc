@@ -63,7 +63,7 @@ string escape_quotes(const string& s) {
     if (ch == '\"') {
       ret += "\\\"";
     } else if (ch < 0x20 || ch > 0x7E) {
-      ret += string_printf("\\x%02X", ch);
+      ret += string_printf("\\x%02X", static_cast<uint8_t>(ch));
     } else {
       ret += ch;
     }
