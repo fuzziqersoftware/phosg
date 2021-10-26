@@ -132,6 +132,7 @@ void freadx(FILE* f, void* data, size_t size);
 void fwritex(FILE* f, const void* data, size_t size);
 std::string freadx(FILE* f, size_t size);
 void fwritex(FILE* f, const std::string& data);
+uint8_t fgetcx(FILE* f);
 
 
 

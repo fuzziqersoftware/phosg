@@ -465,6 +465,18 @@ void fwritex(FILE* f, const string& data) {
   fwritex(f, data.data(), data.size());
 }
 
+uint8_t fgetcx(FILE* f) {
+  int ret = fgetc(f);
+  if (ret == EOF) {
+    if (feof(f)) {
+      throw io_error(fileno(f), "end of stream");
+    } else {
+      throw io_error(fileno(f), "cannot read from stream");
+    }
+  }
+  return ret;
+}
+
 string load_file(const string& filename) {
   scoped_fd fd(filename, O_RDONLY);
   ssize_t file_size = fstat(fd).st_size;
