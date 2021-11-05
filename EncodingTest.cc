@@ -44,6 +44,8 @@ int main(int argc, char* argv[]) {
   expect_eq("11122", base64_decode("MTExMjI=", 8));
   expect_eq("111222", base64_decode("MTExMjIy", 8));
 
+  expect_eq("Ab znggre ubj uneq lbh gel...", rot13("No matter how hard you try...", 29));
+
   printf("%s: all tests passed\n", argv[0]);
   return 0;
 }

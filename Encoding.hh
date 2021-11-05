@@ -95,3 +95,4 @@ std::string base64_decode(const void* data, size_t size,
     const char* alphabet = nullptr);
 std::string base64_decode(const std::string& data, const char* alphabet = nullptr);
 
+std::string rot13(const void* data, size_t size);

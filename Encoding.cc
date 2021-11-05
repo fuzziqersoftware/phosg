@@ -117,3 +117,18 @@ string base64_decode(const void* vdata, size_t size, const char* alphabet) {
 string base64_decode(const string& data, const char* alphabet) {
   return base64_decode(data.data(), data.size(), alphabet);
 }
+
+string rot13(const void* vdata, size_t size) {
+  const char* data = reinterpret_cast<const char*>(vdata);
+  string ret;
+  for (size_t x = 0; x < size; x++) {
+    char ch = data[x];
+    if (((ch >= 'a') && (ch <= 'm')) || ((ch >= 'A') && (ch <= 'M'))) {
+      ch += 13;
+    } else if (((ch >= 'n') && (ch <= 'z')) || ((ch >= 'N') && (ch <= 'Z'))) {
+      ch -= 13;
+    }
+    ret.push_back(ch);
+  }
+  return ret;
+}
