@@ -16,23 +16,6 @@ JSONObject::key_error::key_error(const string& what) : runtime_error(what) { }
 JSONObject::index_error::index_error(const string& what) : runtime_error(what) { }
 JSONObject::file_error::file_error(const string& what) : runtime_error(what) { }
 
-shared_ptr<JSONObject> JSONObject::load(const string& filename) {
-  try {
-    return JSONObject::parse(load_file(filename));
-  } catch (const runtime_error& e) {
-    throw file_error(e.what());
-  }
-}
-
-void JSONObject::save(const string& filename, bool format) const {
-  string data = format ? this->format() : this->serialize();
-  try {
-    save_file(filename, data);
-  } catch (const runtime_error& e) {
-    throw file_error(e.what());
-  }
-}
-
 static void skip_whitespace_and_comments(StringReader& r) {
   bool reading_comment = false;
   while (!r.eof()) {

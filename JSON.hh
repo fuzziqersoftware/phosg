@@ -16,12 +16,13 @@ std::string escape_json_string(const std::string& s);
 
 class JSONObject {
 public:
-  // Thrown when JSON can't be parsed
+  // Thrown when JSON can't be parsed (note that std::out_of_range may also be
+  // thrown if the JSON contains an unterminated string, list, or dict)
   class parse_error : public std::runtime_error {
   public:
     parse_error(const std::string& what);
   };
-  // Thrown when an object is accessed as the wrong type
+  // Thrown when a JSONObject is accessed as the wrong type
   class type_error : public std::runtime_error {
   public:
     type_error(const std::string& what);
@@ -36,17 +37,9 @@ public:
   public:
     index_error(const std::string& what);
   };
-  // Thrown when load() or save() fails
-  class file_error : public std::runtime_error {
-  public:
-    file_error(const std::string& what);
-  };
 
   using list_type = std::vector<std::shared_ptr<JSONObject>>;
   using dict_type = std::unordered_map<std::string, std::shared_ptr<JSONObject>>;
-
-  static std::shared_ptr<JSONObject> load(const std::string& filename);
-  void save(const std::string& filename, bool format = false) const;
 
   static std::shared_ptr<JSONObject> parse(StringReader& r);
   static std::shared_ptr<JSONObject> parse(const char* s, size_t size);
