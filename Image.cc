@@ -392,7 +392,7 @@ Image::~Image() {
   free(this->data.raw);
 }
 
-bool Image::operator==(const Image& other) {
+bool Image::operator==(const Image& other) const {
   if ((this->width != other.width) || (this->height != other.height) ||
       (this->has_alpha != other.has_alpha) ||
       (this->channel_width != other.channel_width) ||
@@ -400,6 +400,10 @@ bool Image::operator==(const Image& other) {
     return false;
   }
   return !memcmp(this->data.raw, other.data.raw, this->get_data_size());
+}
+
+bool Image::operator!=(const Image& other) const {
+  return !this->operator==(other);
 }
 
 const char* Image::mime_type_for_format(ImageFormat format) {
