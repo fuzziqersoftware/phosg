@@ -921,6 +921,13 @@ string StringReader::all() const {
   return string(reinterpret_cast<const char*>(this->data), this->length);
 }
 
+const char* StringReader::peek(size_t size) {
+  if (this->offset + size <= this->length) {
+    return reinterpret_cast<const char*>(this->data + this->offset);
+  }
+  throw out_of_range("not enough data to read");
+}
+
 string StringReader::read(size_t size, bool advance) {
   string ret = this->pread(this->offset, size);
   if (ret.size() && advance) {

@@ -278,7 +278,8 @@ shared_ptr<JSONObject> parse_pickle(const void* data, size_t size) {
         }
         offset += 8;
 
-        stk.emplace_back(new JSONObject(&buffer[offset], length));
+        string value(&buffer[offset], length);
+        stk.emplace_back(new JSONObject(move(value)));
         offset += length;
         break;
       }
@@ -296,7 +297,8 @@ shared_ptr<JSONObject> parse_pickle(const void* data, size_t size) {
         }
         offset += 4;
 
-        stk.emplace_back(new JSONObject(&buffer[offset], length));
+        string value(&buffer[offset], length);
+        stk.emplace_back(new JSONObject(move(value)));
         offset += length;
         break;
       }
@@ -314,7 +316,8 @@ shared_ptr<JSONObject> parse_pickle(const void* data, size_t size) {
         }
         offset++;
 
-        stk.emplace_back(new JSONObject(&buffer[offset], length));
+        string value(&buffer[offset], length);
+        stk.emplace_back(new JSONObject(move(value)));
         offset += length;
         break;
       }

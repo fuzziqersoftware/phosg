@@ -1,7 +1,7 @@
 OBJECTS=Concurrency.o ConsistentHashRing.o Encoding.o FileCache.o Filesystem.o Hash.o Image.o JSONPickle.o JSON.o Network.o Process.o Random.o Strings.o Time.o UnitTest.o
 CXX=g++ -fPIC
-CXXFLAGS=-std=c++14 -g -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -Wall -Werror
-LDFLAGS=-g -std=c++14 -lstdc++
+CXXFLAGS=-std=c++20 -g -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -Wall -Werror
+LDFLAGS=-g -std=c++20 -lstdc++
 LDLIBS=
 
 ifeq ($(OS),Windows_NT)
@@ -16,8 +16,8 @@ else
 
 	ifeq ($(shell uname -s),Darwin)
 		INSTALL_DIR=/opt/local
-		CXXFLAGS +=  -DMACOSX -mmacosx-version-min=10.11
-		LDFLAGS +=  -mmacosx-version-min=10.11
+		CXXFLAGS +=  -DMACOSX -mmacosx-version-min=10.15
+		LDFLAGS +=  -mmacosx-version-min=10.15
 	else
 		INSTALL_DIR=/usr/local
 		CXXFLAGS +=  -DLINUX

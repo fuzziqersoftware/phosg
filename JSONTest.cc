@@ -11,6 +11,7 @@ using namespace std;
 
 int main(int argc, char** argv) {
 
+  fprintf(stderr, "-- construction\n");
   unordered_map<string, JSONObject> members;
   members.emplace(piecewise_construct, make_tuple("null"), make_tuple());
   members.emplace(piecewise_construct, make_tuple("true"), make_tuple(true));
@@ -30,118 +31,128 @@ int main(int argc, char** argv) {
   members.emplace(piecewise_construct, make_tuple("dict1"), make_tuple((unordered_map<string, JSONObject>({{"1", JSONObject((int64_t)1)}}))));
   JSONObject root(members);
 
-  // make sure == works, even recursively
+  fprintf(stderr, "-- equality\n");
   assert(root == JSONObject(members));
   members.emplace(piecewise_construct, make_tuple("extra_item"), make_tuple((int64_t)3));
   assert(root != JSONObject(members));
 
-  // make sure retrievals work
-  assert(root["null"]->is_null() == true);
-  assert(root["true"]->is_null() == false);
-  assert(root["false"]->is_null() == false);
-  assert(root["string0"]->is_null() == false);
-  assert(root["string1"]->is_null() == false);
-  assert(root["string2"]->is_null() == false);
-  assert(root["int0"]->is_null() == false);
-  assert(root["int1"]->is_null() == false);
-  assert(root["int2"]->is_null() == false);
-  assert(root["float0"]->is_null() == false);
-  assert(root["float1"]->is_null() == false);
-  assert(root["float2"]->is_null() == false);
-  assert(root["list0"]->is_null() == false);
-  assert(root["list1"]->is_null() == false);
-  assert(root["dict0"]->is_null() == false);
-  assert(root["dict1"]->is_null() == false);
+  fprintf(stderr, "-- retrieval\n");
+  assert(root.at("null")->is_null() == true);
+  assert(root.at("true")->is_null() == false);
+  assert(root.at("false")->is_null() == false);
+  assert(root.at("string0")->is_null() == false);
+  assert(root.at("string1")->is_null() == false);
+  assert(root.at("string2")->is_null() == false);
+  assert(root.at("int0")->is_null() == false);
+  assert(root.at("int1")->is_null() == false);
+  assert(root.at("int2")->is_null() == false);
+  assert(root.at("float0")->is_null() == false);
+  assert(root.at("float1")->is_null() == false);
+  assert(root.at("float2")->is_null() == false);
+  assert(root.at("list0")->is_null() == false);
+  assert(root.at("list1")->is_null() == false);
+  assert(root.at("dict0")->is_null() == false);
+  assert(root.at("dict1")->is_null() == false);
 
-  assert(*root["null"] == JSONObject());
-  assert(*root["true"] == JSONObject(true));
-  assert(*root["false"] == JSONObject(false));
-  assert(*root["string0"] == JSONObject(""));
-  assert(*root["string1"] == JSONObject("no special chars"));
-  assert(*root["string2"] == JSONObject("omg \"\'\\\t\n"));
-  assert(*root["int0"] == JSONObject((int64_t)0));
-  assert(*root["int1"] == JSONObject((int64_t)134));
-  assert(*root["int2"] == JSONObject((int64_t)-3214));
-  assert(*root["float0"] == JSONObject(0.0));
-  assert(*root["float1"] == JSONObject(1.4));
-  assert(*root["float2"] == JSONObject(-10.5));
-  assert(*root["list0"] == JSONObject((vector<JSONObject>())));
-  assert(*root["list1"] == JSONObject((vector<JSONObject>({{JSONObject((int64_t)1)}}))));
-  assert(*(*root["list1"])[0] == JSONObject((int64_t)1));
-  assert(*root["dict0"] == JSONObject(unordered_map<string, JSONObject>()));
-  assert(*root["dict1"] == JSONObject(unordered_map<string, JSONObject>({{"1", JSONObject((int64_t)1)}})));
-  assert(*(*root["dict1"])["1"] == JSONObject((int64_t)1));
+  fprintf(stderr, "-- retrieval + equality\n");
+  assert(*root.at("null") == JSONObject());
+  assert(*root.at("true") == JSONObject(true));
+  assert(*root.at("false") == JSONObject(false));
+  assert(*root.at("string0") == JSONObject(""));
+  assert(*root.at("string1") == JSONObject("no special chars"));
+  assert(*root.at("string2") == JSONObject("omg \"\'\\\t\n"));
+  assert(*root.at("int0") == JSONObject((int64_t)0));
+  assert(*root.at("int1") == JSONObject((int64_t)134));
+  assert(*root.at("int2") == JSONObject((int64_t)-3214));
+  assert(*root.at("float0") == JSONObject(0.0));
+  assert(*root.at("float1") == JSONObject(1.4));
+  assert(*root.at("float2") == JSONObject(-10.5));
+  assert(*root.at("list0") == JSONObject((vector<JSONObject>())));
+  assert(*root.at("list1") == JSONObject((vector<JSONObject>({{JSONObject((int64_t)1)}}))));
+  assert(*root.at("list1")->at(0) == JSONObject((int64_t)1));
+  assert(*root.at("dict0") == JSONObject(unordered_map<string, JSONObject>()));
+  assert(*root.at("dict1") == JSONObject(unordered_map<string, JSONObject>({{"1", JSONObject((int64_t)1)}})));
+  assert(*root.at("dict1")->at("1") == JSONObject((int64_t)1));
 
-  assert(root["true"]->as_bool() == true);
-  assert(root["false"]->as_bool() == false);
-  assert(root["string0"]->as_string() == "");
-  assert(root["string1"]->as_string() == "no special chars");
-  assert(root["string2"]->as_string() == "omg \"\'\\\t\n");
-  assert(root["int0"]->as_int() == 0);
-  assert(root["int1"]->as_int() == 134);
-  assert(root["int2"]->as_int() == -3214);
-  assert(root["float0"]->as_float() == 0.0);
-  assert(root["float1"]->as_float() == 1.4);
-  assert(root["float2"]->as_float() == -10.5);
-  assert(root["list0"]->as_list() == vector<shared_ptr<JSONObject>>());
-  assert(*(*root["list1"])[0] == JSONObject((int64_t)1));
-  assert(root["list1"]->as_list().size() == 1);
-  assert((*root["list1"])[0]->as_int() == 1);
-  assert(root["dict0"]->as_dict().size() == 0);
-  assert((*root["dict1"])["1"]->as_int() == 1);
-  assert(root["dict1"]->as_dict().size() == 1);
+  fprintf(stderr, "-- retrieval + unwrap + equality\n");
+  assert(root.at("true")->as_bool() == true);
+  assert(root.at("false")->as_bool() == false);
+  assert(root.at("string0")->as_string() == "");
+  assert(root.at("string1")->as_string() == "no special chars");
+  assert(root.at("string2")->as_string() == "omg \"\'\\\t\n");
+  assert(root.at("int0")->as_int() == 0);
+  assert(root.at("int1")->as_int() == 134);
+  assert(root.at("int2")->as_int() == -3214);
+  assert(root.at("float0")->as_float() == 0.0);
+  assert(root.at("float1")->as_float() == 1.4);
+  assert(root.at("float2")->as_float() == -10.5);
+  assert(root.at("list0")->as_list() == vector<shared_ptr<JSONObject>>());
+  assert(root.at("list1")->as_list().size() == 1);
+  assert(root.at("list1")->at(0)->as_int() == 1);
+  assert(root.at("dict0")->as_dict().size() == 0);
+  assert(root.at("dict1")->at("1")->as_int() == 1);
+  assert(root.at("dict1")->as_dict().size() == 1);
 
-  assert(root["null"]->serialize() == "null");
-  assert(root["true"]->serialize() == "true");
-  assert(root["false"]->serialize() == "false");
-  assert(root["string0"]->serialize() == "\"\"");
-  assert(root["string1"]->serialize() == "\"no special chars\"");
-  assert(root["string2"]->serialize() == "\"omg \\\"\'\\\\\\t\\n\"");
-  assert(root["int0"]->serialize() == "0");
-  assert(root["int1"]->serialize() == "134");
-  assert(root["int2"]->serialize() == "-3214");
-  assert(root["float0"]->serialize() == "0.0");
-  assert(root["float1"]->serialize() == "1.4");
-  assert(root["float2"]->serialize() == "-10.5");
-  assert(root["list0"]->serialize() == "[]");
-  assert(root["list1"]->serialize() == "[1]");
-  assert(root["dict0"]->serialize() == "{}");
-  assert(root["dict1"]->serialize() == "{\"1\":1}");
+  fprintf(stderr, "-- serialize\n");
+  assert(root.at("null")->serialize() == "null");
+  assert(root.at("true")->serialize() == "true");
+  assert(root.at("false")->serialize() == "false");
+  assert(root.at("string0")->serialize() == "\"\"");
+  assert(root.at("string1")->serialize() == "\"no special chars\"");
+  assert(root.at("string2")->serialize() == "\"omg \\\"\'\\\\\\t\\n\"");
+  assert(root.at("int0")->serialize() == "0");
+  assert(root.at("int1")->serialize() == "134");
+  assert(root.at("int2")->serialize() == "-3214");
+  assert(root.at("float0")->serialize() == "0.0");
+  assert(root.at("float1")->serialize() == "1.4");
+  assert(root.at("float2")->serialize() == "-10.5");
+  assert(root.at("list0")->serialize() == "[]");
+  assert(root.at("list1")->serialize() == "[1]");
+  assert(root.at("dict0")->serialize() == "{}");
+  assert(root.at("dict1")->serialize() == "{\"1\":1}");
 
-  assert(*root["null"] == *JSONObject::parse("null"));
-  assert(*root["true"] == *JSONObject::parse("true"));
-  assert(*root["false"] == *JSONObject::parse("false"));
-  assert(*root["string0"] == *JSONObject::parse("\"\""));
-  assert(*root["string1"] == *JSONObject::parse("\"no special chars\""));
-  assert(*root["string2"] == *JSONObject::parse("\"omg \\\"\'\\\\\\t\\n\""));
-  assert(*root["int0"] == *JSONObject::parse("0"));
-  assert(*root["int1"] == *JSONObject::parse("134"));
-  assert(*root["int2"] == *JSONObject::parse("-3214"));
-  assert(*root["float0"] == *JSONObject::parse("0.0"));
-  assert(*root["float1"] == *JSONObject::parse("1.4"));
-  assert(*root["float2"] == *JSONObject::parse("-10.5"));
-  assert(*root["list0"] == *JSONObject::parse("[]"));
-  assert(*root["list1"] == *JSONObject::parse("[1]"));
-  assert(*root["dict0"] == *JSONObject::parse("{}"));
-  assert(*root["dict1"] == *JSONObject::parse("{\"1\":1}"));
+  fprintf(stderr, "-- parse\n");
+  assert(*root.at("null") == *JSONObject::parse("null"));
+  assert(*root.at("true") == *JSONObject::parse("true"));
+  assert(*root.at("false") == *JSONObject::parse("false"));
+  assert(*root.at("string0") == *JSONObject::parse("\"\""));
+  assert(*root.at("string1") == *JSONObject::parse("\"no special chars\""));
+  assert(*root.at("string2") == *JSONObject::parse("\"omg \\\"\'\\\\\\t\\n\""));
+  assert(*root.at("int0") == *JSONObject::parse("0"));
+  assert(*root.at("int1") == *JSONObject::parse("134"));
+  assert(*root.at("int2") == *JSONObject::parse("-3214"));
+  assert(*root.at("float0") == *JSONObject::parse("0.0"));
+  assert(*root.at("float1") == *JSONObject::parse("1.4"));
+  assert(*root.at("float2") == *JSONObject::parse("-10.5"));
+  assert(*root.at("list0") == *JSONObject::parse("[]"));
+  assert(*root.at("list1") == *JSONObject::parse("[1]"));
+  assert(*root.at("dict0") == *JSONObject::parse("{}"));
+  assert(*root.at("dict1") == *JSONObject::parse("{\"1\":1}"));
 
-  // make sure serialize/deserialize result in the same object
+  fprintf(stderr, "-- parse list with trailing comma\n");
+  assert(*root.at("list1") == *JSONObject::parse("[1,]"));
+  fprintf(stderr, "-- parse dict with trailing comma\n");
+  assert(*root.at("dict1") == *JSONObject::parse("{\"1\":1,}"));
+
+  fprintf(stderr, "-- serialize/parse\n");
   assert(*JSONObject::parse(root.serialize()) == root);
+  fprintf(stderr, "-- format/parse\n");
   assert(*JSONObject::parse(root.format()) == root);
 
-  // make sure save/load result in the same object
+  fprintf(stderr, "-- save(serialize)/load\n");
   string temp_filename = string(argv[0]) + "-data.json";
   root.save(temp_filename);
   assert(*JSONObject::load(temp_filename) == root);
   unlink(temp_filename.c_str());
 
+  fprintf(stderr, "-- save(format)/load\n");
   root.save(temp_filename, true);
   assert(*JSONObject::load(temp_filename) == root);
   unlink(temp_filename.c_str());
 
-  // make sure the right exceptions are thrown
+  fprintf(stderr, "-- exceptions\n");
   try {
-    root["missing_key"];
+    root.at("missing_key");
     assert(false);
   } catch (const JSONObject::key_error& e) {
   } catch (...) {
@@ -149,7 +160,7 @@ int main(int argc, char** argv) {
   }
 
   try {
-    (*root["list1"])[2];
+    root.at("list1")->at(2);
     assert(false);
   } catch (const JSONObject::index_error& e) {
   } catch (...) {
@@ -157,7 +168,7 @@ int main(int argc, char** argv) {
   }
 
   try {
-    root["list1"]->as_dict();
+    root.at("list1")->as_dict();
     assert(false);
   } catch (const JSONObject::type_error& e) {
   } catch (...) {
@@ -172,7 +183,7 @@ int main(int argc, char** argv) {
     assert(false);
   }
 
-  // make sure comments work
+  fprintf(stderr, "-- comments\n");
   assert(JSONObject() == *JSONObject::parse("// this is null\nnull"));
   assert(JSONObject((vector<JSONObject>())) == *JSONObject::parse(
       "[\n// empty list\n]"));

@@ -121,6 +121,8 @@ public:
   bool eof() const;
   std::string all() const;
 
+  const char* peek(size_t size);
+
   std::string read(size_t size, bool advance = true);
   std::string readx(size_t size, bool advance = true);
   size_t read_into(void* data, size_t size, bool advance = true);
@@ -160,6 +162,10 @@ public:
     return ret;
   }
 
+  inline char get_ch(bool advance = true) {
+    return this->get_s8(advance);
+  }
+
   uint8_t get_u8(bool advance = true);
   int8_t get_s8(bool advance = true);
   uint16_t get_u16(bool advance = true);
@@ -183,6 +189,10 @@ public:
   int64_t get_s48r(bool advance = true);
   uint64_t get_u64r(bool advance = true);
   int64_t get_s64r(bool advance = true);
+
+  inline char pget_ch(size_t offset) const {
+    return this->pget_s8(offset);
+  }
 
   uint8_t pget_u8(size_t offset) const;
   int8_t pget_s8(size_t offset) const;
