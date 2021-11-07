@@ -17,6 +17,7 @@ bool ends_with(const std::string& s, const std::string& end);
 void strip_trailing_zeroes(std::string& s);
 
 std::string escape_quotes(const std::string& s);
+std::string escape_url(const std::string& s, bool escape_slash = false);
 
 std::string string_printf(const char* fmt, ...);
 std::wstring wstring_printf(const wchar_t* fmt, ...);

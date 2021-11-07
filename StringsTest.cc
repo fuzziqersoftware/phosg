@@ -309,6 +309,21 @@ int main(int argc, char** argv) {
     expect_eq(3 * 1024 * 1024, parse_size("3 MB"));
   }
 
+  fprintf(stderr, "-- escape_quotes\n");
+  {
+    expect_eq("", escape_quotes(""));
+    expect_eq("omg hax", escape_quotes("omg hax"));
+    expect_eq("\'omg\' \\\"hax\\\"", escape_quotes("\'omg\' \"hax\""));
+  }
+
+  fprintf(stderr, "-- escape_url\n");
+  {
+    expect_eq("", escape_url(""));
+    expect_eq("omg%20hax", escape_url("omg hax"));
+    expect_eq("slash/es", escape_url("slash/es"));
+    expect_eq("slash%2Fes", escape_url("slash/es", true));
+  }
+
   print_data_test();
 
   // TODO: test string_vprintf

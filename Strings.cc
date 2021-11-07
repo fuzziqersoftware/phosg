@@ -71,6 +71,19 @@ string escape_quotes(const string& s) {
   return ret;
 }
 
+string escape_url(const string& s, bool escape_slash) {
+  string ret;
+  for (char ch : s) {
+    if (isalnum(ch) || (ch == '-') || (ch == '_') || (ch == '.') ||
+        (ch == '~') || (ch == '=') || (ch == '&') || (!escape_slash && (ch == '/'))) {
+      ret += ch;
+    } else {
+      ret += string_printf("%%%02hhX", ch);
+    }
+  }
+  return ret;
+}
+
 string string_printf(const char* fmt, ...) {
   va_list va;
   va_start(va, fmt);
