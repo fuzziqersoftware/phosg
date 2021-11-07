@@ -139,17 +139,6 @@ int main(int argc, char** argv) {
   fprintf(stderr, "-- format/parse\n");
   assert(*JSONObject::parse(root.format()) == root);
 
-  fprintf(stderr, "-- save(serialize)/load\n");
-  string temp_filename = string(argv[0]) + "-data.json";
-  root.save(temp_filename);
-  assert(*JSONObject::load(temp_filename) == root);
-  unlink(temp_filename.c_str());
-
-  fprintf(stderr, "-- save(format)/load\n");
-  root.save(temp_filename, true);
-  assert(*JSONObject::load(temp_filename) == root);
-  unlink(temp_filename.c_str());
-
   fprintf(stderr, "-- exceptions\n");
   try {
     root.at("missing_key");

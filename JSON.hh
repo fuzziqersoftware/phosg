@@ -45,37 +45,25 @@ public:
   static std::shared_ptr<JSONObject> parse(const char* s, size_t size);
   static std::shared_ptr<JSONObject> parse(const std::string& s);
 
-  // null
-  JSONObject();
+  // Direct constructors. Use these when generating JSON to be sent/written/etc.
+  JSONObject(); // null
+  JSONObject(bool x); // true/false
+  JSONObject(const char* x); // string
+  JSONObject(const char* x, size_t size); // string
+  JSONObject(const std::string& x); // string
+  JSONObject(std::string&& x); // string
+  JSONObject(int64_t x); // integer
+  JSONObject(double x); // float
+  JSONObject(const std::vector<JSONObject>& x); // list
+  JSONObject(std::vector<JSONObject>&& x); // list
+  JSONObject(const list_type& x); // list
+  JSONObject(list_type&& x); // list
+  JSONObject(const std::unordered_map<std::string, JSONObject>& x); // dict
+  JSONObject(std::unordered_map<std::string, JSONObject>&& x); // dict
+  JSONObject(const dict_type& x); // dict
+  JSONObject(dict_type&& x); // dict
 
-  // true/false
-  JSONObject(bool x);
-
-  // string
-  JSONObject(const char* x);
-  JSONObject(const char* x, size_t size);
-  JSONObject(const std::string& x);
-  JSONObject(std::string&& x);
-
-  // integer
-  JSONObject(int64_t x);
-
-  // float
-  JSONObject(double x);
-
-  // list
-  JSONObject(const std::vector<JSONObject>& x);
-  JSONObject(std::vector<JSONObject>&& x);
-  JSONObject(const list_type& x);
-  JSONObject(list_type&& x);
-
-  // dict
-  JSONObject(const std::unordered_map<std::string, JSONObject>& x);
-  JSONObject(std::unordered_map<std::string, JSONObject>&& x);
-  JSONObject(const dict_type& x);
-  JSONObject(dict_type&& x);
-
-  // copy/move
+  // Copy/move constructors
   JSONObject(const JSONObject& rhs) = default;
   JSONObject(JSONObject&& rhs) = default;
   JSONObject& operator=(const JSONObject& rhs) = default;
@@ -86,11 +74,23 @@ public:
   bool operator==(const JSONObject& other) const;
   bool operator!=(const JSONObject& other) const;
 
+  // Dict and list element accessors. These are just shorthand for e.g.
+  // obj.as_list().at() / obj.as_dict.at()
   std::shared_ptr<JSONObject> at(const std::string& key);
   const std::shared_ptr<JSONObject> at(const std::string& key) const;
   std::shared_ptr<JSONObject> at(size_t index);
   const std::shared_ptr<JSONObject> at(size_t index) const;
 
+  // Type-checking accessors. If the object is the requested type, returns the
+  // value; otherwise, throws type_error.
+  // The int and float types are "special" in that they are implicitly
+  // convertible to each other; for example, calling as_float() on an int object
+  // does not throw and instead returns a (possibly less precise) value. To know
+  // if an implicit conversion occurred, the caller can use is_int()/is_float().
+  // This is designed this way because JSON does not differentiate between
+  // integers and floating-point numbers; the separate types are an extension
+  // implemented in this library in order to support precise values for the full
+  // range of 64-bit integers.
   dict_type& as_dict();
   const dict_type& as_dict() const;
   list_type& as_list();
@@ -101,6 +101,7 @@ public:
   const std::string& as_string() const;
   bool as_bool() const;
 
+  // Type inspectors
   bool is_dict() const;
   bool is_list() const;
   bool is_int() const;
@@ -109,16 +110,17 @@ public:
   bool is_bool() const;
   bool is_null() const;
 
-  int source_length() const;
-
+  // Exporters. serialize() returns the shortest possible text representation of
+  // the object; format() returns a longer representation with whitespace
+  // inserted to make it more human-readable.
   std::string serialize() const;
   std::string format(size_t indent_level = 0) const;
 
 private:
   std::variant<
-    const void*, // We use this for nulls (storing nullptr here)
+    const void*, // We use this type for JSON null (by storing nullptr here)
     bool,
-    int64_t, // This is convertible to double inplicitly in as_float()
+    int64_t, // This is convertible to double implicitly in as_float()
     double, // This is convertible to int implicitly in as_int()
     std::string,
     list_type,

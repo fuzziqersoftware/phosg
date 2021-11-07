@@ -14,7 +14,6 @@ JSONObject::parse_error::parse_error(const string& what) : runtime_error(what) {
 JSONObject::type_error::type_error(const string& what) : runtime_error(what) { }
 JSONObject::key_error::key_error(const string& what) : runtime_error(what) { }
 JSONObject::index_error::index_error(const string& what) : runtime_error(what) { }
-JSONObject::file_error::file_error(const string& what) : runtime_error(what) { }
 
 static void skip_whitespace_and_comments(StringReader& r) {
   bool reading_comment = false;
