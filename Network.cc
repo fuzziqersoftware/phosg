@@ -184,13 +184,14 @@ int connect(const string& addr, int port, bool nonblocking) {
     throw runtime_error("can\'t create socket: " + string_for_error(errno));
   }
 
-  if (connect(fd, (struct sockaddr*)&s.first, s.second) == -1) {
-    close(fd);
-    throw runtime_error("can\'t connect socket: " + string_for_error(errno));
-  }
-
   if (nonblocking) {
     make_fd_nonblocking(fd);
+  }
+
+  int connect_ret = connect(fd, (struct sockaddr*)&s.first, s.second);
+  if (connect_ret == -1 && (!nonblocking || (errno != EAGAIN && errno != EWOULDBLOCK))) {
+    close(fd);
+    throw runtime_error("can\'t connect socket: " + string_for_error(errno));
   }
 
   return fd;

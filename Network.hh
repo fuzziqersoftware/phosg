@@ -36,6 +36,10 @@ int listen(const std::string& addr, int port, int backlog,
  *
  * If port is nonzero, creates a TCP connection to the host given by addr. If
  * port is zero, creates a Unix socket connection to the given path.
+ *
+ * If nonblocking is true, this call (probably) returns before the connection is
+ * actually completed. The caller must then use poll(), select(), or some
+ * similar syscall to find out when it becomes writable.
  */
 int connect(const std::string& addr, int port, bool nonblocking = true);
 
