@@ -42,7 +42,6 @@ int main(int argc, char* argv[]) {
 
   {
     printf("-- sha256\n");
-    print_data(stderr, sha256("omg hax", 7));
     expect_eq(string("\xE3\xB0\xC4\x42\x98\xFC\x1C\x14\x9A\xFB\xF4\xC8\x99\x6F\xB9\x24\x27\xAE\x41\xE4\x64\x9B\x93\x4C\xA4\x95\x99\x1B\x78\x52\xB8\x55", 32),
         sha256(nullptr, 0)); // technically undefined, but should work
     expect_eq(string("\xE3\xB0\xC4\x42\x98\xFC\x1C\x14\x9A\xFB\xF4\xC8\x99\x6F\xB9\x24\x27\xAE\x41\xE4\x64\x9B\x93\x4C\xA4\x95\x99\x1B\x78\x52\xB8\x55", 32),
@@ -51,6 +50,17 @@ int main(int argc, char* argv[]) {
         sha256("omg hax", 7));
     expect_eq(string("\xD7\xA8\xFB\xB3\x07\xD7\x80\x94\x69\xCA\x9A\xBC\xB0\x08\x2E\x4F\x8D\x56\x51\xE4\x6D\x3C\xDB\x76\x2D\x02\xD0\xBF\x37\xC9\xE5\x92", 32),
         sha256("The quick brown fox jumps over the lazy dog", 43));
+
+    // MySQL caching_sha2_password challenge/response test (password = "root")
+    string nonce = "\x15\x52\x16\x70\x06\x75\x22\x18\x77\x43\x53\x14\x71\x01\x43\x25\x53\x1F\x6A\x14\x00";
+    string password_sha256 = sha256("root");
+    string password_sha256_sha256 = sha256(password_sha256);
+    string hash_with_nonce = sha256(password_sha256_sha256 + nonce);
+    string result(0x20, '\0');
+    for (size_t x = 0; x < result.size(); x++) {
+      result[x] = password_sha256[x] ^ hash_with_nonce[x];
+    }
+    expect_eq(result, "\x1A\xE1\x80\xD5\xE5\xDB\x7F\xDF\x59\xEA\x73\x91\xB6\x5E\x25\x16\x73\xE1\xB0\x01\xC1\x50\xAA\x3A\x48\xDC\x78\x48\x8B\x4B\x70\xC4");
   }
 
   printf("%s: all tests passed\n", argv[0]);
