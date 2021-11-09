@@ -25,6 +25,8 @@ uint64_t fnv1a64(const string& data, uint64_t hash) {
   return fnv1a64(data.data(), data.size(), hash);
 }
 
+
+
 static void sha1_process_block(const void* block, uint32_t& h0, uint32_t& h1,
     uint32_t& h2, uint32_t& h3, uint32_t& h4) {
   const uint32_t* fields = reinterpret_cast<const uint32_t*>(block);
@@ -117,6 +119,95 @@ string sha1(const void* data, size_t size) {
 string sha1(const string& data) {
   return sha1(data.data(), data.size());
 }
+
+
+
+static inline uint32_t rotate_right(uint32_t x, uint8_t bits) {
+  return (x >> bits) | (x << (32 - bits));
+}
+
+string sha256(const void* data, size_t orig_size) {
+  // This is mostly copied from the pseudocode on the SHA-256 Wikipedia article.
+  // It is not optimized.
+
+  uint32_t h[8] = {
+    0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19,
+  };
+
+  uint32_t k[64] = {
+    0x428A2F98, 0x71374491, 0xB5C0FBCF, 0xE9B5DBA5, 0x3956C25B, 0x59F111F1, 0x923F82A4, 0xAB1C5ED5,
+    0xD807AA98, 0x12835B01, 0x243185BE, 0x550C7DC3, 0x72BE5D74, 0x80DEB1FE, 0x9BDC06A7, 0xC19BF174,
+    0xE49B69C1, 0xEFBE4786, 0x0FC19DC6, 0x240CA1CC, 0x2DE92C6F, 0x4A7484AA, 0x5CB0A9DC, 0x76F988DA,
+    0x983E5152, 0xA831C66D, 0xB00327C8, 0xBF597FC7, 0xC6E00BF3, 0xD5A79147, 0x06CA6351, 0x14292967,
+    0x27B70A85, 0x2E1B2138, 0x4D2C6DFC, 0x53380D13, 0x650A7354, 0x766A0ABB, 0x81C2C92E, 0x92722C85,
+    0xA2BFE8A1, 0xA81A664B, 0xC24B8B70, 0xC76C51A3, 0xD192E819, 0xD6990624, 0xF40E3585, 0x106AA070,
+    0x19A4C116, 0x1E376C08, 0x2748774C, 0x34B0BCB5, 0x391C0CB3, 0x4ED8AA4A, 0x5B9CCA4F, 0x682E6FF3,
+    0x748F82EE, 0x78A5636F, 0x84C87814, 0x8CC70208, 0x90BEFFFA, 0xA4506CEB, 0xBEF9A3F7, 0xC67178F2,
+  };
+
+  // TODO: Even though this is explicitly not optimized, copying the entire
+  // input is really bad. We should ideally not do this at all, and at least not
+  // do it for the last chunk (or two if the added bytes span a chunk boundary).
+  string input(reinterpret_cast<const char*>(data), orig_size);
+  {
+    input.push_back(0x80);
+    size_t num_zero_bytes = (64 - ((input.size() + 8) & 0x3F) & 0x3F);
+    input.resize(input.size() + num_zero_bytes, '\0');
+    uint64_t size_be = bswap64(orig_size << 3);
+    input.append(reinterpret_cast<const char*>(&size_be), 8);
+    if (input.size() & 0x3F) {
+      throw logic_error("padding did not result in correct length");
+    }
+  }
+
+  for (size_t offset = 0; offset < input.size(); offset += 0x40) {
+    uint32_t w[64];
+    for (size_t x = 0; x < 16; x++) {
+      w[x] = bswap32(*reinterpret_cast<const uint32_t*>(&input[offset + (x * 4)]));
+    }
+
+    for (size_t x = 16; x < 64; x++) {
+      uint32_t s0 = rotate_right(w[x - 15], 7) ^ rotate_right(w[x - 15], 18) ^ (w[x - 15] >> 3);
+      uint32_t s1 = rotate_right(w[x - 2], 17) ^ rotate_right(w[x - 2], 19) ^ (w[x - 2] >> 10);
+      w[x] = w[x - 16] + s0 + w[x - 7] + s1;
+    }
+
+    uint32_t z[8];
+    memcpy(z, h, 0x20);
+
+    for (size_t x = 0; x < 64; x++) {
+      uint32_t s1 = rotate_right(z[4], 6) ^ rotate_right(z[4], 11) ^ rotate_right(z[4], 25);
+      uint32_t ch = (z[4] & z[5]) ^ ((~z[4]) & z[6]);
+      uint32_t temp1 = z[7] + s1 + ch + k[x] + w[x];
+      uint32_t s0 = rotate_right(z[0], 2) ^ rotate_right(z[0], 13) ^ rotate_right(z[0], 22);
+      uint32_t maj = (z[0] & z[1]) ^ (z[0] & z[2]) ^ (z[1] & z[2]);
+      uint32_t temp2 = s0 + maj;
+      z[7] = z[6];
+      z[6] = z[5];
+      z[5] = z[4];
+      z[4] = z[3] + temp1;
+      z[3] = z[2];
+      z[2] = z[1];
+      z[1] = z[0];
+      z[0] = temp1 + temp2;
+    }
+
+    for (size_t x = 0; x < 8; x++) {
+      h[x] += z[x];
+    }
+  }
+
+  for (size_t x = 0; x < 8; x++) {
+    h[x] = bswap32(h[x]);
+  }
+  return string(reinterpret_cast<const char*>(h), 0x20);
+}
+
+string sha256(const string& data) {
+  return sha256(data.data(), data.size());
+}
+
+
 
 static void md5_process_block(const void* block, uint32_t& a0, uint32_t& b0,
     uint32_t& c0, uint32_t& d0) {
