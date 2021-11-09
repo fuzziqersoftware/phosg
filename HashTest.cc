@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
         sha256("The quick brown fox jumps over the lazy dog", 43));
 
     // MySQL caching_sha2_password challenge/response test (password = "root")
-    string nonce = "\x15\x52\x16\x70\x06\x75\x22\x18\x77\x43\x53\x14\x71\x01\x43\x25\x53\x1F\x6A\x14\x00";
+    string nonce = "\x15\x52\x16\x70\x06\x75\x22\x18\x77\x43\x53\x14\x71\x01\x43\x25\x53\x1F\x6A\x14";
     string password_sha256 = sha256("root");
     string password_sha256_sha256 = sha256(password_sha256);
     string hash_with_nonce = sha256(password_sha256_sha256 + nonce);
