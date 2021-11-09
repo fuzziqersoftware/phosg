@@ -189,7 +189,7 @@ int connect(const string& addr, int port, bool nonblocking) {
   }
 
   int connect_ret = connect(fd, (struct sockaddr*)&s.first, s.second);
-  if (connect_ret == -1 && (!nonblocking || (errno != EAGAIN && errno != EWOULDBLOCK))) {
+  if (connect_ret == -1 && (!nonblocking || (errno != EINPROGRESS))) {
     close(fd);
     throw runtime_error("can\'t connect socket: " + string_for_error(errno));
   }
