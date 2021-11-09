@@ -74,7 +74,6 @@ static void sha1_process_block(const void* block, uint32_t& h0, uint32_t& h1,
 }
 
 string sha1(const void* data, size_t size) {
-  // TODO: this is broken somehow; fix it
   uint32_t h0 = 0x67452301;
   uint32_t h1 = 0xEFCDAB89;
   uint32_t h2 = 0x98BADCFE;
