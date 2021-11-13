@@ -1,4 +1,4 @@
-OBJECTS=Concurrency.o ConsistentHashRing.o Encoding.o FileCache.o Filesystem.o Hash.o Image.o JSONPickle.o JSON.o Network.o Process.o Random.o Strings.o Time.o UnitTest.o
+OBJECTS=Concurrency.o ConsistentHashRing.o Encoding.o FileCache.o Filesystem.o Hash.o Image.o JSON.o Network.o Process.o Random.o Strings.o Time.o UnitTest.o
 CXX=g++ -fPIC
 CXXFLAGS=-std=c++20 -g -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -Wall -Werror
 LDFLAGS=-g -std=c++20 -lstdc++
@@ -37,17 +37,16 @@ libphosg.a: $(OBJECTS)
 	rm -f libphosg.a
 	ar rcs libphosg.a $(OBJECTS)
 
-jsonformat$(EXE_EXTENSION): JSON.o JSONPickle.o Strings.o Filesystem.o Process.o Time.o JSONFormat.o
+jsonformat$(EXE_EXTENSION): JSON.o Strings.o Filesystem.o Process.o Time.o JSONFormat.o
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-test: ConsistentHashRingTest$(EXE_EXTENSION) EncodingTest$(EXE_EXTENSION) FileCacheTest$(EXE_EXTENSION) FilesystemTest$(EXE_EXTENSION) HashTest$(EXE_EXTENSION) ImageTest$(EXE_EXTENSION) JSONPickleTest$(EXE_EXTENSION) JSONTest$(EXE_EXTENSION) KDTreeTest$(EXE_EXTENSION) LRUSetTest$(EXE_EXTENSION) ProcessTest$(EXE_EXTENSION) StringsTest$(EXE_EXTENSION) TimeTest$(EXE_EXTENSION) UnitTestTest$(EXE_EXTENSION)
+test: ConsistentHashRingTest$(EXE_EXTENSION) EncodingTest$(EXE_EXTENSION) FileCacheTest$(EXE_EXTENSION) FilesystemTest$(EXE_EXTENSION) HashTest$(EXE_EXTENSION) ImageTest$(EXE_EXTENSION) JSONTest$(EXE_EXTENSION) KDTreeTest$(EXE_EXTENSION) LRUSetTest$(EXE_EXTENSION) ProcessTest$(EXE_EXTENSION) StringsTest$(EXE_EXTENSION) TimeTest$(EXE_EXTENSION) UnitTestTest$(EXE_EXTENSION)
 	./ConsistentHashRingTest$(EXE_EXTENSION)
 	./EncodingTest$(EXE_EXTENSION)
 	./FileCacheTest$(EXE_EXTENSION)
 	./FilesystemTest$(EXE_EXTENSION)
 	./HashTest$(EXE_EXTENSION)
 	./ImageTest$(EXE_EXTENSION)
-	./JSONPickleTest$(EXE_EXTENSION)
 	./JSONTest$(EXE_EXTENSION)
 	./KDTreeTest$(EXE_EXTENSION)
 	./LRUSetTest$(EXE_EXTENSION)

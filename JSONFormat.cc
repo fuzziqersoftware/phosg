@@ -6,7 +6,6 @@
 
 #include "Filesystem.hh"
 #include "JSON.hh"
-#include "JSONPickle.hh"
 
 using namespace std;
 
@@ -21,11 +20,7 @@ If outfile is - or not specified, write to standard output.\n\
 Options:\n\
   --format: Write output JSON in a human-readable format (default).\n\
   --compress: Instead of formatting in a human-readable format, minimize the\n\
-    size of the resulting data. No effect when --write-pickle is specified.\n\
-  --read-pickle: Expect input data in pickle format instead of JSON.\n\
-  --write-pickle: Write output in pickle format (protocol 2) instead of JSON.\n\
-  --binary-stdout: Don\'t complain if writing pickle data to standard output\n\
-    when it\'s a terminal.\n\
+    size of the resulting data.\n\
 \n", argv0);
 }
 
@@ -33,9 +28,6 @@ Options:\n\
 int main(int argc, char** argv) {
 
   bool format = true;
-  bool write_pickle = false;
-  bool read_pickle = false;
-  bool binary_stdout = false;
   const char* src_filename = nullptr;
   const char* dst_filename = nullptr;
   for (int x = 1; x < argc; x++) {
@@ -47,12 +39,6 @@ int main(int argc, char** argv) {
         format = true;
       } else if (!strcmp(argv[x], "--compress")) {
         format = false;
-      } else if (!strcmp(argv[x], "--read-pickle")) {
-        read_pickle = true;
-      } else if (!strcmp(argv[x], "--write-pickle")) {
-        write_pickle = true;
-      } else if (!strcmp(argv[x], "--binary-stdout")) {
-        binary_stdout = true;
       } else {
         fprintf(stderr, "unknown argument: %s\n", argv[x]);
         return 1;
@@ -67,12 +53,6 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (write_pickle && !binary_stdout && isatty(fileno(stdout))) {
-    fprintf(stderr, "stdout is a terminal; writing pickle data will likely be unreadable\n");
-    fprintf(stderr, "use --binary-stdout to write pickle data to stdout anyway\n");
-    return 1;
-  }
-
   string src_data;
   if (!src_filename || !strcmp(src_filename, "-")) {
     src_data = read_all(stdin);
@@ -82,20 +62,14 @@ int main(int argc, char** argv) {
 
   shared_ptr<JSONObject> json;
   try {
-    if (read_pickle) {
-      json = parse_pickle(src_data);
-    } else {
-      json = JSONObject::parse(src_data);
-    }
+    json = JSONObject::parse(src_data);
   } catch (const exception& e) {
     fprintf(stderr, "cannot parse input: %s\n", e.what());
     return 2;
   }
 
   string result;
-  if (write_pickle) {
-    result = serialize_pickle(*json);
-  } else if (format) {
+  if (format) {
     result = json->format();
   } else {
     result = json->serialize();
