@@ -806,6 +806,61 @@ string format_time(struct timeval* tv) {
      tv->tv_usec / 1000);
 }
 
+string format_duration(uint64_t usecs, int8_t subsecond_precision) {
+  if (usecs < 1000000ULL) {
+    if (subsecond_precision < 0) {
+      subsecond_precision = 4;
+    }
+    return string_printf("%.*lf", subsecond_precision,
+        static_cast<double>(usecs) / 1000000ULL);
+
+  } else if (usecs < 60 * 1000000ULL) {
+    if (subsecond_precision < 0) {
+      subsecond_precision = 2;
+    }
+    return string_printf("%.*lf", subsecond_precision,
+        static_cast<double>(usecs) / 1000000ULL);
+
+  } else if (usecs < 60 * 60 * 1000000ULL) {
+    if (subsecond_precision < 0) {
+      subsecond_precision = 1;
+    }
+    uint64_t minutes = usecs / (60 * 1000000ULL);
+    uint64_t usecs_part = usecs - (minutes * 60 * 1000000ULL);
+    return string_printf("%hhu:%s%.*lf", minutes,
+        ((usecs_part < 10000000) ? "0" : ""), subsecond_precision,
+        static_cast<double>(usecs_part) / 1000000ULL);
+
+  } else if (usecs < 24 * 60 * 60 * 1000000ULL) {
+    if (subsecond_precision < 0) {
+      subsecond_precision = 0;
+    }
+    uint64_t hours = usecs / (60 * 60 * 1000000ULL);
+    uint64_t minutes = (usecs / (60 * 1000000ULL)) % 60;
+    uint64_t usecs_part = usecs
+        - (hours * 60 * 60 * 1000000ULL)
+        - (minutes * 60 * 1000000ULL);
+    return string_printf("%hhu:%02hhu:%s%.*lf", hours, minutes,
+        ((usecs_part < 10000000) ? "0" : ""), subsecond_precision,
+        static_cast<double>(usecs_part) / 1000000ULL);
+
+  } else {
+    if (subsecond_precision < 0) {
+      subsecond_precision = 0;
+    }
+    uint64_t days = usecs / (24 * 60 * 60 * 1000000ULL);
+    uint64_t hours = (usecs / (60 * 60 * 1000000ULL)) % 24;
+    uint64_t minutes = (usecs / (60 * 1000000ULL)) % 60;
+    uint64_t usecs_part = usecs
+        - (days * 24 * 60 * 60 * 1000000ULL)
+        - (hours * 60 * 60 * 1000000ULL)
+        - (minutes * 60 * 1000000ULL);
+    return string_printf("%" PRIu64 ":%02hhu:%02hhu:%s%.*lf", days, hours,
+        minutes, ((usecs_part < 10000000) ? "0" : ""), subsecond_precision,
+        static_cast<double>(usecs_part) / 1000000ULL);
+  }
+}
+
 #define KB_SIZE 1024ULL
 #define MB_SIZE (KB_SIZE * 1024ULL)
 #define GB_SIZE (MB_SIZE * 1024ULL)

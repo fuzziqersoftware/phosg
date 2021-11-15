@@ -298,6 +298,29 @@ int main(int argc, char** argv) {
     expect_eq("1073741824 bytes (1.00 GB)", format_size(1073741824, true));
   }
 
+  fprintf(stderr, "-- format_duration\n");
+  {
+    expect_eq("0.0000", format_duration(0));
+    expect_eq("0.2222", format_duration(222222));
+    expect_eq("2.22", format_duration(2222222));
+    expect_eq("12.22", format_duration(12222222));
+    expect_eq("1:02.2", format_duration(62222222));
+    expect_eq("1:12.2", format_duration(72222222));
+    expect_eq("11:12.2", format_duration(672222222));
+    expect_eq("1:01:12", format_duration(3672222222));
+    expect_eq("1:11:12", format_duration(4272222222));
+    expect_eq("11:11:12", format_duration(40272222222));
+    expect_eq("5:11:11:12", format_duration(472272222222));
+
+    expect_eq("0", format_duration(438294, 0));
+    expect_eq("0.4", format_duration(438294, 1));
+    expect_eq("0.44", format_duration(438294, 2));
+    expect_eq("0.438", format_duration(438294, 3));
+    expect_eq("0.4383", format_duration(438294, 4));
+    expect_eq("0.43829", format_duration(438294, 5));
+    expect_eq("0.438294", format_duration(438294, 6));
+  }
+
   fprintf(stderr, "-- parse_size\n");
   {
     expect_eq(0, parse_size("0"));
