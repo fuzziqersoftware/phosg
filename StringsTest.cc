@@ -302,9 +302,10 @@ int main(int argc, char** argv) {
   {
     expect_eq("0.0000", format_duration(0));
     expect_eq("0.2222", format_duration(222222));
-    expect_eq("2.22", format_duration(2222222));
-    expect_eq("12.22", format_duration(12222222));
+    expect_eq("2.2222", format_duration(2222222));
+    expect_eq("12.222", format_duration(12222222));
     expect_eq("1:02.2", format_duration(62222222));
+    expect_eq("1:10.0", format_duration(69999999));
     expect_eq("1:12.2", format_duration(72222222));
     expect_eq("11:12.2", format_duration(672222222));
     expect_eq("1:01:12", format_duration(3672222222));
