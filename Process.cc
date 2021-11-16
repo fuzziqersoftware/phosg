@@ -233,25 +233,25 @@ Subprocess::Subprocess(const vector<string>& cmd, int stdin_fd, int stdout_fd,
     : stdin_write_fd(-1), stdout_read_fd(-1), stderr_read_fd(-1), child_pid(0),
     exit_status(-1) {
 
-  vector<int> parent_fds_to_close;
+  set<int> parent_fds_to_close;
 
   if (stdin_fd == -1) {
     auto pipefds = pipe();
     stdin_fd = pipefds.first;
     this->stdin_write_fd = pipefds.second;
-    parent_fds_to_close.emplace_back(stdin_fd);
+    parent_fds_to_close.emplace(stdin_fd);
   }
   if (stdout_fd == -1) {
     auto pipefds = pipe();
     this->stdout_read_fd = pipefds.first;
     stdout_fd = pipefds.second;
-    parent_fds_to_close.emplace_back(stdout_fd);
+    parent_fds_to_close.emplace(stdout_fd);
   }
   if (stderr_fd == -1) {
     auto pipefds = pipe();
     this->stderr_read_fd = pipefds.first;
     stderr_fd = pipefds.second;
-    parent_fds_to_close.emplace_back(stderr_fd);
+    parent_fds_to_close.emplace(stderr_fd);
   }
 
   this->child_pid = fork();
@@ -297,8 +297,43 @@ Subprocess::Subprocess(const vector<string>& cmd, int stdin_fd, int stdout_fd,
   }
 }
 
+Subprocess::Subprocess()
+  : stdin_write_fd(-1),
+    stdout_read_fd(-1),
+    stderr_read_fd(-1),
+    child_pid(-1),
+    terminated(false),
+    exit_status(-1) { }
+
+Subprocess::Subprocess(Subprocess&& other)
+  : stdin_write_fd(other.stdin_write_fd),
+    stdout_read_fd(other.stdout_read_fd),
+    stderr_read_fd(other.stderr_read_fd),
+    child_pid(other.child_pid),
+    terminated(other.terminated),
+    exit_status(other.exit_status) {
+  other.stdin_write_fd = -1;
+  other.stdout_read_fd = -1;
+  other.stderr_read_fd = -1;
+  other.child_pid = -1;
+  other.terminated = true;
+}
+
+Subprocess& Subprocess::operator=(Subprocess&& other) {
+  this->stdin_write_fd = other.stdin_write_fd;
+  this->stdout_read_fd = other.stdout_read_fd;
+  this->stderr_read_fd = other.stderr_read_fd;
+  this->child_pid = other.child_pid;
+  this->terminated = other.terminated;
+  this->exit_status = other.exit_status;
+  other.stdin_write_fd = -1;
+  other.stdout_read_fd = -1;
+  other.stderr_read_fd = -1;
+  other.child_pid = -1;
+}
+
 Subprocess::~Subprocess() {
-  if (this->wait(true) == -1) {
+  if (this->child_pid >= 0 && this->wait(true) == -1) {
     this->kill(SIGKILL);
     this->wait();
   }
