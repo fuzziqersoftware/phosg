@@ -19,6 +19,8 @@
 #include <signal.h>
 #endif
 
+#include <set>
+
 #include "Filesystem.hh"
 #include "Strings.hh"
 #include "Time.hh"
@@ -330,6 +332,7 @@ Subprocess& Subprocess::operator=(Subprocess&& other) {
   other.stdout_read_fd = -1;
   other.stderr_read_fd = -1;
   other.child_pid = -1;
+  return *this;
 }
 
 Subprocess::~Subprocess() {
