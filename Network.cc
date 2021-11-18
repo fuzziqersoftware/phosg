@@ -248,3 +248,11 @@ string gethostname() {
   buf.resize(strlen(buf.c_str()));
   return buf;
 }
+
+pair<int, int> socketpair(int domain, int type, int protocol) {
+  int fds[2];
+  if (socketpair(domain, type, protocol, fds)) {
+    throw runtime_error("socketpair failed: " + string_for_error(errno));
+  }
+  return make_pair(fds[0], fds[1]);
+}

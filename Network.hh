@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 
 #include <string>
 #include <utility>
@@ -51,3 +52,8 @@ std::pair<std::string, uint16_t> parse_netloc(const std::string& netloc,
     int default_port = 0);
 
 std::string gethostname();
+
+std::pair<int, int> socketpair(
+    int domain = AF_LOCAL,
+    int type = SOCK_STREAM,
+    int protocol = 0);
