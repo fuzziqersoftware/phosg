@@ -977,7 +977,7 @@ size_t StringReader::size() const {
 }
 
 void StringReader::truncate(size_t new_size) {
-  if (this->length > new_size) {
+  if (this->length < new_size) {
     throw invalid_argument("StringReader contents cannot be extended");
   }
   this->length = new_size;
