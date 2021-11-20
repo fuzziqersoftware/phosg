@@ -181,6 +181,8 @@ public:
   int64_t get_s48(bool advance = true);
   uint64_t get_u64(bool advance = true);
   int64_t get_s64(bool advance = true);
+  float get_f32(bool advance = true);
+  double get_f64(bool advance = true);
 
   uint16_t get_u16r(bool advance = true);
   int16_t get_s16r(bool advance = true);
@@ -192,6 +194,8 @@ public:
   int64_t get_s48r(bool advance = true);
   uint64_t get_u64r(bool advance = true);
   int64_t get_s64r(bool advance = true);
+  float get_f32r(bool advance = true);
+  double get_f64r(bool advance = true);
 
   inline char pget_ch(size_t offset) const {
     return this->pget_s8(offset);
@@ -209,6 +213,8 @@ public:
   int64_t pget_s48(size_t offset) const;
   uint64_t pget_u64(size_t offset) const;
   int64_t pget_s64(size_t offset) const;
+  float pget_f32(size_t offset) const;
+  double pget_f64(size_t offset) const;
 
   uint16_t pget_u16r(size_t offset) const;
   int16_t pget_s16r(size_t offset) const;
@@ -220,6 +226,8 @@ public:
   int64_t pget_s48r(size_t offset) const;
   uint64_t pget_u64r(size_t offset) const;
   int64_t pget_s64r(size_t offset) const;
+  float pget_f32r(size_t offset) const;
+  double pget_f64r(size_t offset) const;
 
   std::string get_cstr(bool advance = true);
   std::string pget_cstr(size_t offset) const;
