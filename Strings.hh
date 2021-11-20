@@ -118,6 +118,7 @@ public:
 
   size_t where() const;
   size_t size() const;
+  void truncate(size_t new_size);
   void go(size_t offset);
   void skip(size_t bytes);
   bool eof() const;

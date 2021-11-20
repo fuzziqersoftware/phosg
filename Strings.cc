@@ -976,6 +976,13 @@ size_t StringReader::size() const {
   return this->length;
 }
 
+void StringReader::truncate(size_t new_size) {
+  if (this->length > new_size) {
+    throw invalid_argument("StringReader contents cannot be extended");
+  }
+  this->length = new_size;
+}
+
 void StringReader::go(size_t offset) {
   this->offset = offset;
 }
