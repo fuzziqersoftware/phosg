@@ -968,6 +968,9 @@ StringReader::StringReader(shared_ptr<string> data, size_t offset) :
 StringReader::StringReader(const void* data, size_t size, size_t offset) :
     data(reinterpret_cast<const uint8_t*>(data)), length(size), offset(offset) { }
 
+StringReader::StringReader(const string& data, size_t offset) :
+    StringReader(data.data(), data.size(), offset) { }
+
 size_t StringReader::where() const {
   return this->offset;
 }
