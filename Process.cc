@@ -20,6 +20,7 @@
 #endif
 
 #include <set>
+#include <deque>
 
 #include "Filesystem.hh"
 #include "Strings.hh"
@@ -358,19 +359,113 @@ pid_t Subprocess::pid() {
   return this->child_pid;
 }
 
+string Subprocess::communicate(
+    const void* stdin_data, size_t stdin_size, uint64_t timeout_usecs) {
+  uint64_t deadline_usecs = timeout_usecs ? (now() + timeout_usecs) : 0;
+  Poll p;
+  if (stdin_size == 0) {
+    close(this->stdin_write_fd);
+    this->stdin_write_fd = -1;
+  } else {
+    p.add(this->stdin_write_fd, POLLOUT);
+  }
+  p.add(this->stdout_read_fd, POLLIN);
+
+  size_t stdin_offset = 0;
+  size_t stdout_bytes = 0;
+  deque<string> stdout_queue;
+  while ((this->wait(true) < 0) && (now() < deadline_usecs)) {
+    if (p.empty()) {
+      this->wait();
+      break;
+    }
+
+    int timeout_ms;
+    if (deadline_usecs) {
+      uint64_t t = now();
+      if (t < deadline_usecs) {
+        timeout_ms = (deadline_usecs - t) / 1000;
+      } else {
+        timeout_ms = 0;
+      }
+    } else {
+      timeout_ms = -1;
+    }
+    auto events = p.poll(timeout_ms);
+
+    if (events.count(this->stdout_read_fd)) {
+      stdout_queue.emplace_back(read(this->stdout_read_fd, 4096));
+      if (stdout_queue.back().empty()) {
+        p.remove(this->stdout_read_fd, true);
+        this->stdout_read_fd = -1;
+      } else {
+        stdout_bytes += stdout_queue.back().size();
+      }
+    }
+    if (events.count(this->stdin_write_fd)) {
+      size_t bytes_remaining = stdin_size - stdin_offset;
+      ssize_t bytes_written = write(
+          this->stdin_write_fd,
+          reinterpret_cast<const uint8_t*>(stdin_data) + stdin_offset,
+          bytes_remaining);
+
+      bool should_close_stdin = false;
+      if (bytes_written <= 0) {
+        should_close_stdin = true;
+      } else {
+        stdin_offset += bytes_written;
+        should_close_stdin = (stdin_offset == stdin_size);
+      }
+
+      if (should_close_stdin) {
+        p.remove(this->stdin_write_fd, true);
+        this->stdin_write_fd = -1;
+      }
+    }
+  }
+
+  if (now() >= deadline_usecs) {
+    // TODO: we should be a bit more polite here - send SIGTERM, wait a few
+    // seconds, then send SIGKILL
+    this->kill(SIGKILL);
+    throw runtime_error("Subprocess::communicate timed out");
+  }
+
+  if (stdout_queue.empty()) {
+    return "";
+  } else if (stdout_queue.size() == 1) {
+    return stdout_queue[0];
+  } else {
+    string ret;
+    ret.reserve(stdout_bytes);
+    for (const string& qi : stdout_queue) {
+      ret += qi;
+    }
+    return ret;
+  }
+}
+
+string Subprocess::communicate(const string& stdin_data, uint64_t timeout_usecs) {
+  return this->communicate(stdin_data.data(), stdin_data.size(), timeout_usecs);
+}
+
 int Subprocess::wait(bool poll) {
   if (this->exit_status >= 0) {
     return this->exit_status;
   }
-  int ret = waitpid(this->child_pid, &this->exit_status, poll ? WNOHANG : 0);
-  if (ret == -1) {
-    throw runtime_error("waitpid failed: " + string_for_error(errno));
+  for (;;) {
+    int ret = waitpid(this->child_pid, &this->exit_status, poll ? WNOHANG : 0);
+    if (ret == -1) {
+      if (errno != EINTR) {
+        throw runtime_error("waitpid failed: " + string_for_error(errno));
+      }
+    } else if (ret == 0) {
+      return -1; // not terminated yet
+    } else {
+      assert(ret == this->child_pid);
+      return this->exit_status;
+    }
   }
-  if (ret == 0) {
-    return -1; // not terminated yet
-  }
-  assert(ret == this->child_pid);
-  return this->exit_status;
 }
 
 void Subprocess::kill(int signum) {

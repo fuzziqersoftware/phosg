@@ -116,6 +116,8 @@ namespace std {
 std::string read_all(int fd);
 std::string read_all(FILE* f);
 
+std::string read(int fd, size_t size);
+
 void readx(int fd, void* data, size_t size);
 void writex(int fd, const void* data, size_t size);
 std::string readx(int fd, size_t size);
@@ -208,6 +210,8 @@ std::unique_ptr<FILE, void(*)(FILE*)> fopen_unique(const std::string& filename,
     const std::string& mode = "rb", FILE* dash_file = nullptr);
 std::unique_ptr<FILE, void(*)(FILE*)> fdopen_unique(int fd,
     const std::string& mode = "rb");
+std::unique_ptr<FILE, void(*)(FILE*)> fmemopen_unique(const void* buf,
+    size_t size);
 std::shared_ptr<FILE> fopen_shared(const std::string& filename,
     const std::string& mode = "rb", FILE* dash_file = nullptr);
 std::shared_ptr<FILE> fdopen_shared(int fd, const std::string& mode = "rb");
@@ -228,6 +232,7 @@ public:
 
   void add(int fd, short events);
   void remove(int fd, bool close_fd = false);
+  bool empty() const;
 
   std::unordered_map<int, short> poll(int timeout_ms = 0);
 

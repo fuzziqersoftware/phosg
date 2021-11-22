@@ -52,6 +52,14 @@ public:
 
   pid_t pid();
 
+  std::string communicate(
+      const void* stdin_data = nullptr,
+      size_t stdin_size = 0,
+      uint64_t timeout_usecs = 0);
+  std::string communicate(
+      const std::string& stdin_data = "",
+      uint64_t timeout_usecs = 0);
+
   int wait(bool poll = false);
 
   void kill(int signum);

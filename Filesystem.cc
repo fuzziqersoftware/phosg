@@ -377,6 +377,17 @@ string read_all(FILE* f) {
   return ret;
 }
 
+string read(int fd, size_t size) {
+  string data(size, '\0');
+  ssize_t ret_size = read(fd, const_cast<char*>(data.data()), size);
+  if (ret_size < 0) {
+    throw io_error(fd);
+  } else if (ret_size != static_cast<ssize_t>(size)) {
+    data.resize(ret_size);
+  }
+  return data;
+}
+
 void readx(int fd, void* data, size_t size) {
   ssize_t ret_size = read(fd, data, size);
   if (ret_size < 0) {
@@ -552,6 +563,11 @@ unique_ptr<FILE, void(*)(FILE*)> fdopen_unique(int fd, const string& mode) {
   return unique_ptr<FILE, void(*)(FILE*)>(fdopen_binary_raw(fd, mode), fclose_raw);
 }
 
+unique_ptr<FILE, void(*)(FILE*)> fmemopen_unique(const void* buf, size_t size) {
+  return unique_ptr<FILE, void(*)(FILE*)>(
+      fmemopen(const_cast<void*>(buf), size, "rb"), fclose_raw);
+}
+
 shared_ptr<FILE> fopen_shared(const string& filename, const string& mode,
     FILE* dash_file) {
   if (dash_file && (filename == "-")) {
@@ -649,6 +665,10 @@ void Poll::remove(int fd, bool close_fd) {
       close(fd);
     }
   }
+}
+
+bool Poll::empty() const {
+  return this->poll_fds.empty();
 }
 
 unordered_map<int, short> Poll::poll(int timeout_ms) {
