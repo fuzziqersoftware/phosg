@@ -1002,6 +1002,13 @@ string StringReader::all() const {
   return string(reinterpret_cast<const char*>(this->data), this->length);
 }
 
+StringReader StringReader::sub(size_t offset, size_t size) const {
+  if (offset + size > this->length) {
+    throw out_of_range("sub-reader extends beyond end of data");
+  }
+  return StringReader(reinterpret_cast<const char*>(this->data) + offset, size);
+}
+
 const char* StringReader::peek(size_t size) {
   if (this->offset + size <= this->length) {
     return reinterpret_cast<const char*>(this->data + this->offset);

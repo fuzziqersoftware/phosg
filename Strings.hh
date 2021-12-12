@@ -125,6 +125,8 @@ public:
   bool eof() const;
   std::string all() const;
 
+  StringReader sub(size_t offset, size_t size) const;
+
   const char* peek(size_t size);
 
   std::string read(size_t size, bool advance = true);
