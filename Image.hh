@@ -30,7 +30,7 @@ private:
   void load(FILE* f);
 
 public:
-  Image() = delete;
+  Image();
 
   // construct a black-filled Image in memory
   Image(size_t x, size_t y, bool has_alpha = false, uint8_t channel_width = 8);

@@ -298,6 +298,12 @@ static const unordered_map<uint8_t, uint64_t> max_value_for_channel_width({
   {64, 0xFFFFFFFFFFFFFFFF},
 });
 
+Image::Image() :
+    width(0), height(0), has_alpha(false), channel_width(8),
+    max_value(max_value_for_channel_width.at(this->channel_width)) {
+  this->data.raw = nullptr;
+}
+
 Image::Image(size_t x, size_t y, bool has_alpha, uint8_t channel_width) :
     width(x), height(y), has_alpha(has_alpha), channel_width(channel_width),
     max_value(max_value_for_channel_width.at(this->channel_width)) {
