@@ -102,8 +102,11 @@ public:
 
   // read/write functions
   void clear(uint64_t r, uint64_t g, uint64_t b, uint64_t a = 0xFF);
+  void clear(uint32_t color);
   void read_pixel(ssize_t x, ssize_t y, uint64_t* r, uint64_t* g, uint64_t* b, uint64_t* a = nullptr) const;
+  uint32_t read_pixel(ssize_t x, ssize_t y) const;
   void write_pixel(ssize_t x, ssize_t y, uint64_t r, uint64_t g, uint64_t b, uint64_t a = 0xFF);
+  void write_pixel(ssize_t x, ssize_t y, uint32_t color);
 
   // canvas functions
   void reverse_horizontal();
@@ -115,19 +118,36 @@ public:
   // the given alpha value and ignore whatever's already in the image
   void draw_line(ssize_t x1, ssize_t y1, ssize_t x2, ssize_t y2, uint64_t r,
       uint64_t g, uint64_t b, uint64_t a = 0xFF);
+  void draw_line(ssize_t x1, ssize_t y1, ssize_t x2, ssize_t y2, uint32_t color);
   void draw_horizontal_line(ssize_t x1, ssize_t x2, ssize_t y,
       ssize_t dash_length, uint64_t r, uint64_t g, uint64_t b,
       uint64_t a = 0xFF);
+  void draw_horizontal_line(ssize_t x1, ssize_t x2, ssize_t y,
+      ssize_t dash_length, uint32_t color);
   void draw_vertical_line(ssize_t x, ssize_t y1, ssize_t y2,
       ssize_t dash_length, uint64_t r, uint64_t g, uint64_t b,
       uint64_t a = 0xFF);
+  void draw_vertical_line(ssize_t x, ssize_t y1, ssize_t y2,
+      ssize_t dash_length, uint32_t color);
 #ifndef WINDOWS
+  void draw_text_v(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
+      uint64_t r, uint64_t g, uint64_t b, uint64_t a, uint64_t br, uint64_t bg,
+      uint64_t bb, uint64_t ba, const char* fmt, va_list va);
   void draw_text(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
       uint64_t r, uint64_t g, uint64_t b, uint64_t a, uint64_t br, uint64_t bg,
       uint64_t bb, uint64_t ba, const char* fmt, ...);
+  void draw_text(ssize_t x, ssize_t y,
+      uint64_t r, uint64_t g, uint64_t b, uint64_t a, uint64_t br, uint64_t bg,
+      uint64_t bb, uint64_t ba, const char* fmt, ...);
+  void draw_text(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
+      uint32_t color, uint32_t background, const char* fmt, ...);
+  void draw_text(ssize_t x, ssize_t y, uint32_t color, uint32_t background,
+      const char* fmt, ...);
+  void draw_text(ssize_t x, ssize_t y, uint32_t color, const char* fmt, ...);
 #endif
   void fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint64_t r,
       uint64_t g, uint64_t b, uint64_t a = 0xFF);
+  void fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint32_t color);
 
   // copy functions
   // this doesn't respect alpha; the written pixels will have the same alpha as
@@ -136,6 +156,8 @@ public:
       ssize_t sx, ssize_t sy);
   void mask_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
       ssize_t h, ssize_t sx, ssize_t sy, uint64_t r, uint64_t g, uint64_t b);
+  void mask_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
+      ssize_t h, ssize_t sx, ssize_t sy, uint32_t transparent_color);
   void mask_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
       ssize_t h, ssize_t sx, ssize_t sy, const Image& mask);
 

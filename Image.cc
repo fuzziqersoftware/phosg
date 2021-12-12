@@ -25,6 +25,21 @@ using namespace std;
 Image::unknown_format::unknown_format(const std::string& what) : runtime_error(what) { }
 
 
+struct ExpandedColor {
+  uint64_t r;
+  uint64_t g;
+  uint64_t b;
+  uint64_t a;
+};
+
+static ExpandedColor expand_color(uint32_t c) {
+  return {(c >> 24) & 0xFF, (c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF};
+}
+
+static uint32_t compress_color(uint64_t r, uint64_t g, uint64_t b, uint64_t a) {
+  return ((r & 0xFF) << 24) | ((g & 0xFF) << 16) | ((b & 0xFF) << 8) | (a & 0xFF);
+}
+
 struct WindowsBitmapFileHeader {
   uint16_t magic;
   uint32_t file_size;
@@ -625,6 +640,10 @@ void Image::clear(uint64_t r, uint64_t g, uint64_t b, uint64_t a) {
     }
   }
 }
+void Image::clear(uint32_t c) {
+  auto ec = expand_color(c);
+  this->clear(ec.r, ec.g, ec.b, ec.a);
+}
 
 // read the specified pixel's rgb values
 void Image::read_pixel(ssize_t x, ssize_t y, uint64_t* r, uint64_t* g,
@@ -692,6 +711,14 @@ void Image::read_pixel(ssize_t x, ssize_t y, uint64_t* r, uint64_t* g,
     throw logic_error("image channel width is not 8, 16, 32, or 64");
   }
 }
+uint32_t Image::read_pixel(ssize_t x, ssize_t y) const {
+  // TODO: This probably doesn't optimize well; we should directly read from the
+  // color data here
+  uint64_t r, g, b, a;
+  this->read_pixel(x, y, &r, &g, &b, &a);
+  return compress_color(r, g, b, a);
+}
+
 
 // write the specified pixel's rgb values
 void Image::write_pixel(ssize_t x, ssize_t y, uint64_t r, uint64_t g,
@@ -734,6 +761,11 @@ void Image::write_pixel(ssize_t x, ssize_t y, uint64_t r, uint64_t g,
   } else {
     throw logic_error("image channel width is not 8, 16, 32, or 64");
   }
+}
+
+void Image::write_pixel(ssize_t x, ssize_t y, uint32_t color) {
+  auto ec = expand_color(color);
+  this->write_pixel(x, y, ec.r, ec.g, ec.b, ec.a);
 }
 
 void Image::reverse_horizontal() {
@@ -871,6 +903,11 @@ void Image::draw_line(ssize_t x0, ssize_t y0, ssize_t x1, ssize_t y1,
     }
   }
 }
+void Image::draw_line(ssize_t x0, ssize_t y0, ssize_t x1, ssize_t y1,
+    uint32_t c) {
+  auto ec = expand_color(c);
+  this->draw_line(x0, y0, x1, y1, ec.r, ec.g, ec.b, ec.a);
+}
 
 void Image::draw_horizontal_line(ssize_t x1, ssize_t x2, ssize_t y,
     ssize_t dash_length, uint64_t r, uint64_t g, uint64_t b, uint64_t a) {
@@ -885,6 +922,11 @@ void Image::draw_horizontal_line(ssize_t x1, ssize_t x2, ssize_t y,
       break;
     }
   }
+}
+void Image::draw_horizontal_line(ssize_t x1, ssize_t x2, ssize_t y,
+    ssize_t dash_length, uint32_t c) {
+  auto ec = expand_color(c);
+  this->draw_horizontal_line(x1, x2, y, dash_length, ec.r, ec.g, ec.b, ec.a);
 }
 
 void Image::draw_vertical_line(ssize_t x, ssize_t y1, ssize_t y2,
@@ -901,17 +943,20 @@ void Image::draw_vertical_line(ssize_t x, ssize_t y1, ssize_t y2,
     }
   }
 }
+void Image::draw_vertical_line(ssize_t x, ssize_t y1, ssize_t y2,
+    ssize_t dash_length, uint32_t c) {
+  auto ec = expand_color(c);
+  this->draw_vertical_line(x, y1, y2, dash_length, ec.r, ec.g, ec.b, ec.a);
+}
 
 #ifndef WINDOWS
-void Image::draw_text(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
+
+void Image::draw_text_v(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
     uint64_t r, uint64_t g, uint64_t b, uint64_t a, uint64_t br, uint64_t bg,
-    uint64_t bb, uint64_t ba, const char* fmt, ...) {
+    uint64_t bb, uint64_t ba, const char* fmt, va_list va) {
 
   char* buffer;
-  va_list va;
-  va_start(va, fmt);
   vasprintf(&buffer, fmt, va);
-  va_end(va);
   if (!buffer) {
     throw bad_alloc();
   }
@@ -968,7 +1013,129 @@ void Image::draw_text(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
 
   free(buffer);
 }
+
+void Image::draw_text(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
+    uint64_t r, uint64_t g, uint64_t b, uint64_t a, uint64_t br, uint64_t bg,
+    uint64_t bb, uint64_t ba, const char* fmt, ...) {
+  va_list va;
+  va_start(va, fmt);
+  try {
+    this->draw_text_v(x, y, width, height, r, g, b, a, br, bg, bb, ba, fmt, va);
+  } catch (...) {
+    va_end(va);
+    throw;
+  }
+  va_end(va);
+}
+
+void Image::draw_text(ssize_t x, ssize_t y,
+    uint64_t r, uint64_t g, uint64_t b, uint64_t a, uint64_t br, uint64_t bg,
+    uint64_t bb, uint64_t ba, const char* fmt, ...) {
+  va_list va;
+  va_start(va, fmt);
+  try {
+    this->draw_text_v(x, y, nullptr, nullptr, r, g, b, a, br, bg, bb, ba, fmt, va);
+  } catch (...) {
+    va_end(va);
+    throw;
+  }
+  va_end(va);
+}
+
+void Image::draw_text(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
+    uint32_t color, uint32_t background, const char* fmt, ...) {
+  va_list va;
+  va_start(va, fmt);
+  try {
+    this->draw_text_v(x, y, width, height,
+        (color >> 24) & 0xFF, (color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF,
+        (background >> 24) & 0xFF, (background >> 16) & 0xFF, (background >> 8) & 0xFF, background & 0xFF,
+        fmt, va);
+  } catch (...) {
+    va_end(va);
+    throw;
+  }
+  va_end(va);
+}
+
+void Image::draw_text(ssize_t x, ssize_t y, uint32_t color, uint32_t background,
+    const char* fmt, ...) {
+  va_list va;
+  va_start(va, fmt);
+  try {
+    this->draw_text_v(x, y, nullptr, nullptr,
+        (color >> 24) & 0xFF, (color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF,
+        (background >> 24) & 0xFF, (background >> 16) & 0xFF, (background >> 8) & 0xFF, background & 0xFF,
+        fmt, va);
+  } catch (...) {
+    va_end(va);
+    throw;
+  }
+  va_end(va);
+}
+
+void Image::draw_text(ssize_t x, ssize_t y, uint32_t color, const char* fmt, ...) {
+  va_list va;
+  va_start(va, fmt);
+  try {
+    this->draw_text_v(x, y, nullptr, nullptr,
+        (color >> 24) & 0xFF, (color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF,
+        0, 0, 0, 0, fmt, va);
+  } catch (...) {
+    va_end(va);
+    throw;
+  }
+  va_end(va);
+}
+
 #endif
+
+void Image::fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint64_t r,
+    uint64_t g, uint64_t b, uint64_t a) {
+
+  if (x < 0) {
+    w += x;
+    x = 0;
+  }
+  if (y < 0) {
+    h += y;
+    y = 0;
+  }
+  if (x + w > static_cast<ssize_t>(this->get_width())) {
+    w = this->get_width() - x;
+  }
+  if (y + h > static_cast<ssize_t>(this->get_height())) {
+    h = this->get_height() - y;
+  }
+
+  if (a == 0xFF) {
+    for (ssize_t yy = 0; yy < h; yy++) {
+      for (ssize_t xx = 0; xx < w; xx++) {
+        try {
+          this->write_pixel(x + xx, y + yy, r, g, b, a);
+        } catch (const runtime_error& e) { }
+      }
+    }
+  } else {
+    for (ssize_t yy = 0; yy < h; yy++) {
+      for (ssize_t xx = 0; xx < w; xx++) {
+        try {
+          uint64_t _r = 0, _g = 0, _b = 0, _a = 0;
+          this->read_pixel(x + xx, y + yy, &_r, &_g, &_b, &_a);
+          _r = (a * (uint32_t)r + (0xFF - a) * (uint32_t)_r) / 0xFF;
+          _g = (a * (uint32_t)g + (0xFF - a) * (uint32_t)_g) / 0xFF;
+          _b = (a * (uint32_t)b + (0xFF - a) * (uint32_t)_b) / 0xFF;
+          _a = (a * (uint32_t)a + (0xFF - a) * (uint32_t)_a) / 0xFF;
+          this->write_pixel(x + xx, y + yy, _r, _g, _b, _a);
+        } catch (const runtime_error& e) { }
+      }
+    }
+  }
+}
+void Image::fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint32_t c) {
+  auto ec = expand_color(c);
+  this->fill_rect(x, y, w, h, ec.r, ec.g, ec.b, ec.a);
+}
 
 void Image::blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
     ssize_t h, ssize_t sx, ssize_t sy) {
@@ -1023,6 +1190,11 @@ void Image::mask_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
       } catch (const runtime_error& e) { }
     }
   }
+}
+void Image::mask_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
+    ssize_t h, ssize_t sx, ssize_t sy, uint32_t transparent_c) {
+  auto ec = expand_color(transparent_c);
+  this->mask_blit(source, x, y, w, h, sx, sy, ec.r, ec.g, ec.b);
 }
 
 void Image::mask_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
@@ -1080,50 +1252,6 @@ void Image::blend_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
               (sa * sa + da * (0xFF - sa)) / 0xFF);
         }
       } catch (const runtime_error& e) { }
-    }
-  }
-}
-
-
-void Image::fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint64_t r,
-    uint64_t g, uint64_t b, uint64_t a) {
-
-  if (x < 0) {
-    w += x;
-    x = 0;
-  }
-  if (y < 0) {
-    h += y;
-    y = 0;
-  }
-  if (x + w > static_cast<ssize_t>(this->get_width())) {
-    w = this->get_width() - x;
-  }
-  if (y + h > static_cast<ssize_t>(this->get_height())) {
-    h = this->get_height() - y;
-  }
-
-  if (a == 0xFF) {
-    for (ssize_t yy = 0; yy < h; yy++) {
-      for (ssize_t xx = 0; xx < w; xx++) {
-        try {
-          this->write_pixel(x + xx, y + yy, r, g, b, a);
-        } catch (const runtime_error& e) { }
-      }
-    }
-  } else {
-    for (ssize_t yy = 0; yy < h; yy++) {
-      for (ssize_t xx = 0; xx < w; xx++) {
-        try {
-          uint64_t _r = 0, _g = 0, _b = 0, _a = 0;
-          this->read_pixel(x + xx, y + yy, &_r, &_g, &_b, &_a);
-          _r = (a * (uint32_t)r + (0xFF - a) * (uint32_t)_r) / 0xFF;
-          _g = (a * (uint32_t)g + (0xFF - a) * (uint32_t)_g) / 0xFF;
-          _b = (a * (uint32_t)b + (0xFF - a) * (uint32_t)_b) / 0xFF;
-          _a = (a * (uint32_t)a + (0xFF - a) * (uint32_t)_a) / 0xFF;
-          this->write_pixel(x + xx, y + yy, _r, _g, _b, _a);
-        } catch (const runtime_error& e) { }
-      }
     }
   }
 }
