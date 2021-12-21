@@ -258,17 +258,6 @@ vector<string> split_context(const string& s, char delim) {
   return elems;
 }
 
-string join(const vector<string>& items, const string& delim) {
-  string ret;
-  for (const string& item : items) {
-    if (!ret.empty()) {
-      ret += delim;
-    }
-    ret += item;
-  }
-  return ret;
-}
-
 size_t skip_whitespace(const string& s, size_t offset) {
   while (offset < s.length() &&
       (s[offset] == ' ' || s[offset] == '\t' || s[offset] == '\r' || s[offset] == '\n')) {

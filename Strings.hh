@@ -41,8 +41,18 @@ void log(int level, const char* fmt, ...);
 std::vector<std::string> split(const std::string& s, char delim);
 std::vector<std::wstring> split(const std::wstring& s, wchar_t delim);
 std::vector<std::string> split_context(const std::string& s, char delim);
-std::string join(const std::vector<std::string>& items,
-    const std::string& delim);
+
+template<typename ItemT, typename DelimiterT>
+std::string join(const std::vector<ItemT>& items, DelimiterT& delim) {
+  std::string ret;
+  for (const ItemT& item : items) {
+    if (!ret.empty()) {
+      ret += delim;
+    }
+    ret += item;
+  }
+  return ret;
+}
 
 size_t skip_whitespace(const std::string& s, size_t offset);
 size_t skip_whitespace(const char* s, size_t offset);
