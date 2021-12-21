@@ -36,6 +36,11 @@ int main(int argc, char** argv) {
   members.emplace(piecewise_construct, make_tuple("extra_item"), make_tuple((int64_t)3));
   assert(root != JSONObject(members));
 
+  fprintf(stderr, "-- int/float equality\n");
+  assert(JSONObject((int64_t)3) == JSONObject(3.0));
+  assert(JSONObject(0.0) == JSONObject((int64_t)0));
+  assert(JSONObject(true) != JSONObject((int64_t)1));
+
   fprintf(stderr, "-- retrieval\n");
   assert(root.at("null")->is_null() == true);
   assert(root.at("true")->is_null() == false);

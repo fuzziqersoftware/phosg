@@ -304,7 +304,16 @@ JSONObject::JSONObject(unordered_map<string, JSONObject>&& x) {
 
 bool JSONObject::operator==(const JSONObject& other) const {
   size_t this_index = this->value.index();
-  if (this_index != other.value.index()) {
+  size_t other_index = other.value.index();
+
+  // Allow cross-type int/float comparisons
+  if (this_index == 2 && other_index == 3) {
+    return get<2>(this->value) == get<3>(other.value);
+  } else if (this_index == 3 && other_index == 2) {
+    return get<3>(this->value) == get<2>(other.value);
+  }
+
+  if (this_index != other_index) {
     return false;
   }
   switch (this_index) {
@@ -457,8 +466,9 @@ const string& JSONObject::as_string() const {
 }
 
 bool JSONObject::as_bool() const {
-  if (!this->is_bool())
+  if (!this->is_bool()) {
     throw type_error("object cannot be accessed as a bool");
+  }
   return get<bool>(this->value);
 }
 
@@ -551,8 +561,9 @@ string JSONObject::serialize() const {
     case 6: { // dict_type
       string ret = "{";
       for (const auto& o : this->as_dict()) {
-        if (ret.size() > 1)
+        if (ret.size() > 1) {
           ret += ',';
+        }
         ret += "\"" + escape_json_string(o.first) + "\":" + o.second->serialize();
       }
       return ret + "}";
