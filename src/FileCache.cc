@@ -3,11 +3,12 @@
 #include <unistd.h>
 
 #include "Filesystem.hh"
+#include "Platform.hh"
 
 using namespace std;
 
-// windows doesn't have fork/exec, so O_CLOEXEC is meaningless
-#ifdef WINDOWS
+// Windows doesn't have fork/exec, so O_CLOEXEC is meaningless
+#ifdef PHOSG_WINDOWS
 #define O_CLOEXEC 0
 #endif
 

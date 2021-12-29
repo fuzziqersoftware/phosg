@@ -14,7 +14,7 @@ using namespace std;
 
 using Ring = ConstantTimeConsistentHashRing;
 
-int main(int argc, char* argv[]) {
+int main(int, char** argv) {
 
   {
     printf("-- create ring with one host\n");
@@ -108,6 +108,6 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  printf("all tests passed\n");
+  printf("%s: all tests passed\n", argv[0]);
   return 0;
 }

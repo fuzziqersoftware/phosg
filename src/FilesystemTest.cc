@@ -3,14 +3,15 @@
 #include "Filesystem.hh"
 #include "Strings.hh"
 #include "UnitTest.hh"
+#include "Platform.hh"
 
 using namespace std;
 
 
-int main(int argc, char* argv[]) {
+int main(int, char* argv[]) {
   {
     auto results = list_directory(".");
-#ifdef WINDOWS
+#ifdef PHOSG_WINDOWS
     expect_eq(1, results.count("FilesystemTest.exe"));
 #else
     expect_eq(1, results.count("FilesystemTest"));
@@ -30,7 +31,7 @@ int main(int argc, char* argv[]) {
       expect_eq("0123456789", load_file(filename));
 
       expect_eq(data.size(), (size_t)stat(filename).st_size);
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
       expect_eq(data.size(), (size_t)lstat(filename).st_size);
 
       symlink(filename.c_str(), symlink_name.c_str());
@@ -47,25 +48,25 @@ int main(int argc, char* argv[]) {
         fwrite(data.data(), 1, data.size(), f.get());
       }
 
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
       expect_eq(data.size() + 5, (size_t)stat(symlink_name).st_size);
       expect_eq(data.substr(0, 5) + data, load_file(symlink_name));
 #endif
 
     } catch (...) {
       remove(filename.c_str());
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
       remove(symlink_name.c_str());
 #endif
       throw;
     }
     remove(filename.c_str());
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
     remove(symlink_name.c_str());
 #endif
   }
 
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
   {
     auto p = pipe();
     writex(p.second, "omg", 3);

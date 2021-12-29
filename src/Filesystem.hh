@@ -7,7 +7,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#ifndef WINDOWS
+#include "Platform.hh"
+
+#ifndef PHOSG_WINDOWS
 #include <poll.h>
 #include <sys/uio.h>
 #endif
@@ -55,7 +57,7 @@ public:
 };
 
 struct stat stat(const std::string& filename);
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
 struct stat lstat(const std::string& filename);
 #endif
 struct stat fstat(int fd);
@@ -63,14 +65,14 @@ struct stat fstat(FILE* f);
 
 bool isfile(const struct stat& st);
 bool isdir(const struct stat& st);
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
 bool islink(const struct stat& st);
 #endif
 
 bool isfile(const std::string& filename);
 bool isdir(const std::string& filename);
 
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
 bool lisfile(const std::string& filename);
 bool lisdir(const std::string& filename);
 bool islink(const std::string& filename);
@@ -123,7 +125,7 @@ void writex(int fd, const void* data, size_t size);
 std::string readx(int fd, size_t size);
 void writex(int fd, const std::string& data);
 
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
 void preadx(int fd, void* data, size_t size, off_t offset);
 void pwritex(int fd, const void* data, size_t size, off_t offset);
 std::string preadx(int fd, size_t size, off_t offset);
@@ -150,7 +152,7 @@ void writex(int fd, const T& t) {
   writex(fd, &t, sizeof(T));
 }
 
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
 template <typename T>
 T preadx(int fd, off_t offset) {
   T t;
@@ -221,7 +223,7 @@ void unlink(const std::string& filename, bool recursive = false);
 
 void make_fd_nonblocking(int fd);
 
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
 
 std::pair<int, int> pipe();
 

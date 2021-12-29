@@ -1,6 +1,8 @@
 #pragma once
 
-#ifndef WINDOWS
+#include "Platform.hh"
+
+#ifndef PHOSG_WINDOWS
 
 #include <stdio.h>
 #include <unistd.h>
@@ -21,7 +23,7 @@ pid_t pid_for_name(const std::string& name, bool search_commands = true, bool ex
 std::unordered_map<pid_t, std::string> list_processes(bool with_commands = true);
 
 bool pid_exists(pid_t pid);
-#ifdef LINUX
+#ifdef PHOSG_LINUX
 bool pid_is_zombie(pid_t pid);
 #endif
 

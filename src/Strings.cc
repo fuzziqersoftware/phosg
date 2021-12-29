@@ -14,7 +14,9 @@
 #include <string>
 #include <vector>
 
-#ifdef WINDOWS
+#include "Platform.hh"
+
+#ifdef PHOSG_WINDOWS
 #include <windows.h>
 
 #define PRIX8 "hhX"
@@ -100,7 +102,7 @@ wstring wstring_printf(const wchar_t* fmt, ...) {
   return ret;
 }
 
-#ifdef WINDOWS
+#ifdef PHOSG_WINDOWS
 static int vasprintf(char** out, const char *fmt, va_list va) {
   int len = _vscprintf(fmt, va);
   if (len < 0) {
@@ -188,7 +190,7 @@ void log(int level, const char* fmt, ...) {
   struct tm now_tm;
   localtime_r(&now_secs, &now_tm);
   strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", &now_tm);
-#ifdef WINDOWS
+#ifdef PHOSG_WINDOWS
   // don't include the pid on windows
   fprintf(stderr, "%c %s - ", log_level_chars[level], time_buffer);
 #else
@@ -240,7 +242,7 @@ vector<string> split_context(const string& s, char delim) {
         paren_stack.push_back('}');
       else if (s[i] == '<')
         paren_stack.push_back('>');
-      else if (s[i] == ',') {
+      else if (s[i] == delim) {
         elems.push_back(s.substr(last_start, i - last_start));
         last_start = i + 1;
       }
@@ -298,7 +300,7 @@ size_t skip_word(const char* s, size_t offset) {
 
 std::string string_for_error(int error) {
   char buffer[1024] = "Unknown error";
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
   strerror_r(error, buffer, sizeof(buffer));
 #else
   strerror_s(buffer, sizeof(buffer), error);

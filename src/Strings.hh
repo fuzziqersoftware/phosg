@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+#include "Platform.hh"
+
 
 std::unique_ptr<void, void (*)(void*)> malloc_unique(size_t size);
 
@@ -29,7 +31,7 @@ uint8_t value_for_hex_char(char x);
 #define DEBUG 0
 #define INFO 1
 #define WARNING 2
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
 // wingdi.h defined ERROR as 0, lolz
 #define ERROR 3
 #endif
@@ -42,10 +44,10 @@ std::vector<std::string> split(const std::string& s, char delim);
 std::vector<std::wstring> split(const std::wstring& s, wchar_t delim);
 std::vector<std::string> split_context(const std::string& s, char delim);
 
-template<typename ItemT, typename DelimiterT>
-std::string join(const std::vector<ItemT>& items, DelimiterT& delim) {
+template<typename ItemContainerT, typename DelimiterT>
+std::string join(const ItemContainerT& items, DelimiterT& delim) {
   std::string ret;
-  for (const ItemT& item : items) {
+  for (const auto& item : items) {
     if (!ret.empty()) {
       ret += delim;
     }

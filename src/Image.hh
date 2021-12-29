@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <string>
 
+#include "Platform.hh"
+
 
 // an Image represents a drawing canvas. this class is fairly simple; it
 // supports reading/writing individual pixels, drawing lines, and saving the
@@ -129,7 +131,7 @@ public:
       uint64_t a = 0xFF);
   void draw_vertical_line(ssize_t x, ssize_t y1, ssize_t y2,
       ssize_t dash_length, uint32_t color);
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
   void draw_text_v(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
       uint64_t r, uint64_t g, uint64_t b, uint64_t a, uint64_t br, uint64_t bg,
       uint64_t bb, uint64_t ba, const char* fmt, va_list va);

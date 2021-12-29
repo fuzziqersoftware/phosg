@@ -150,7 +150,7 @@ string sha256(const void* data, size_t orig_size) {
   string input(reinterpret_cast<const char*>(data), orig_size);
   {
     input.push_back(0x80);
-    size_t num_zero_bytes = (64 - ((input.size() + 8) & 0x3F) & 0x3F);
+    size_t num_zero_bytes = ((64 - ((input.size() + 8) & 0x3F)) & 0x3F);
     input.resize(input.size() + num_zero_bytes, '\0');
     uint64_t size_be = bswap64(orig_size << 3);
     input.append(reinterpret_cast<const char*>(&size_be), 8);

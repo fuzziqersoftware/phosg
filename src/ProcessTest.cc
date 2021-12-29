@@ -5,7 +5,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#ifndef WINDOWS
+#include "Platform.hh"
+
+#ifndef PHOSG_WINDOWS
 #include <sys/wait.h>
 #endif
 
@@ -16,20 +18,20 @@
 using namespace std;
 
 
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
 
-int main(int argc, char** argv) {
+int main(int, char** argv) {
 
   {
     fprintf(stderr, "-- popen_unique\n");
     const char* data = "0123456789";
-    size_t data_size = strlen(data);
+    size_t data_size = 10;
 
     auto f = popen_unique("echo 0123456789", "r");
     fwrite(data, data_size, 1, f.get());
     fflush(f.get());
 
-    char buffer[data_size];
+    char buffer[0x20];
     expect_eq(1, fread(buffer, data_size, 1, f.get()));
     expect_eq(0, memcmp(buffer, data, data_size));
   }
@@ -183,7 +185,7 @@ int main(int argc, char** argv) {
       // allow_zombie and always returns 0 if the process is a zombie
       usleep(400000);
       expect_eq(0, start_time_for_pid(child_pid, false));
-#ifdef MACOSX
+#ifdef PHOSG_MACOS
       expect_eq(0, start_time_for_pid(child_pid, true));
 #else
       expect_eq(child_start_time, start_time_for_pid(child_pid, true));
@@ -225,7 +227,7 @@ int main(int argc, char** argv) {
   return 0;
 }
 
-#else  // WINDOWS
+#else  // PHOSG_WINDOWS
 
 int main(int argc, char** argv) {
   printf("%s: tests do not run on Windows\n", argv[0]);

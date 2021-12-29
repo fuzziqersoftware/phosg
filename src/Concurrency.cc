@@ -1,10 +1,12 @@
 #include "Concurrency.hh"
 
+#include "Platform.hh"
+
 using namespace std;
 
 
 rw_lock::rw_lock() {
-#ifdef LINUX
+#ifdef PHOSG_LINUX
   pthread_rwlockattr_t attr;
   pthread_rwlockattr_init(&attr);
   pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);

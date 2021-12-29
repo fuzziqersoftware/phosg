@@ -211,7 +211,7 @@ void run_basic_test() {
 }
 
 
-int main(int argc, char** argv) {
+int main(int, char** argv) {
   run_basic_test();
   run_randomized_test();
   printf("%s: all tests passed\n", argv[0]);

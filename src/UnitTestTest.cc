@@ -16,7 +16,7 @@ using namespace std;
     } \
   } while (false);
 
-int main(int argc, char** argv) {
+int main(int, char** argv) {
 
   // make sure expect_msg works, since we depend on it for expect_fails later
   expect_msg(true, "omg wut");

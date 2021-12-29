@@ -1,24 +1,20 @@
 Phosg is a basic C++ wrapper library around some common C routines.
 
 A short summary of its contents:
-- Read-write locks and guards (C++ doesn't have these in std as of C++14)
 - Byteswapping functions
 - Directory listing, smart-pointer fopen and stat functions
 - Basic image manipulation/drawing
 - Basic JSON (de)serialization
-- Python Pickle (de)serialization for basic types
 - LRU set implementation
 - Network helpers (IP address parsing/formatting, listen/connect sockets)
 - Process listing and name <> PID mapping
 - String helpers like printf, split, time/size formatting, etc.
 
-Phosg also includes an executable (jsonformat) that reformats JSON and converts
-to/from Python's pickle format.
+Phosg also includes an executable (jsonformat) that reformats JSON.
 
 Building & installing on macOS or Linux:
-0. Make sure you have Make, g++ and Python 3 installed.
-1. `make`
-2. `sudo make install`
-
-Building on Windows is not straightforward. Install MinGW-w64, then read the
-comments in the makefile.
+- Make sure you have CMake, g++ and Python 3 installed.
+- `cmake .`
+- `make`
+- `make test`
+- `sudo make install`

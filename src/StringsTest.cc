@@ -135,7 +135,7 @@ string("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 16), 1, "", PrintDataFlags::PrintDoub
 }
 
 
-int main(int argc, char** argv) {
+int main(int, char** argv) {
 
   fprintf(stderr, "-- starts_with\n");
   expect(starts_with("abcdef", "abc"));

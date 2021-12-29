@@ -4,7 +4,7 @@
 #include "UnitTest.hh"
 
 
-int main(int argc, char* argv[]) {
+int main(int, char** argv) {
   expect_eq(0x2301, bswap16(0x0123));
   expect_eq(0x452301, bswap24(0x012345));
   expect_eq(0x674523, bswap24(0x01234567));

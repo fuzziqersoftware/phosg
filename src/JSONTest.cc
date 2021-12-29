@@ -9,7 +9,7 @@
 using namespace std;
 
 
-int main(int argc, char** argv) {
+int main(int, char** argv) {
 
   fprintf(stderr, "-- construction\n");
   unordered_map<string, JSONObject> members;

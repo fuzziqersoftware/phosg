@@ -7,7 +7,7 @@
 using namespace std;
 
 
-int main(int argc, char* argv[]) {
+int main(int, char** argv) {
   {
     printf("-- fnv1a64\n");
     expect_eq(0xCBF29CE484222325, fnv1a64(nullptr, 0)); // technically undefined, but should work

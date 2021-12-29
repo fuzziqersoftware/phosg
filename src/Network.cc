@@ -2,7 +2,9 @@
 
 #include "Network.hh"
 
-#ifndef WINDOWS
+#include "Platform.hh"
+
+#ifndef PHOSG_WINDOWS
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -35,7 +37,7 @@ pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const string& addr,
 
   if (port == 0) {
     // unix socket
-#ifdef WINDOWS
+#ifdef PHOSG_WINDOWS
     throw logic_error("Unix sockets cannot be used on Windows");
 #else
     struct sockaddr_un* sun = (struct sockaddr_un*)&s;
@@ -101,7 +103,7 @@ pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const string& addr,
 
 string render_sockaddr_storage(const sockaddr_storage& s) {
   switch (s.ss_family) {
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
     case AF_UNIX: {
       struct sockaddr_un* sun = (struct sockaddr_un*)&s;
       return string(sun->sun_path);
@@ -235,7 +237,7 @@ pair<string, uint16_t> parse_netloc(const string& netloc, int default_port) {
 }
 
 string gethostname() {
-#ifdef WINDOWS
+#ifdef PHOSG_WINDOWS
   // this is actually the max size according to MS documentation; there doesn't
   // appear to be a define for this or anything
   string buf(0x100, '\0');

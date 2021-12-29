@@ -7,7 +7,7 @@
 using namespace std;
 
 
-int main(int argc, char** argv) {
+int main(int, char** argv) {
 
   uint64_t start_time = now();
   expect_ge(now(), start_time);

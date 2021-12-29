@@ -1,6 +1,8 @@
 #include "Process.hh"
 
-#ifndef WINDOWS
+#include "Platform.hh"
+
+#ifndef PHOSG_WINDOWS
 
 #include <assert.h>
 #include <ctype.h>
@@ -12,7 +14,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#ifdef MACOSX
+#ifdef PHOSG_MACOS
 #include <libproc.h>
 #include <sys/proc_info.h>
 #else
@@ -93,7 +95,7 @@ unordered_map<pid_t, string> list_processes(bool with_commands) {
   unordered_map<pid_t, string> ret;
   while (!feof(f.get())) {
     pid_t pid;
-    fscanf(f.get(), "%u", &pid);
+    fscanf(f.get(), "%d", &pid);
 
     int ch;
     while ((ch = fgetc(f.get())) == ' ');
@@ -128,7 +130,7 @@ bool pid_exists(pid_t pid) {
   return true;
 }
 
-#ifdef LINUX
+#ifdef PHOSG_LINUX
 bool pid_is_zombie(pid_t pid) {
   // so many syscalls... sigh
   char status_data[2048]; // this is probably big enough
@@ -155,7 +157,9 @@ bool pid_is_zombie(pid_t pid) {
 #endif
 
 uint64_t start_time_for_pid(pid_t pid, bool allow_zombie) {
-#ifdef MACOSX
+#ifdef PHOSG_MACOS
+  (void)allow_zombie;
+
   struct proc_taskallinfo ti;
   int ret = proc_pidinfo(pid, PROC_PIDTASKALLINFO, 0, &ti, sizeof(ti));
   if (ret <= 0) {
@@ -165,7 +169,7 @@ uint64_t start_time_for_pid(pid_t pid, bool allow_zombie) {
     throw runtime_error("can\'t get start time for pid " + to_string(pid) +
         ": " + string_for_error(errno));
   }
-  if (ret < sizeof(ti)) {
+  if (static_cast<size_t>(ret) < sizeof(ti)) {
     throw runtime_error("can\'t get start time for pid " + to_string(pid) +
         ": " + string_for_error(errno));
   }

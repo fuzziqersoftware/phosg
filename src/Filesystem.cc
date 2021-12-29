@@ -10,7 +10,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#ifndef WINDOWS
+#include "Platform.hh"
+
+#ifndef PHOSG_WINDOWS
 #include <poll.h>
 #include <pwd.h>
 #define O_BINARY 0
@@ -29,7 +31,7 @@
 using namespace std;
 
 
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
 
 std::string basename(const std::string& filename) {
   size_t slash_pos = filename.rfind('/');
@@ -62,7 +64,7 @@ unordered_set<string> list_directory(const string& dirname) {
   return files;
 }
 
-#else  // WINDOWS
+#else  // PHOSG_WINDOWS
 
 unordered_set<string> list_directory(const string& dirname) {
   unordered_set<string> files;
@@ -92,7 +94,7 @@ unordered_set<string> list_directory(const string& dirname) {
 #endif
 
 
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
 
 // TODO: this can definitely be implemented on windows; I'm just lazy
 string get_user_home_directory() {
@@ -106,9 +108,9 @@ string get_user_home_directory() {
     throw runtime_error("can\'t get _SC_GETPW_R_SIZE_MAX");
   }
 
-  char buffer[bufsize];
+  string buffer(bufsize, '\0');
   struct passwd pwd, *result = nullptr;
-  if (getpwuid_r(getuid(), &pwd, buffer, bufsize, &result) != 0 || !result) {
+  if (getpwuid_r(getuid(), &pwd, const_cast<char*>(buffer.data()), bufsize, &result) != 0 || !result) {
     throw runtime_error("can\'t get home directory for current user");
   }
 
@@ -148,7 +150,7 @@ struct stat stat(const string& filename) {
   return st;
 }
 
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
 
 struct stat lstat(const string& filename) {
   struct stat st;
@@ -180,7 +182,7 @@ bool isdir(const struct stat& st) {
   return (st.st_mode & S_IFMT) == S_IFDIR;
 }
 
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
 bool islink(const struct stat& st) {
   return (st.st_mode & S_IFMT) == S_IFLNK;
 }
@@ -202,7 +204,7 @@ bool isdir(const string& filename) {
   }
 }
 
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
 bool lisfile(const string& filename) {
   try {
     return isfile(lstat(filename));
@@ -416,7 +418,7 @@ void writex(int fd, const string& data) {
   writex(fd, data.data(), data.size());
 }
 
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
 
 void preadx(int fd, void* data, size_t size, off_t offset) {
   ssize_t ret_size = pread(fd, data, size, offset);
@@ -554,7 +556,7 @@ static void fclose_raw(FILE* f) {
 unique_ptr<FILE, void(*)(FILE*)> fopen_unique(const string& filename,
     const string& mode, FILE* dash_file) {
   if (dash_file && (filename == "-")) {
-    return unique_ptr<FILE, void(*)(FILE*)>(dash_file, +[](FILE* f) { });
+    return unique_ptr<FILE, void(*)(FILE*)>(dash_file, +[](FILE*) { });
   }
   return unique_ptr<FILE, void(*)(FILE*)>(fopen_binary_raw(filename, mode), fclose_raw);
 }
@@ -571,7 +573,7 @@ unique_ptr<FILE, void(*)(FILE*)> fmemopen_unique(const void* buf, size_t size) {
 shared_ptr<FILE> fopen_shared(const string& filename, const string& mode,
     FILE* dash_file) {
   if (dash_file && (filename == "-")) {
-    return shared_ptr<FILE>(dash_file, [](FILE* f) { });
+    return shared_ptr<FILE>(dash_file, [](FILE*) { });
   }
   return shared_ptr<FILE>(fopen_binary_raw(filename, mode), fclose_raw);
 }
@@ -607,7 +609,7 @@ void unlink(const string& filename, bool recursive) {
 }
 
 void make_fd_nonblocking(int fd) {
-#ifdef WINDOWS
+#ifdef PHOSG_WINDOWS
   unsigned long nonblocking = 1;
   if (ioctlsocket(fd, FIONBIO, &nonblocking) == SOCKET_ERROR) {
     throw runtime_error("can\'t make socket nonblocking: " + string_for_error(errno));
@@ -623,7 +625,7 @@ void make_fd_nonblocking(int fd) {
 #endif
 }
 
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
 
 pair<int, int> pipe() {
   int fds[2];

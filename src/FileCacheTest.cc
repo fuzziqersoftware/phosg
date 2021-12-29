@@ -27,7 +27,7 @@ static void delete_test_files() {
   }
 }
 
-int main(int argc, char** argv) {
+int main(int, char** argv) {
   try {
     delete_test_files();
 

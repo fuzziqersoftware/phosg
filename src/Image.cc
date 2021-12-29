@@ -15,7 +15,9 @@
 #include "Filesystem.hh"
 #include "Strings.hh"
 
-#ifndef WINDOWS
+#include "Platform.hh"
+
+#ifndef PHOSG_WINDOWS
 #include "ImageTextFont.hh"
 #endif
 
@@ -955,7 +957,7 @@ void Image::draw_vertical_line(ssize_t x, ssize_t y1, ssize_t y2,
   this->draw_vertical_line(x, y1, y2, dash_length, ec.r, ec.g, ec.b, ec.a);
 }
 
-#ifndef WINDOWS
+#ifndef PHOSG_WINDOWS
 
 void Image::draw_text_v(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
     uint64_t r, uint64_t g, uint64_t b, uint64_t a, uint64_t br, uint64_t bg,

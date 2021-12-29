@@ -1,7 +1,9 @@
 #include "Random.hh"
 
+#include "Platform.hh"
+
 #include <string.h>
-#ifdef WINDOWS
+#ifdef PHOSG_WINDOWS
 #include <windows.h>
 #include <wincrypt.h>
 #endif
@@ -15,7 +17,7 @@ using namespace std;
 
 
 void random_data(void* data, size_t bytes) {
-#ifdef WINDOWS
+#ifdef PHOSG_WINDOWS
   static thread_local bool crypt_prov_valid = false;
   static thread_local HCRYPTPROV crypt_prov;
 

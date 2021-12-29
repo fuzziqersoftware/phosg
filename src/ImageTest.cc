@@ -31,7 +31,7 @@ static const vector<Color> colors({
   Color(0xFF, 0xFF, 0xFF),
 });
 
-int main(int argc, char** argv) {
+int main(int, char** argv) {
 
   for (uint8_t channel_width = 8; channel_width <= 64; channel_width <<= 1) {
     Image img(180, 190, false, channel_width);
@@ -115,8 +115,8 @@ int main(int argc, char** argv) {
 
     for (auto format : formats) {
       const char* ext = Image::file_extension_for_format(format);
-      string reference_filename = string_printf("ImageTestReference%hhu.%s", channel_width, ext);
-      string temp_filename = string_printf("ImageTestImage%hhu.%s", channel_width, ext);
+      string reference_filename = string_printf("reference/ImageTestReference%hhu.%s", channel_width, ext);
+      string temp_filename = string_printf("reference/ImageTestImage%hhu.%s", channel_width, ext);
 
       string reference_data = load_file(reference_filename);
 

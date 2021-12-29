@@ -8,7 +8,7 @@
 using namespace std;
 
 
-int main(int argc, char** argv) {
+int main(int, char** argv) {
   LRUSet<string> c;
 
   expect_eq(c.size(), 0);
