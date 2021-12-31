@@ -160,6 +160,10 @@ public:
       ssize_t h, ssize_t sx, ssize_t sy, uint64_t r, uint64_t g, uint64_t b);
   void mask_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
       ssize_t h, ssize_t sx, ssize_t sy, uint32_t transparent_color);
+  void mask_blit_dst(const Image& source, ssize_t x, ssize_t y, ssize_t w,
+      ssize_t h, ssize_t sx, ssize_t sy, uint64_t r, uint64_t g, uint64_t b);
+  void mask_blit_dst(const Image& source, ssize_t x, ssize_t y, ssize_t w,
+      ssize_t h, ssize_t sx, ssize_t sy, uint32_t transparent_color);
   void mask_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
       ssize_t h, ssize_t sx, ssize_t sy, const Image& mask);
 

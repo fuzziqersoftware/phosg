@@ -14,6 +14,9 @@ else()
     add_compile_options(-Wall -Wextra -pedantic -Werror)
 endif()
 
+include_directories("/usr/local/include")
+link_directories("/usr/local/lib")
+
 
 
 # Library and executable definitions

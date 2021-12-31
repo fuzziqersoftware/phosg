@@ -1205,6 +1205,35 @@ void Image::mask_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
   this->mask_blit(source, x, y, w, h, sx, sy, ec.r, ec.g, ec.b);
 }
 
+void Image::mask_blit_dst(const Image& source, ssize_t x, ssize_t y, ssize_t w,
+    ssize_t h, ssize_t sx, ssize_t sy, uint64_t r, uint64_t g, uint64_t b) {
+
+  if (w < 0) {
+    w = source.get_width();
+  }
+  if (h < 0) {
+    h = source.get_height();
+  }
+
+  for (int yy = 0; yy < h; yy++) {
+    for (int xx = 0; xx < w; xx++) {
+      try {
+        uint64_t _r, _g, _b, _a;
+        this->read_pixel(x + xx, y + yy, &_r, &_g, &_b, &_a);
+        if (r == _r && g == _g && b == _b) {
+          source.read_pixel(sx + xx, sy + yy, &_r, &_g, &_b, &_a);
+          this->write_pixel(x + xx, y + yy, _r, _g, _b, _a);
+        }
+      } catch (const runtime_error& e) { }
+    }
+  }
+}
+void Image::mask_blit_dst(const Image& source, ssize_t x, ssize_t y, ssize_t w,
+    ssize_t h, ssize_t sx, ssize_t sy, uint32_t transparent_c) {
+  auto ec = expand_color(transparent_c);
+  this->mask_blit_dst(source, x, y, w, h, sx, sy, ec.r, ec.g, ec.b);
+}
+
 void Image::mask_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
     ssize_t h, ssize_t sx, ssize_t sy, const Image& mask) {
 
