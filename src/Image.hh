@@ -150,6 +150,7 @@ public:
   void fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint64_t r,
       uint64_t g, uint64_t b, uint64_t a = 0xFF);
   void fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint32_t color);
+  void invert();
 
   // copy functions
   // this doesn't respect alpha; the written pixels will have the same alpha as

@@ -1145,6 +1145,18 @@ void Image::fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint32_t c) {
   this->fill_rect(x, y, w, h, ec.r, ec.g, ec.b, ec.a);
 }
 
+void Image::invert() {
+  ssize_t w = this->get_width();
+  ssize_t h = this->get_height();
+  for (ssize_t y = 0; y < h; y++) {
+    for (ssize_t x = 0; x < w; x++) {
+      uint64_t r, g, b, a;
+      this->read_pixel(x, y, &r, &g, &b, &a);
+      this->write_pixel(x, y, this->max_value - r, this->max_value - g, this->max_value - b, this->max_value - a);
+    }
+  }
+}
+
 void Image::blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
     ssize_t h, ssize_t sx, ssize_t sy) {
 
