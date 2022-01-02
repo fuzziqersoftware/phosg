@@ -132,10 +132,10 @@ struct Vector4 {
     T a;
   };
 
-  Vector4<T>();
-  Vector4<T>(T x, T y, T z, T w);
-  Vector4<T>(const Vector2<T>& xy, T z, T w);
-  Vector4<T>(const Vector3<T>& xyz, T w);
+  Vector4();
+  Vector4(T x, T y, T z, T w);
+  Vector4(const Vector2<T>& xy, T z, T w);
+  Vector4(const Vector3<T>& xyz, T w);
 
   Vector4<T> operator-() const;
 
