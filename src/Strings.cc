@@ -952,6 +952,68 @@ size_t parse_size(const char* str) {
   return integer_part * unit_scale + static_cast<size_t>(fractional_part * unit_scale);
 }
 
+
+
+BitReader::BitReader(shared_ptr<string> data, size_t offset) :
+    owned_data(data), data(reinterpret_cast<const uint8_t*>(data->data())),
+    length(data->size() * 8), offset(offset) { }
+
+BitReader::BitReader(const void* data, size_t size, size_t offset) :
+    data(reinterpret_cast<const uint8_t*>(data)), length(size), offset(offset) { }
+
+BitReader::BitReader(const string& data, size_t offset) :
+    BitReader(data.data(), data.size() * 8, offset) { }
+
+size_t BitReader::where() const {
+  return this->offset;
+}
+
+size_t BitReader::size() const {
+  return this->length;
+}
+
+void BitReader::truncate(size_t new_size) {
+  if (this->length < new_size) {
+    throw invalid_argument("BitReader contents cannot be extended");
+  }
+  this->length = new_size;
+}
+
+void BitReader::go(size_t offset) {
+  this->offset = offset;
+}
+
+void BitReader::skip(size_t bits) {
+  this->offset += bits;
+}
+
+bool BitReader::eof() const {
+  return (this->offset >= this->length);
+}
+
+uint64_t BitReader::pread(size_t start_offset, uint8_t size) {
+  if (size > 64) {
+    throw logic_error("BitReader cannot return more than 64 bits at once");
+  }
+
+  uint64_t ret = 0;
+  for (uint8_t ret_bits = 0; ret_bits < size; ret_bits++) {
+    size_t bit_offset = start_offset + ret_bits;
+    ret = (ret << 1) | ((this->data[bit_offset >> 3] >> (7 - (bit_offset & 7))) & 1);
+  }
+  return ret;
+}
+
+uint64_t BitReader::read(uint8_t size, bool advance) {
+  uint64_t ret = this->pread(this->offset, size);
+  if (advance) {
+    this->offset += size;
+  }
+  return ret;
+}
+
+
+
 StringReader::StringReader(shared_ptr<string> data, size_t offset) :
     owned_data(data), data(reinterpret_cast<const uint8_t*>(data->data())),
     length(data->size()), offset(offset) { }
@@ -1413,6 +1475,8 @@ string StringReader::pget_cstr(size_t offset) const {
   }
   return ret;
 }
+
+
 
 size_t StringWriter::size() const {
   return this->data.size();

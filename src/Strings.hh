@@ -122,6 +122,30 @@ std::string format_duration(uint64_t usecs, int8_t subsecond_precision = -1);
 std::string format_size(size_t size, bool include_bytes = false);
 size_t parse_size(const char* str);
 
+class BitReader {
+public:
+  explicit BitReader(std::shared_ptr<std::string> data, size_t offset = 0);
+  BitReader(const void* data, size_t size, size_t offset = 0);
+  BitReader(const std::string& data, size_t offset = 0);
+  virtual ~BitReader() = default;
+
+  size_t where() const;
+  size_t size() const;
+  void truncate(size_t new_size);
+  void go(size_t offset);
+  void skip(size_t bits);
+  bool eof() const;
+
+  uint64_t pread(size_t offset, uint8_t size = 1);
+  uint64_t read(uint8_t size = 1, bool advance = true);
+
+private:
+  std::shared_ptr<std::string> owned_data;
+  const uint8_t* data;
+  size_t length;
+  size_t offset;
+};
+
 class StringReader {
 public:
   explicit StringReader(std::shared_ptr<std::string> data, size_t offset = 0);

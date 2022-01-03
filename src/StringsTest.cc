@@ -134,6 +134,18 @@ string("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 16), 1, "", PrintDataFlags::PrintDoub
   // TODO: test diffing
 }
 
+void test_bit_reader() {
+  fprintf(stderr, "-- BitReader\n");
+  BitReader r("\x01\x02\xFF\x80\xC0", 34);
+  expect_eq(0x01, r.read(8));
+  expect_eq(0x00, r.read(4));
+  expect_eq(0x01, r.read(3));
+  expect_eq(0x01FF, r.read(10));
+  expect_eq(0x00, r.read(7));
+  expect_eq(0x03, r.read(2));
+  expect(r.eof());
+}
+
 
 int main(int, char** argv) {
 
@@ -349,6 +361,8 @@ int main(int, char** argv) {
   }
 
   print_data_test();
+
+  test_bit_reader();
 
   // TODO: test string_vprintf
   // TODO: test log_level, set_log_level, log
