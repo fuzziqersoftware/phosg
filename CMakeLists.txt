@@ -21,7 +21,7 @@ link_directories("/usr/local/lib")
 
 # Library and executable definitions
 
-add_library(phosg src/Concurrency.cc src/ConsistentHashRing.cc src/Encoding.cc src/FileCache.cc src/Filesystem.cc src/Hash.cc src/Image.cc src/JSON.cc src/Network.cc src/Process.cc src/Random.cc src/Strings.cc src/Time.cc src/UnitTest.cc)
+add_library(phosg src/ConsistentHashRing.cc src/Encoding.cc src/FileCache.cc src/Filesystem.cc src/Hash.cc src/Image.cc src/JSON.cc src/Network.cc src/Process.cc src/Random.cc src/Strings.cc src/Time.cc src/UnitTest.cc)
 
 add_executable(jsonformat src/JSONFormat.cc)
 target_link_libraries(jsonformat phosg)
