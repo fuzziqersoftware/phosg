@@ -30,6 +30,8 @@ std::string dirname(const std::string& filename);
 
 std::unordered_set<std::string> list_directory(const std::string& dirname);
 
+std::string getcwd();
+
 std::string get_user_home_directory();
 
 class cannot_stat_file : virtual public std::runtime_error {

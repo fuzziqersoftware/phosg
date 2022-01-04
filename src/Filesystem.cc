@@ -64,6 +64,15 @@ unordered_set<string> list_directory(const string& dirname) {
   return files;
 }
 
+string getcwd() {
+  string ret(MAXPATHLEN, '\0');
+  if (!getcwd(const_cast<char*>(ret.data()), ret.size())) {
+    throw runtime_error("cannot get working directory");
+  }
+  ret.resize(strlen(ret.c_str()));
+  return ret;
+}
+
 #else  // PHOSG_WINDOWS
 
 unordered_set<string> list_directory(const string& dirname) {
