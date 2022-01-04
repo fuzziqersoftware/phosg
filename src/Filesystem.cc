@@ -1,6 +1,5 @@
 #include "Filesystem.hh"
 
-#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -14,6 +13,7 @@
 #include "Platform.hh"
 
 #ifndef PHOSG_WINDOWS
+#include <dirent.h>
 #include <poll.h>
 #include <pwd.h>
 #define O_BINARY 0

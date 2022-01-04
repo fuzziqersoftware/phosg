@@ -110,12 +110,12 @@ ConstantTimeConsistentHashRing::ConstantTimeConsistentHashRing(
   }
 
   this->points.clear();
-  this->points.resize(1 << precision, 0xFF);
+  this->points.resize(1ULL << precision, 0xFF);
 
   size_t index_mask = this->points.size() - 1;
   set<Host> hosts_ordered(hosts.begin(), hosts.end());
   for (const auto & it : hosts_ordered) {
-    uint8_t host_id = this->hosts.size();
+    uint8_t host_id = static_cast<uint8_t>(this->hosts.size());
     for (uint16_t y = 0; y < POINTS_PER_HOST; y++) {
       uint64_t h = fnv1a64(it.name.data(), it.name.size(),
           fnv1a64(&y, sizeof(uint16_t)));

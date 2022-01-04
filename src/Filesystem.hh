@@ -1,6 +1,5 @@
 #pragma once
 
-#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -10,6 +9,7 @@
 #include "Platform.hh"
 
 #ifndef PHOSG_WINDOWS
+#include <dirent.h>
 #include <poll.h>
 #include <sys/uio.h>
 #endif

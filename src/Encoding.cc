@@ -68,11 +68,11 @@ string base64_decode(const void* vdata, size_t size, const char* alphabet) {
 
   // compute the inverse alphabet for easier decoding
   // TODO: make this not happen every time, at least for the default alphabets
-  string inverse_alphabet(0x100, 0xFF);
-  for (size_t x = 0; x < 0x40; x++) {
+  string inverse_alphabet(0x100, -1);
+  for (char x = 0; x < 0x40; x++) {
     inverse_alphabet[alphabet[x]] = x;
   }
-  inverse_alphabet['='] = 0x80;
+  inverse_alphabet['='] = -0x80;
 
   // decode blocks of 4 bytes first
   string ret;
