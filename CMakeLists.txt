@@ -23,7 +23,7 @@ link_directories("/usr/local/lib")
 
 # Library and executable definitions
 
-add_library(phosg src/ConsistentHashRing.cc src/Encoding.cc src/FileCache.cc src/Filesystem.cc src/Hash.cc src/Image.cc src/JSON.cc src/Network.cc src/Process.cc src/Random.cc src/Strings.cc src/Time.cc src/UnitTest.cc)
+add_library(phosg src/Encoding.cc src/Filesystem.cc src/Hash.cc src/Image.cc src/JSON.cc src/Network.cc src/Process.cc src/Random.cc src/Strings.cc src/Time.cc src/UnitTest.cc)
 
 add_executable(jsonformat src/JSONFormat.cc)
 target_link_libraries(jsonformat phosg)
@@ -34,7 +34,7 @@ target_link_libraries(jsonformat phosg)
 
 enable_testing()
 
-foreach(TestName IN ITEMS ConsistentHashRingTest EncodingTest FileCacheTest FilesystemTest HashTest ImageTest JSONTest KDTreeTest LRUSetTest ProcessTest StringsTest TimeTest UnitTestTest)
+foreach(TestName IN ITEMS EncodingTest FilesystemTest HashTest ImageTest JSONTest KDTreeTest LRUSetTest ProcessTest StringsTest TimeTest UnitTestTest)
   add_executable(${TestName} src/${TestName}.cc)
   target_link_libraries(${TestName} phosg)
   add_test(NAME ${TestName} COMMAND ${TestName})

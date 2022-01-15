@@ -1,19 +1,23 @@
 Phosg is a basic C++ wrapper library around some common C routines.
 
 A short summary of its contents:
-- Byteswapping functions
-- Directory listing, smart-pointer fopen and stat functions
+- Byteswapping and encoding functions (base64, rot13)
+- Directory listing, smart-pointer fopen and stat, file and path manipulation
+- Hash functions (fnv1a64, sha1, sha256, md5)
 - Basic image manipulation/drawing
-- Basic JSON (de)serialization
-- LRU set implementation
+- JSON (de)serialization
 - Network helpers (IP address parsing/formatting, listen/connect sockets)
-- Process listing and name <> PID mapping
-- String helpers like printf, split, time/size formatting, etc.
+- OS random data sources
+- Process utilities (list processes, name <> PID mapping, subprocess execution)
+- Time conversions
+- std::string helpers like printf, split, time/size formatting, etc.
+- 2D, 3D, 4D vectors and basic vector math
+- KD-tree and LRU set data structures
 
 Phosg also includes an executable (jsonformat) that reformats JSON.
 
 Building & installing on macOS or Linux:
-- Make sure you have CMake, g++ and Python 3 installed.
+- Install CMake and Python 3.
 - `cmake .`
 - `make`
 - `make test`
