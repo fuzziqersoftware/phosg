@@ -114,6 +114,8 @@ public:
   void reverse_horizontal();
   void reverse_vertical();
   void set_has_alpha(bool has_alpha);
+  void set_alpha_from_mask_color(uint64_t r, uint64_t g, uint64_t b);
+  void set_alpha_from_mask_color(uint32_t c);
 
   // drawing functions
   // note: no drawing functions respect the alpha channel - they all set it to

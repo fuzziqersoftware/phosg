@@ -848,6 +848,24 @@ void Image::set_has_alpha(bool new_has_alpha) {
   this->data.raw = new_data.raw;
 }
 
+void Image::set_alpha_from_mask_color(uint64_t r, uint64_t g, uint64_t b) {
+  ssize_t w = this->get_width();
+  ssize_t h = this->get_height();
+  for (ssize_t y = 0; y < h; y++) {
+    for (ssize_t x = 0; x < w; x++) {
+      uint64_t sr, sg, sb;
+      this->read_pixel(x, y, &sr, &sg, &sb);
+      uint64_t a = (sr == r && sg == g && sb == b) ? 0 : this->max_value;
+      this->write_pixel(x, y, sr, sg, sb, a);
+    }
+  }
+}
+
+void Image::set_alpha_from_mask_color(uint32_t c) {
+  auto ec = expand_color(c);
+  this->set_alpha_from_mask_color(ec.r, ec.g, ec.b);
+}
+
 // use the Bresenham algorithm to draw a line between the specified points
 void Image::draw_line(ssize_t x0, ssize_t y0, ssize_t x1, ssize_t y1,
     uint64_t r, uint64_t g, uint64_t b, uint64_t a) {
