@@ -1338,16 +1338,48 @@ void Image::blend_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
     for (int xx = 0; xx < w; xx++) {
       uint64_t sr, sg, sb, sa;
       source.read_pixel(sx + xx, sy + yy, &sr, &sg, &sb, &sa);
-      if (sa == 0xFF) {
+      if (sa == this->max_value) {
         this->write_pixel(x + xx, y + yy, sr, sg, sb, sa);
       } else if (sa != 0x00) {
         uint64_t dr, dg, db, da;
         this->read_pixel(sx + xx, sy + yy, &dr, &dg, &db, &da);
         this->write_pixel(sx + xx, sy + yy,
-            (sr * sa + dr * (0xFF - sa)) / 0xFF,
-            (sg * sa + dg * (0xFF - sa)) / 0xFF,
-            (sb * sa + db * (0xFF - sa)) / 0xFF,
-            (sa * sa + da * (0xFF - sa)) / 0xFF);
+            (sr * sa + dr * (this->max_value - sa)) / this->max_value,
+            (sg * sa + dg * (this->max_value - sa)) / this->max_value,
+            (sb * sa + db * (this->max_value - sa)) / this->max_value,
+            (sa * sa + da * (this->max_value - sa)) / this->max_value);
+      }
+    }
+  }
+}
+
+void Image::blend_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
+    ssize_t h, ssize_t sx, ssize_t sy, uint64_t source_alpha) {
+  if (w < 0) {
+    w = source.get_width();
+  }
+  if (h < 0) {
+    h = source.get_height();
+  }
+
+  clamp_blit_dimensions(*this, source, &x, &y, &w, &h, &sx, &sy);
+
+  for (int yy = 0; yy < h; yy++) {
+    for (int xx = 0; xx < w; xx++) {
+      uint64_t sr, sg, sb, sa;
+      source.read_pixel(sx + xx, sy + yy, &sr, &sg, &sb, &sa);
+
+      uint64_t effective_alpha = (source_alpha * sa) / this->max_value;
+      if (effective_alpha == this->max_value) {
+        this->write_pixel(x + xx, y + yy, sr, sg, sb, effective_alpha);
+      } else if (effective_alpha != 0x00) {
+        uint64_t dr, dg, db, da;
+        this->read_pixel(sx + xx, sy + yy, &dr, &dg, &db, &da);
+        this->write_pixel(sx + xx, sy + yy,
+            (sr * effective_alpha + dr * (this->max_value - effective_alpha)) / this->max_value,
+            (sg * effective_alpha + dg * (this->max_value - effective_alpha)) / this->max_value,
+            (sb * effective_alpha + db * (this->max_value - effective_alpha)) / this->max_value,
+            (sa * effective_alpha + da * (this->max_value - effective_alpha)) / this->max_value);
       }
     }
   }

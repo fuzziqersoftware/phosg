@@ -171,4 +171,6 @@ public:
   // blend functions
   void blend_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w, ssize_t h,
       ssize_t sx, ssize_t sy);
+  void blend_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w, ssize_t h,
+      ssize_t sx, ssize_t sy, uint64_t source_alpha);
 };
