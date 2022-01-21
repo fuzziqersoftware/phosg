@@ -1157,6 +1157,54 @@ void Image::invert() {
   }
 }
 
+static inline void clamp_blit_dimensions(
+    const Image& dest, const Image& source, ssize_t* x, ssize_t* y, ssize_t* w,
+    ssize_t* h, ssize_t* sx, ssize_t* sy) {
+  // If the source coordinates are negative, trim off the left/top
+  if (*sx < 0) {
+    *x -= *sx;
+    *w += *sx;
+    *sx = 0;
+  }
+  if (*sy < 0) {
+    *y -= *sy;
+    *h += *sy;
+    *sy = 0;
+  }
+  // If the dest coordinates are negative, trim off the left/top
+  if (*x < 0) {
+    *sx -= *x;
+    *w += *x;
+    *x = 0;
+  }
+  if (*y < 0) {
+    *sy -= *y;
+    *h += *y;
+    *y = 0;
+  }
+  // If the area extends beyond the source, trim off the right/bottom
+  if (*sx + *w > static_cast<ssize_t>(source.get_width())) {
+    *w = *sx + source.get_width();
+  }
+  if (*sy + *h > static_cast<ssize_t>(source.get_height())) {
+    *h = *sy + source.get_height();
+  }
+  // If the area extends beyond the dest, trim off the right/bottom
+  if (*x + *w > static_cast<ssize_t>(dest.get_width())) {
+    *w = *x + dest.get_width();
+  }
+  if (*y + *h > static_cast<ssize_t>(dest.get_height())) {
+    *h = *y + dest.get_height();
+  }
+
+  // If either width or height are negative, then the entire area is out of
+  // bounds for either the source or dest - make the area empty
+  if (*w < 0 || *h < 0) {
+    *w = 0;
+    *h = 0;
+  }
+}
+
 void Image::blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
     ssize_t h, ssize_t sx, ssize_t sy) {
 
@@ -1167,24 +1215,24 @@ void Image::blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
     h = source.get_height();
   }
 
+  clamp_blit_dimensions(*this, source, &x, &y, &w, &h, &sx, &sy);
+
   for (ssize_t yy = 0; yy < h; yy++) {
     for (ssize_t xx = 0; xx < w; xx++) {
-      try {
-        uint64_t r, g, b, a;
-        source.read_pixel(sx + xx, sy + yy, &r, &g, &b, &a);
-        if (a == 0) {
-          continue;
-        }
-        if (a != 0xFF) {
-          uint64_t sr, sg, sb, sa;
-          this->read_pixel(x + xx, y + yy, &sr, &sg, &sb, &sa);
-          r = (a * (uint32_t)r + (0xFF - a) * (uint32_t)sr) / 0xFF;
-          g = (a * (uint32_t)g + (0xFF - a) * (uint32_t)sg) / 0xFF;
-          b = (a * (uint32_t)b + (0xFF - a) * (uint32_t)sb) / 0xFF;
-          a = (a * (uint32_t)a + (0xFF - a) * (uint32_t)sa) / 0xFF;
-        }
-        this->write_pixel(x + xx, y + yy, r, g, b, a);
-      } catch (const runtime_error& e) { }
+      uint64_t r, g, b, a;
+      source.read_pixel(sx + xx, sy + yy, &r, &g, &b, &a);
+      if (a == 0) {
+        continue;
+      }
+      if (a != 0xFF) {
+        uint64_t sr, sg, sb, sa;
+        this->read_pixel(x + xx, y + yy, &sr, &sg, &sb, &sa);
+        r = (a * (uint32_t)r + (0xFF - a) * (uint32_t)sr) / 0xFF;
+        g = (a * (uint32_t)g + (0xFF - a) * (uint32_t)sg) / 0xFF;
+        b = (a * (uint32_t)b + (0xFF - a) * (uint32_t)sb) / 0xFF;
+        a = (a * (uint32_t)a + (0xFF - a) * (uint32_t)sa) / 0xFF;
+      }
+      this->write_pixel(x + xx, y + yy, r, g, b, a);
     }
   }
 }
@@ -1199,15 +1247,15 @@ void Image::mask_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
     h = source.get_height();
   }
 
+  clamp_blit_dimensions(*this, source, &x, &y, &w, &h, &sx, &sy);
+
   for (int yy = 0; yy < h; yy++) {
     for (int xx = 0; xx < w; xx++) {
-      try {
-        uint64_t _r, _g, _b, _a;
-        source.read_pixel(sx + xx, sy + yy, &_r, &_g, &_b, &_a);
-        if (r != _r || g != _g || b != _b) {
-          this->write_pixel(x + xx, y + yy, _r, _g, _b, _a);
-        }
-      } catch (const runtime_error& e) { }
+      uint64_t _r, _g, _b, _a;
+      source.read_pixel(sx + xx, sy + yy, &_r, &_g, &_b, &_a);
+      if (r != _r || g != _g || b != _b) {
+        this->write_pixel(x + xx, y + yy, _r, _g, _b, _a);
+      }
     }
   }
 }
@@ -1227,16 +1275,16 @@ void Image::mask_blit_dst(const Image& source, ssize_t x, ssize_t y, ssize_t w,
     h = source.get_height();
   }
 
+  clamp_blit_dimensions(*this, source, &x, &y, &w, &h, &sx, &sy);
+
   for (int yy = 0; yy < h; yy++) {
     for (int xx = 0; xx < w; xx++) {
-      try {
-        uint64_t _r, _g, _b, _a;
-        this->read_pixel(x + xx, y + yy, &_r, &_g, &_b, &_a);
-        if (r == _r && g == _g && b == _b) {
-          source.read_pixel(sx + xx, sy + yy, &_r, &_g, &_b, &_a);
-          this->write_pixel(x + xx, y + yy, _r, _g, _b, _a);
-        }
-      } catch (const runtime_error& e) { }
+      uint64_t _r, _g, _b, _a;
+      this->read_pixel(x + xx, y + yy, &_r, &_g, &_b, &_a);
+      if (r == _r && g == _g && b == _b) {
+        source.read_pixel(sx + xx, sy + yy, &_r, &_g, &_b, &_a);
+        this->write_pixel(x + xx, y + yy, _r, _g, _b, _a);
+      }
     }
   }
 }
@@ -1260,17 +1308,17 @@ void Image::mask_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
     h = source.get_height();
   }
 
+  clamp_blit_dimensions(*this, source, &x, &y, &w, &h, &sx, &sy);
+
   for (ssize_t yy = 0; yy < h; yy++) {
     for (ssize_t xx = 0; xx < w; xx++) {
-      try {
-        uint64_t r, g, b, a;
-        mask.read_pixel(sx + xx, sy + yy, &r, &g, &b);
-        if (r == 0xFF && g == 0xFF && b == 0xFF) {
-          continue;
-        }
-        source.read_pixel(sx + xx, sy + yy, &r, &g, &b, &a);
-        this->write_pixel(x + xx, y + yy, r, g, b, a);
-      } catch (const runtime_error& e) { }
+      uint64_t r, g, b, a;
+      mask.read_pixel(sx + xx, sy + yy, &r, &g, &b);
+      if (r == 0xFF && g == 0xFF && b == 0xFF) {
+        continue;
+      }
+      source.read_pixel(sx + xx, sy + yy, &r, &g, &b, &a);
+      this->write_pixel(x + xx, y + yy, r, g, b, a);
     }
   }
 }
@@ -1284,23 +1332,23 @@ void Image::blend_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
     h = source.get_height();
   }
 
+  clamp_blit_dimensions(*this, source, &x, &y, &w, &h, &sx, &sy);
+
   for (int yy = 0; yy < h; yy++) {
     for (int xx = 0; xx < w; xx++) {
-      try {
-        uint64_t sr, sg, sb, sa;
-        source.read_pixel(sx + xx, sy + yy, &sr, &sg, &sb, &sa);
-        if (sa == 0xFF) {
-          this->write_pixel(x + xx, y + yy, sr, sg, sb, sa);
-        } else if (sa != 0x00) {
-          uint64_t dr, dg, db, da;
-          this->read_pixel(sx + xx, sy + yy, &dr, &dg, &db, &da);
-          this->write_pixel(sx + xx, sy + yy,
-              (sr * sa + dr * (0xFF - sa)) / 0xFF,
-              (sg * sa + dg * (0xFF - sa)) / 0xFF,
-              (sb * sa + db * (0xFF - sa)) / 0xFF,
-              (sa * sa + da * (0xFF - sa)) / 0xFF);
-        }
-      } catch (const runtime_error& e) { }
+      uint64_t sr, sg, sb, sa;
+      source.read_pixel(sx + xx, sy + yy, &sr, &sg, &sb, &sa);
+      if (sa == 0xFF) {
+        this->write_pixel(x + xx, y + yy, sr, sg, sb, sa);
+      } else if (sa != 0x00) {
+        uint64_t dr, dg, db, da;
+        this->read_pixel(sx + xx, sy + yy, &dr, &dg, &db, &da);
+        this->write_pixel(sx + xx, sy + yy,
+            (sr * sa + dr * (0xFF - sa)) / 0xFF,
+            (sg * sa + dg * (0xFF - sa)) / 0xFF,
+            (sb * sa + db * (0xFF - sa)) / 0xFF,
+            (sa * sa + da * (0xFF - sa)) / 0xFF);
+      }
     }
   }
 }
