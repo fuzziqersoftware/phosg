@@ -1360,8 +1360,8 @@ void Image::blend_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
         this->write_pixel(x + xx, y + yy, sr, sg, sb, sa);
       } else if (sa != 0x00) {
         uint64_t dr, dg, db, da;
-        this->read_pixel(sx + xx, sy + yy, &dr, &dg, &db, &da);
-        this->write_pixel(sx + xx, sy + yy,
+        this->read_pixel(x + xx, y + yy, &dr, &dg, &db, &da);
+        this->write_pixel(x + xx, y + yy,
             (sr * sa + dr * (this->max_value - sa)) / this->max_value,
             (sg * sa + dg * (this->max_value - sa)) / this->max_value,
             (sb * sa + db * (this->max_value - sa)) / this->max_value,
@@ -1392,12 +1392,12 @@ void Image::blend_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
         this->write_pixel(x + xx, y + yy, sr, sg, sb, effective_alpha);
       } else if (effective_alpha != 0x00) {
         uint64_t dr, dg, db, da;
-        this->read_pixel(sx + xx, sy + yy, &dr, &dg, &db, &da);
-        this->write_pixel(sx + xx, sy + yy,
+        this->read_pixel(x + xx, y + yy, &dr, &dg, &db, &da);
+        this->write_pixel(x + xx, y + yy,
             (sr * effective_alpha + dr * (this->max_value - effective_alpha)) / this->max_value,
             (sg * effective_alpha + dg * (this->max_value - effective_alpha)) / this->max_value,
             (sb * effective_alpha + db * (this->max_value - effective_alpha)) / this->max_value,
-            (sa * effective_alpha + da * (this->max_value - effective_alpha)) / this->max_value);
+            da);
       }
     }
   }
