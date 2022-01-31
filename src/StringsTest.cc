@@ -184,7 +184,8 @@ int main(int, char** argv) {
 
   {
     fprintf(stderr, "-- string_printf\n");
-    string result = string_printf("%s %llu 0x%04hX", "lolz", 1000ULL, 0x4F);
+    string result = string_printf("%s %" PRIu64 " 0x%04hX", "lolz", 1000ULL,
+        static_cast<uint16_t>(0x4F));
     fprintf(stderr, "%s\n", result.c_str());
     expect_eq("lolz 1000 0x004F", result);
   }

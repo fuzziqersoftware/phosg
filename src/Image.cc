@@ -549,7 +549,7 @@ string Image::save(Image::ImageFormat format) const {
       if (this->has_alpha) {
         throw runtime_error("can\'t save color ppm with alpha");
       }
-      string s = string_printf("P6 %d %d %" PRIu64 "\n", this->width,
+      string s = string_printf("P6 %zd %zd %" PRIu64 "\n", this->width,
           this->height, this->max_value);
       s.append(reinterpret_cast<const char*>(this->data.raw), this->get_data_size());
       return s;

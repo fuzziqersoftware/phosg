@@ -139,15 +139,20 @@ public:
       uint64_t bb, uint64_t ba, const char* fmt, va_list va);
   void draw_text(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
       uint64_t r, uint64_t g, uint64_t b, uint64_t a, uint64_t br, uint64_t bg,
-      uint64_t bb, uint64_t ba, const char* fmt, ...);
+      uint64_t bb, uint64_t ba, const char* fmt, ...)
+  __attribute__((format(printf, 14, 15)));
   void draw_text(ssize_t x, ssize_t y,
       uint64_t r, uint64_t g, uint64_t b, uint64_t a, uint64_t br, uint64_t bg,
-      uint64_t bb, uint64_t ba, const char* fmt, ...);
+      uint64_t bb, uint64_t ba, const char* fmt, ...)
+  __attribute__((format(printf, 12, 13)));
   void draw_text(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
-      uint32_t color, uint32_t background, const char* fmt, ...);
+      uint32_t color, uint32_t background, const char* fmt, ...)
+  __attribute__((format(printf, 8, 9)));
   void draw_text(ssize_t x, ssize_t y, uint32_t color, uint32_t background,
-      const char* fmt, ...);
-  void draw_text(ssize_t x, ssize_t y, uint32_t color, const char* fmt, ...);
+      const char* fmt, ...)
+  __attribute__((format(printf, 6, 7)));
+  void draw_text(ssize_t x, ssize_t y, uint32_t color, const char* fmt, ...)
+  __attribute__((format(printf, 5, 6)));
 #endif
   void fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint64_t r,
       uint64_t g, uint64_t b, uint64_t a = 0xFF);

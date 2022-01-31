@@ -21,7 +21,8 @@ void strip_trailing_zeroes(std::string& s);
 std::string escape_quotes(const std::string& s);
 std::string escape_url(const std::string& s, bool escape_slash = false);
 
-std::string string_printf(const char* fmt, ...);
+std::string string_printf(const char* fmt, ...)
+__attribute__((format(printf, 1, 2)));
 std::wstring wstring_printf(const wchar_t* fmt, ...);
 std::string string_vprintf(const char* fmt, va_list va);
 std::wstring wstring_vprintf(const wchar_t* fmt, va_list va);
@@ -38,7 +39,8 @@ uint8_t value_for_hex_char(char x);
 
 int log_level();
 void set_log_level(int new_level);
-void log(int level, const char* fmt, ...);
+void log(int level, const char* fmt, ...)
+__attribute__((format(printf, 2, 3)));
 
 std::vector<std::string> split(const std::string& s, char delim);
 std::vector<std::wstring> split(const std::wstring& s, wchar_t delim);
