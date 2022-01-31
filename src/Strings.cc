@@ -791,10 +791,10 @@ string format_time(struct timeval* tv) {
       "May", "June", "July", "August", "September", "October", "November",
       "December"};
 
-  return string_printf("%u %s %4u %02u:%02u:%02u.%03u", cooked.tm_mday,
+  return string_printf("%u %s %4u %02u:%02u:%02u.%03hu", cooked.tm_mday,
      monthnames[cooked.tm_mon], cooked.tm_year + 1900,
      cooked.tm_hour, cooked.tm_min, cooked.tm_sec,
-     tv->tv_usec / 1000);
+     static_cast<uint16_t>(tv->tv_usec / 1000));
 }
 
 string format_duration(uint64_t usecs, int8_t subsecond_precision) {
