@@ -972,6 +972,10 @@ size_t BitReader::size() const {
   return this->length;
 }
 
+size_t BitReader::remaining() const {
+  return this->length - this->offset;
+}
+
 void BitReader::truncate(size_t new_size) {
   if (this->length < new_size) {
     throw invalid_argument("BitReader contents cannot be extended");
@@ -1030,6 +1034,10 @@ size_t StringReader::where() const {
 
 size_t StringReader::size() const {
   return this->length;
+}
+
+size_t StringReader::remaining() const {
+  return this->length - this->offset;
 }
 
 void StringReader::truncate(size_t new_size) {

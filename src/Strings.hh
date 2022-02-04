@@ -133,6 +133,7 @@ public:
 
   size_t where() const;
   size_t size() const;
+  size_t remaining() const;
   void truncate(size_t new_size);
   void go(size_t offset);
   void skip(size_t bits);
@@ -157,6 +158,7 @@ public:
 
   size_t where() const;
   size_t size() const;
+  size_t remaining() const;
   void truncate(size_t new_size);
   void go(size_t offset);
   void skip(size_t bytes);
