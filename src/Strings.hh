@@ -291,8 +291,13 @@ public:
 
   void write(const std::string& data);
 
-  template <typename T> void put(T v) {
+  template <typename T> void put(const T& v) {
     this->data.append(reinterpret_cast<const char*>(&v), sizeof(v));
+  }
+
+  template <typename T> void put_sw(const T& v) {
+    this->data.append(reinterpret_cast<const char*>(&v), sizeof(v));
+    reinterpret_cast<T*>(this->data[this->data.size() - sizeof(v)])->byteswap();
   }
 
   void put_u8(uint8_t v);
@@ -320,7 +325,7 @@ public:
   void put_s64r(int64_t v);
 
   inline std::string& str() {
-    return data;
+    return this->data;
   }
 
 private:
