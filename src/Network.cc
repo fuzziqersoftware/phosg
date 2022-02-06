@@ -244,7 +244,7 @@ string gethostname() {
 #else
   string buf(sysconf(_SC_HOST_NAME_MAX) + 1, '\0');
 #endif
-  if (gethostname(const_cast<char*>(buf.data()), buf.size())) {
+  if (gethostname(buf.data(), buf.size())) {
     throw runtime_error("can\'t get hostname");
   }
   buf.resize(strlen(buf.c_str()));

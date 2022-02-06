@@ -339,11 +339,11 @@ public:
   virtual ~StringBuffer() = default;
 
   T* buffer() {
-    return reinterpret_cast<T*>(const_cast<char*>(this->data()));
+    return reinterpret_cast<T*>(this->data());
   }
 };
 
 template <typename T>
 T* data_at(std::string& s, size_t offset = 0) {
-  return reinterpret_cast<T*>(const_cast<char*>(s.data() + offset));
+  return reinterpret_cast<T*>(s.data() + offset);
 }

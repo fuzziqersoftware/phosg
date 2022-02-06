@@ -107,11 +107,11 @@ string sha1(const void* data, size_t size) {
   }
 
   string ret(20, 0);
-  *reinterpret_cast<uint32_t*>(const_cast<char*>(ret.data() + 0)) = bswap32(h0);
-  *reinterpret_cast<uint32_t*>(const_cast<char*>(ret.data() + 4)) = bswap32(h1);
-  *reinterpret_cast<uint32_t*>(const_cast<char*>(ret.data() + 8)) = bswap32(h2);
-  *reinterpret_cast<uint32_t*>(const_cast<char*>(ret.data() + 12)) = bswap32(h3);
-  *reinterpret_cast<uint32_t*>(const_cast<char*>(ret.data() + 16)) = bswap32(h4);
+  *reinterpret_cast<uint32_t*>(ret.data() + 0) = bswap32(h0);
+  *reinterpret_cast<uint32_t*>(ret.data() + 4) = bswap32(h1);
+  *reinterpret_cast<uint32_t*>(ret.data() + 8) = bswap32(h2);
+  *reinterpret_cast<uint32_t*>(ret.data() + 12) = bswap32(h3);
+  *reinterpret_cast<uint32_t*>(ret.data() + 16) = bswap32(h4);
   return ret;
 }
 
@@ -296,10 +296,10 @@ string md5(const void* data, size_t size) {
   }
 
   string ret(16, 0);
-  *reinterpret_cast<uint32_t*>(const_cast<char*>(ret.data() + 0)) = a0;
-  *reinterpret_cast<uint32_t*>(const_cast<char*>(ret.data() + 4)) = b0;
-  *reinterpret_cast<uint32_t*>(const_cast<char*>(ret.data() + 8)) = c0;
-  *reinterpret_cast<uint32_t*>(const_cast<char*>(ret.data() + 12)) = d0;
+  *reinterpret_cast<uint32_t*>(ret.data() + 0) = a0;
+  *reinterpret_cast<uint32_t*>(ret.data() + 4) = b0;
+  *reinterpret_cast<uint32_t*>(ret.data() + 8) = c0;
+  *reinterpret_cast<uint32_t*>(ret.data() + 12) = d0;
   return ret;
 }
 

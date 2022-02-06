@@ -20,7 +20,7 @@ string format_time(uint64_t t) {
   gmtime_r(&t_secs, &t_parsed);
 
   string ret(128, 0);
-  size_t len = strftime(const_cast<char*>(ret.data()), ret.size(),
+  size_t len = strftime(ret.data(), ret.size(),
       "%Y-%m-%d %H:%M:%S", &t_parsed);
   if (len == 0) {
     throw runtime_error("format_time buffer too short");

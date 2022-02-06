@@ -146,7 +146,7 @@ wstring wstring_vprintf(const wchar_t* fmt, va_list va) {
   while ((written < 0) || (written > static_cast<ssize_t>(result.size()))) {
     va_list tmp_va;
     va_copy(tmp_va, va);
-    written = vswprintf(const_cast<wchar_t*>(result.data()), result.size(), fmt, va);
+    written = vswprintf(result.data(), result.size(), fmt, va);
     va_end(tmp_va);
   }
   result.resize(written);

@@ -67,7 +67,7 @@ unordered_set<string> list_directory(const string& dirname) {
 
 string getcwd() {
   string ret(MAXPATHLEN, '\0');
-  if (!getcwd(const_cast<char*>(ret.data()), ret.size())) {
+  if (!getcwd(ret.data(), ret.size())) {
     throw runtime_error("cannot get working directory");
   }
   ret.resize(strlen(ret.c_str()));
@@ -120,7 +120,7 @@ string get_user_home_directory() {
 
   string buffer(bufsize, '\0');
   struct passwd pwd, *result = nullptr;
-  if (getpwuid_r(getuid(), &pwd, const_cast<char*>(buffer.data()), bufsize, &result) != 0 || !result) {
+  if (getpwuid_r(getuid(), &pwd, buffer.data(), bufsize, &result) != 0 || !result) {
     throw runtime_error("can\'t get home directory for current user");
   }
 
@@ -241,8 +241,7 @@ bool islink(const string& filename) {
 
 string readlink(const string& filename) {
   string data(1024, 0);
-  ssize_t length = readlink(filename.c_str(), const_cast<char*>(data.data()),
-      data.size());
+  ssize_t length = readlink(filename.c_str(), data.data(), data.size());
   if (length < 0) {
     throw cannot_stat_file(filename);
   }
@@ -253,7 +252,7 @@ string readlink(const string& filename) {
 
 string realpath(const string& path) {
   string data(PATH_MAX, 0);
-  if (!realpath(path.c_str(), const_cast<char*>(data.data()))) {
+  if (!realpath(path.c_str(), data.data())) {
     throw cannot_stat_file(path);
   }
   data.resize(strlen(data.c_str()));
@@ -330,8 +329,7 @@ string read_all(int fd) {
   vector<string> buffers;
   for (;;) {
     buffers.emplace_back(read_size, 0);
-    ssize_t bytes_read = read(fd, const_cast<char*>(buffers.back().data()),
-        read_size);
+    ssize_t bytes_read = read(fd, buffers.back().data(), read_size);
     if (bytes_read < 0) {
       throw io_error(fd);
     }
@@ -363,8 +361,7 @@ string read_all(FILE* f) {
   vector<string> buffers;
   for (;;) {
     buffers.emplace_back(read_size, 0);
-    ssize_t bytes_read = fread(const_cast<char*>(buffers.back().data()),
-        1, read_size, f);
+    ssize_t bytes_read = fread(buffers.back().data(), 1, read_size, f);
     if (bytes_read < 0) {
       throw io_error(fileno(f));
     }
@@ -391,7 +388,7 @@ string read_all(FILE* f) {
 
 string read(int fd, size_t size) {
   string data(size, '\0');
-  ssize_t ret_size = read(fd, const_cast<char*>(data.data()), size);
+  ssize_t ret_size = read(fd, data.data(), size);
   if (ret_size < 0) {
     throw io_error(fd);
   } else if (ret_size != static_cast<ssize_t>(size)) {
@@ -420,7 +417,7 @@ void writex(int fd, const void* data, size_t size) {
 
 string readx(int fd, size_t size) {
   string ret(size, 0);
-  readx(fd, const_cast<char*>(ret.data()), size);
+  readx(fd, ret.data(), size);
   return ret;
 }
 
@@ -450,7 +447,7 @@ void pwritex(int fd, const void* data, size_t size, off_t offset) {
 
 string preadx(int fd, size_t size, off_t offset) {
   string ret(size, 0);
-  preadx(fd, const_cast<char*>(ret.data()), size, offset);
+  preadx(fd, ret.data(), size, offset);
   return ret;
 }
 
@@ -480,7 +477,7 @@ void fwritex(FILE* f, const void* data, size_t size) {
 
 string freadx(FILE* f, size_t size) {
   string ret(size, 0);
-  freadx(f, const_cast<char*>(ret.data()), size);
+  freadx(f, ret.data(), size);
   return ret;
 }
 
@@ -505,7 +502,7 @@ string load_file(const string& filename) {
   ssize_t file_size = fstat(fd).st_size;
 
   string data(file_size, 0);
-  ssize_t bytes_read = read(fd, const_cast<char*>(data.data()), data.size());
+  ssize_t bytes_read = read(fd, data.data(), data.size());
   if (bytes_read != file_size) {
     if (errno == 0) {
       throw runtime_error(string_printf("can\'t read from %s: %zd/%zd bytes read",
@@ -576,8 +573,8 @@ unique_ptr<FILE, void(*)(FILE*)> fdopen_unique(int fd, const string& mode) {
 }
 
 unique_ptr<FILE, void(*)(FILE*)> fmemopen_unique(const void* buf, size_t size) {
-  return unique_ptr<FILE, void(*)(FILE*)>(
-      fmemopen(const_cast<void*>(buf), size, "rb"), fclose_raw);
+  return unique_ptr<FILE, void(*)(FILE*)>(fmemopen(
+      const_cast<void*>(buf), size, "rb"), fclose_raw);
 }
 
 shared_ptr<FILE> fopen_shared(const string& filename, const string& mode,

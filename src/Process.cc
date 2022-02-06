@@ -523,8 +523,8 @@ SubprocessResult run_process(const vector<string>& cmd, const string* stdin_data
         string* buf = read_fd_to_buffer.at(pfd.first);
         size_t read_offset = buf->size();
         buf->resize(read_offset + READ_BLOCK_SIZE);
-        ssize_t bytes_read = read(pfd.first,
-            const_cast<char*>(buf->data()) + read_offset, READ_BLOCK_SIZE);
+        ssize_t bytes_read = read(pfd.first, buf->data() + read_offset,
+            READ_BLOCK_SIZE);
         if (bytes_read > 0) {
           buf->resize(read_offset + bytes_read);
         } else if (bytes_read < 0) {
@@ -580,8 +580,8 @@ SubprocessResult run_process(const vector<string>& cmd, const string* stdin_data
     for (;;) {
       size_t read_offset = it.second->size();
       it.second->resize(read_offset + READ_BLOCK_SIZE);
-      ssize_t bytes_read = read(it.first,
-          const_cast<char*>(it.second->data()) + read_offset, READ_BLOCK_SIZE);
+      ssize_t bytes_read = read(it.first, it.second->data() + read_offset,
+          READ_BLOCK_SIZE);
       if (bytes_read > 0) {
         it.second->resize(it.second->size() - READ_BLOCK_SIZE + bytes_read);
       } else if (bytes_read < 0) {
