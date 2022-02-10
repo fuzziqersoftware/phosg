@@ -954,6 +954,9 @@ size_t parse_size(const char* str) {
 
 
 
+BitReader::BitReader()
+  : owned_data(nullptr), data(nullptr), length(0), offset(0) { }
+
 BitReader::BitReader(shared_ptr<string> data, size_t offset) :
     owned_data(data), data(reinterpret_cast<const uint8_t*>(data->data())),
     length(data->size() * 8), offset(offset) { }
@@ -1017,6 +1020,9 @@ uint64_t BitReader::read(uint8_t size, bool advance) {
 }
 
 
+
+StringReader::StringReader()
+  : owned_data(nullptr), data(nullptr), length(0), offset(0) { }
 
 StringReader::StringReader(shared_ptr<string> data, size_t offset) :
     owned_data(data), data(reinterpret_cast<const uint8_t*>(data->data())),

@@ -126,6 +126,7 @@ size_t parse_size(const char* str);
 
 class BitReader {
 public:
+  BitReader();
   explicit BitReader(std::shared_ptr<std::string> data, size_t offset = 0);
   BitReader(const void* data, size_t size, size_t offset = 0);
   BitReader(const std::string& data, size_t offset = 0);
@@ -151,6 +152,7 @@ private:
 
 class StringReader {
 public:
+  StringReader();
   explicit StringReader(std::shared_ptr<std::string> data, size_t offset = 0);
   StringReader(const void* data, size_t size, size_t offset = 0);
   StringReader(const std::string& data, size_t offset = 0);
