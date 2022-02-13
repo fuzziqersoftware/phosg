@@ -58,6 +58,16 @@ void strip_trailing_zeroes(string& s) {
   }
 }
 
+void strip_trailing_whitespace(string& s) {
+  size_t index = s.find_last_not_of(" \t\r\n");
+  if (index != string::npos) {
+    s.resize(index + 1);
+  } else if (!s.empty() &&
+      ((s[0] == ' ') || (s[0] == '\t') || (s[0] == '\r') || (s[0] == '\n'))) {
+    s.resize(0); // String is entirely whitespace
+  }
+}
+
 string escape_quotes(const string& s) {
   string ret;
   for (size_t x = 0; x < s.size(); x++) {

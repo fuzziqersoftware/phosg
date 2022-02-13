@@ -165,20 +165,39 @@ int main(int, char** argv) {
 
   {
     fprintf(stderr, "-- strip_trailing_zeroes\n");
-    string s1 = "abcdef";
+    string s1("abcdef", 6);
     strip_trailing_zeroes(s1);
     expect_eq(s1, "abcdef");
-    string s2 = "abcdef\0";
+    string s2("abcdef\0", 7);
     strip_trailing_zeroes(s2);
     expect_eq(s2, "abcdef");
-    string s3 = "abcdef\0\0\0\0\0";
+    string s3("abcdef\0\0\0\0\0", 11);
     strip_trailing_zeroes(s3);
     expect_eq(s3, "abcdef");
-    string s4 = "";
+    string s4("", 0);
     strip_trailing_zeroes(s4);
     expect_eq(s4, "");
-    string s5 = "\0\0\0\0\0";
+    string s5("\0\0\0\0\0", 5);
     strip_trailing_zeroes(s5);
+    expect_eq(s5, "");
+  }
+
+  {
+    fprintf(stderr, "-- strip_trailing_whitespace\n");
+    string s1 = "abcdef";
+    strip_trailing_whitespace(s1);
+    expect_eq(s1, "abcdef");
+    string s2 = "abcdef\r\n";
+    strip_trailing_whitespace(s2);
+    expect_eq(s2, "abcdef");
+    string s3 = "abc\tdef  \r\n";
+    strip_trailing_whitespace(s3);
+    expect_eq(s3, "abc\tdef");
+    string s4 = "";
+    strip_trailing_whitespace(s4);
+    expect_eq(s4, "");
+    string s5 = "   \t\r\n  ";
+    strip_trailing_whitespace(s5);
     expect_eq(s5, "");
   }
 
