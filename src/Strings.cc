@@ -214,60 +214,85 @@ void log(int level, const char* fmt, ...) {
   putc('\n', stderr);
 }
 
-vector<string> split(const string& s, char delim) {
-  vector<string> elems;
-  stringstream ss(s);
-  string item;
-  while (getline(ss, item, delim)) {
-    elems.push_back(item);
+vector<string> split(const string& s, char delim, size_t max_splits) {
+  vector<string> ret;
+
+  // Note: token_start_offset can be equal to s.size() if the string ends with
+  // the delimiter character; in that case, we need to ensure we correctly
+  // return an empty string at the end of ret.
+  size_t token_start_offset = 0;
+  while (token_start_offset <= s.size()) {
+    size_t delim_offset = (max_splits && (ret.size() == max_splits))
+        ? string::npos
+        : s.find(delim, token_start_offset);
+    if (delim_offset == string::npos) {
+      ret.emplace_back(s.substr(token_start_offset));
+      break;
+    } else {
+      ret.emplace_back(s.substr(token_start_offset, delim_offset - token_start_offset));
+      token_start_offset = delim_offset + 1;
+    }
   }
-  return elems;
+  return ret;
 }
 
-vector<wstring> split(const wstring& s, wchar_t delim) {
-  vector<wstring> elems;
-  wstringstream ss(s);
-  wstring item;
-  while (getline(ss, item, delim)) {
-    elems.push_back(item);
+vector<wstring> split(const wstring& s, wchar_t delim, size_t max_splits) {
+  vector<wstring> ret;
+
+  // Note: token_start_offset can be equal to s.size() if the string ends with
+  // the delimiter character; in that case, we need to ensure we correctly
+  // return an empty string at the end of ret.
+  size_t token_start_offset = 0;
+  while (token_start_offset <= s.size()) {
+    size_t delim_offset = (max_splits && (ret.size() == max_splits))
+        ? string::npos
+        : s.find(delim, token_start_offset);
+    if (delim_offset == string::npos) {
+      ret.emplace_back(s.substr(token_start_offset));
+      break;
+    } else {
+      ret.emplace_back(s.substr(token_start_offset, delim_offset - token_start_offset));
+      token_start_offset = delim_offset + 1;
+    }
   }
-  return elems;
+  return ret;
 }
 
-vector<string> split_context(const string& s, char delim) {
-  vector<string> elems;
+vector<string> split_context(const string& s, char delim, size_t max_splits) {
+  vector<string> ret;
   vector<char> paren_stack;
 
-  size_t i, last_start = 0;
-  for (i = 0; i < s.size(); i++) {
+  size_t z, last_start = 0;
+  for (z = 0; z < s.size(); z++) {
     if (paren_stack.size() > 0) {
-      if (s[i] == paren_stack.back())
+      if (s[z] == paren_stack.back()) {
         paren_stack.pop_back();
+      }
     } else {
-      if (s[i] == '(')
+      if (s[z] == '(') {
         paren_stack.push_back(')');
-      else if (s[i] == '[')
+      } else if (s[z] == '[') {
         paren_stack.push_back(']');
-      else if (s[i] == '{')
+      } else if (s[z] == '{') {
         paren_stack.push_back('}');
-      else if (s[i] == '<')
+      } else if (s[z] == '<') {
         paren_stack.push_back('>');
-      else if (s[i] == delim) {
-        elems.push_back(s.substr(last_start, i - last_start));
-        last_start = i + 1;
+      } else if ((s[z] == delim) && (!max_splits || (ret.size() < max_splits))) {
+        ret.push_back(s.substr(last_start, z - last_start));
+        last_start = z + 1;
       }
     }
   }
 
-  if (i >= last_start) {
-    elems.push_back(s.substr(last_start, i));
+  if (z >= last_start) {
+    ret.push_back(s.substr(last_start));
   }
 
   if (paren_stack.size()) {
-    throw runtime_error("Unbalanced parenthesis in split");
+    throw runtime_error("unbalanced parentheses in split_context");
   }
 
-  return elems;
+  return ret;
 }
 
 size_t skip_whitespace(const string& s, size_t offset) {

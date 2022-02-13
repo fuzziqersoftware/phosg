@@ -43,9 +43,9 @@ void set_log_level(int new_level);
 void log(int level, const char* fmt, ...)
 __attribute__((format(printf, 2, 3)));
 
-std::vector<std::string> split(const std::string& s, char delim);
-std::vector<std::wstring> split(const std::wstring& s, wchar_t delim);
-std::vector<std::string> split_context(const std::string& s, char delim);
+std::vector<std::string> split(const std::string& s, char delim, size_t max_splits = 0);
+std::vector<std::wstring> split(const std::wstring& s, wchar_t delim, size_t max_splits = 0);
+std::vector<std::string> split_context(const std::string& s, char delim, size_t max_splits = 0);
 
 template<typename ItemContainerT, typename DelimiterT>
 std::string join(const ItemContainerT& items, DelimiterT& delim) {

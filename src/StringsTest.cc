@@ -211,16 +211,26 @@ int main(int, char** argv) {
 
   {
     fprintf(stderr, "-- split\n");
-    string in = "12,34,567,abc";
-    vector<string> expected = {"12", "34", "567", "abc"};
-    expect_eq(expected, split(in, ','));
+    expect_eq(vector<string>({"12", "34", "567", "abc"}), split("12,34,567,abc", ','));
+    expect_eq(vector<string>({"12", "34", "567", "", ""}), split("12,34,567,,", ','));
+    expect_eq(vector<string>({""}), split("", ','));
+    expect_eq(vector<string>({"a", "b", "c d e f"}), split("a b c d e f", ' ', 2));
   }
 
   {
     fprintf(stderr, "-- split_context\n");
-    string in = "12,3(4,56)7,ab[c,]d,e{fg(h,),}";
-    vector<string> expected = {"12", "3(4,56)7", "ab[c,]d", "e{fg(h,),}"};
-    expect_eq(expected, split_context(in, ','));
+    expect_eq(vector<string>({"12", "34", "567", "abc"}), split_context("12,34,567,abc", ','));
+    expect_eq(vector<string>({"12", "34", "567", "", ""}), split_context("12,34,567,,", ','));
+    expect_eq(vector<string>({""}), split_context("", ','));
+    expect_eq(vector<string>({"a", "b", "c d e f"}), split_context("a b c d e f", ' ', 2));
+    expect_eq(vector<string>({"12", "3(4,56)7", "ab[c,]d", "e{fg(h,),}"}),
+        split_context("12,3(4,56)7,ab[c,]d,e{fg(h,),}", ','));
+    expect_eq(vector<string>({"12", "(34,567)", "abc"}), split_context("12,(34,567),abc", ','));
+    expect_eq(vector<string>({"12", "(,567)", "abc"}), split_context("12,(,567),abc", ','));
+    expect_eq(vector<string>({"12", "(34,)", "abc"}), split_context("12,(34,),abc", ','));
+    expect_eq(vector<string>({"12", "(,)", "abc"}), split_context("12,(,),abc", ','));
+    expect_eq(vector<string>({"12", "(34,567),abc"}), split_context("12,(34,567),abc", ',', 1));
+    expect_eq(vector<string>({"(12,34)", "567,abc"}), split_context("(12,34),567,abc", ',', 1));
   }
 
   fprintf(stderr, "-- skip_whitespace/skip_non_whitespace\n");
