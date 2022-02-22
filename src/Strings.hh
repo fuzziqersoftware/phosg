@@ -327,6 +327,30 @@ public:
   void put_u64r(uint64_t v);
   void put_s64r(int64_t v);
 
+  void pput_u8(size_t offset, uint8_t v);
+  void pput_s8(size_t offset, int8_t v);
+  void pput_u16(size_t offset, uint16_t v);
+  void pput_s16(size_t offset, int16_t v);
+  void pput_u24(size_t offset, uint32_t v);
+  void pput_s24(size_t offset, int32_t v);
+  void pput_u32(size_t offset, uint32_t v);
+  void pput_s32(size_t offset, int32_t v);
+  void pput_u48(size_t offset, uint64_t v);
+  void pput_s48(size_t offset, int64_t v);
+  void pput_u64(size_t offset, uint64_t v);
+  void pput_s64(size_t offset, int64_t v);
+
+  void pput_u16r(size_t offset, uint16_t v);
+  void pput_s16r(size_t offset, int16_t v);
+  void pput_u24r(size_t offset, uint32_t v);
+  void pput_s24r(size_t offset, int32_t v);
+  void pput_u32r(size_t offset, uint32_t v);
+  void pput_s32r(size_t offset, int32_t v);
+  void pput_u48r(size_t offset, uint64_t v);
+  void pput_s48r(size_t offset, int64_t v);
+  void pput_u64r(size_t offset, uint64_t v);
+  void pput_s64r(size_t offset, int64_t v);
+
   inline std::string& str() {
     return this->data;
   }

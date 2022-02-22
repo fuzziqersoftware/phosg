@@ -1597,7 +1597,7 @@ void StringWriter::put_u24r(uint32_t v) {
 }
 
 void StringWriter::put_s24r(int32_t v) {
-  this->put_s24(bswap24(v));
+  this->put_s24(bswap24s(v));
 }
 
 void StringWriter::put_u32r(uint32_t v) {
@@ -1613,7 +1613,7 @@ void StringWriter::put_u48r(uint64_t v) {
 }
 
 void StringWriter::put_s48r(int64_t v) {
-  this->put_s48(bswap48(v));
+  this->put_s48(bswap48s(v));
 }
 
 void StringWriter::put_u64r(uint64_t v) {
@@ -1622,4 +1622,130 @@ void StringWriter::put_u64r(uint64_t v) {
 
 void StringWriter::put_s64r(int64_t v) {
   this->put_s64(bswap64(v));
+}
+
+
+void StringWriter::pput_u8(size_t offset, uint8_t v) {
+  if (offset > this->data.size() - sizeof(uint8_t)) {
+    this->data.resize(offset + sizeof(v), '\0');
+  }
+  *reinterpret_cast<uint8_t*>(this->data.data() + offset) = v;
+}
+
+void StringWriter::pput_s8(size_t offset, int8_t v) {
+  if (offset > this->data.size() - sizeof(int8_t)) {
+    this->data.resize(offset + sizeof(v), '\0');
+  }
+  *reinterpret_cast<int8_t*>(this->data.data() + offset) = v;
+}
+
+void StringWriter::pput_u16(size_t offset, uint16_t v) {
+  if (offset > this->data.size() - sizeof(uint16_t)) {
+    this->data.resize(offset + sizeof(v), '\0');
+  }
+  *reinterpret_cast<uint16_t*>(this->data.data() + offset) = v;
+}
+
+void StringWriter::pput_s16(size_t offset, int16_t v) {
+  if (offset > this->data.size() - sizeof(int16_t)) {
+    this->data.resize(offset + sizeof(v), '\0');
+  }
+  *reinterpret_cast<int16_t*>(this->data.data() + offset) = v;
+}
+
+void StringWriter::pput_u24(size_t offset, uint32_t v) {
+  if (offset > this->data.size() - sizeof(uint32_t)) {
+    this->data.resize(offset + sizeof(v), '\0');
+  }
+  *reinterpret_cast<uint32_t*>(this->data.data() + offset) = v;
+}
+
+void StringWriter::pput_s24(size_t offset, int32_t v) {
+  if (offset > this->data.size() - sizeof(int32_t)) {
+    this->data.resize(offset + sizeof(v), '\0');
+  }
+  *reinterpret_cast<int32_t*>(this->data.data() + offset) = v;
+}
+
+void StringWriter::pput_u32(size_t offset, uint32_t v) {
+  if (offset > this->data.size() - sizeof(uint32_t)) {
+    this->data.resize(offset + sizeof(v), '\0');
+  }
+  *reinterpret_cast<uint32_t*>(this->data.data() + offset) = v;
+}
+
+void StringWriter::pput_s32(size_t offset, int32_t v) {
+  if (offset > this->data.size() - sizeof(int32_t)) {
+    this->data.resize(offset + sizeof(v), '\0');
+  }
+  *reinterpret_cast<int32_t*>(this->data.data() + offset) = v;
+}
+
+void StringWriter::pput_u48(size_t offset, uint64_t v) {
+  if (offset > this->data.size() - sizeof(uint64_t)) {
+    this->data.resize(offset + sizeof(v), '\0');
+  }
+  *reinterpret_cast<uint64_t*>(this->data.data() + offset) = v;
+}
+
+void StringWriter::pput_s48(size_t offset, int64_t v) {
+  if (offset > this->data.size() - sizeof(int64_t)) {
+    this->data.resize(offset + sizeof(v), '\0');
+  }
+  *reinterpret_cast<int64_t*>(this->data.data() + offset) = v;
+}
+
+void StringWriter::pput_u64(size_t offset, uint64_t v) {
+  if (offset > this->data.size() - sizeof(uint64_t)) {
+    this->data.resize(offset + sizeof(v), '\0');
+  }
+  *reinterpret_cast<uint64_t*>(this->data.data() + offset) = v;
+}
+
+void StringWriter::pput_s64(size_t offset, int64_t v) {
+  if (offset > this->data.size() - sizeof(int64_t)) {
+    this->data.resize(offset + sizeof(v), '\0');
+  }
+  *reinterpret_cast<int64_t*>(this->data.data() + offset) = v;
+}
+
+
+void StringWriter::pput_u16r(size_t offset, uint16_t v) {
+  this->pput_u16(offset, bswap16(v));
+}
+
+void StringWriter::pput_s16r(size_t offset, int16_t v) {
+  this->pput_s16(offset, bswap16(v));
+}
+
+void StringWriter::pput_u24r(size_t offset, uint32_t v) {
+  this->pput_u24(offset, bswap24(v));
+}
+
+void StringWriter::pput_s24r(size_t offset, int32_t v) {
+  this->pput_s24(offset, bswap24s(v));
+}
+
+void StringWriter::pput_u32r(size_t offset, uint32_t v) {
+  this->pput_u32(offset, bswap32(v));
+}
+
+void StringWriter::pput_s32r(size_t offset, int32_t v) {
+  this->pput_s32(offset, bswap32(v));
+}
+
+void StringWriter::pput_u48r(size_t offset, uint64_t v) {
+  this->pput_u48(offset, bswap48(v));
+}
+
+void StringWriter::pput_s48r(size_t offset, int64_t v) {
+  this->pput_s48(offset, bswap48s(v));
+}
+
+void StringWriter::pput_u64r(size_t offset, uint64_t v) {
+  this->pput_u64(offset, bswap64(v));
+}
+
+void StringWriter::pput_s64r(size_t offset, int64_t v) {
+  this->pput_s64(offset, bswap64(v));
 }
