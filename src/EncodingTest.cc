@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <stdio.h>
 
 #include "Encoding.hh"
@@ -26,6 +27,25 @@ int main(int, char** argv) {
   expect_eq(0x66662640UL, bswap32f(2.6f));
   expect_eq(3.1, bswap64f((uint64_t)0xCDCCCCCCCCCC0840));
   expect_eq(0xCDCCCCCCCCCC0840, bswap64f(3.1));
+
+  {
+    re_uint32_t x;
+    x = 3;
+    expect_eq(3, x);
+    expect_eq(0x03000000, x.load_raw());
+    uint32_t y = x;
+    expect_eq(3, y);
+  }
+  {
+    re_uint64_t x(0x0102030405060708);
+    expect_eq(0x0102030405060708, x);
+    expect_eq(0x0807060504030201, x.load_raw());
+  }
+  {
+    re_double x(1.0);
+    expect_eq(1.0, x);
+    expect_eq(0x000000000000F03F, x.load_raw());
+  }
 
   // TODO: test custom alphabets
   expect_eq("", base64_encode("", 0));
