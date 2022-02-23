@@ -34,7 +34,7 @@ target_link_libraries(jsonformat phosg)
 
 enable_testing()
 
-foreach(TestName IN ITEMS EncodingTest FilesystemTest HashTest ImageTest JSONTest KDTreeTest LRUSetTest ProcessTest StringsTest TimeTest UnitTestTest)
+foreach(TestName IN ITEMS EncodingTest FilesystemTest HashTest ImageTest JSONTest KDTreeTest LRUSetTest LRUMapTest ProcessTest StringsTest TimeTest UnitTestTest)
   add_executable(${TestName} src/${TestName}.cc)
   target_link_libraries(${TestName} phosg)
   add_test(NAME ${TestName} COMMAND ${TestName})
