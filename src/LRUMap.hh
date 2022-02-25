@@ -209,6 +209,10 @@ public:
     return this->items.size();
   }
 
+  bool empty() const {
+    return this->items.empty();
+  }
+
   struct EvictedObject {
     KeyT key;
     ValueT value;
