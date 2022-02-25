@@ -18,7 +18,7 @@ protected:
     Item(const ValueT& value, size_t size)
       : prev(nullptr), next(nullptr), key(nullptr), value(value), size(size) { }
     Item(ValueT&& value, size_t size)
-      : prev(nullptr), next(nullptr), key(nullptr), value(move(value)), size(size) { }
+      : prev(nullptr), next(nullptr), key(nullptr), value(std::move(value)), size(size) { }
   };
 
   mutable Item* head;
@@ -222,8 +222,8 @@ public:
     }
 
     EvictedObject ret;
-    ret.key = move(*i->key);
-    ret.value = move(i->value);
+    ret.key = std::move(*i->key);
+    ret.value = std::move(i->value);
     ret.size = i->size;
 
     this->unlink_item(i);
