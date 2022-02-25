@@ -162,10 +162,10 @@ private:
 public:
   reverse_endian() { }
   reverse_endian(T v) : value(bswap<T>(v)) { }
-  reverse_endian& operator=(T v) {
-    this->value = bswap<T>(v);
-    return *this;
-  };
+  reverse_endian(const reverse_endian<T>& other) : value(other.value) { }
+  reverse_endian(reverse_endian<T>&& other) : value(other.value) { }
+
+  // Access operators
   operator T() const {
     return bswap<T>(this->value);
   }
@@ -174,6 +174,86 @@ public:
   }
   T load_raw() const {
     return this->value;
+  }
+
+  // Assignment operators
+  reverse_endian& operator=(T v) {
+    this->value = bswap<T>(v);
+    return *this;
+  };
+  reverse_endian& operator=(const reverse_endian<T>& other) {
+    this->value = other.value;
+    return *this;
+  };
+
+  // Arithmetic assignment operators
+  template <typename R>
+  reverse_endian& operator+=(R delta) {
+    this->value = bswap<T>(bswap<T>(this->value) + delta);
+    return *this;
+  }
+  template <typename R>
+  reverse_endian& operator-=(R delta) {
+    this->value = bswap<T>(bswap<T>(this->value) - delta);
+    return *this;
+  }
+  template <typename R>
+  reverse_endian& operator*=(R delta) {
+    this->value = bswap<T>(bswap<T>(this->value) * delta);
+    return *this;
+  }
+  template <typename R>
+  reverse_endian& operator/=(R delta) {
+    this->value = bswap<T>(bswap<T>(this->value) / delta);
+    return *this;
+  }
+  template <typename R>
+  reverse_endian& operator%=(R delta) {
+    this->value = bswap<T>(bswap<T>(this->value) % delta);
+    return *this;
+  }
+  template <typename R>
+  reverse_endian& operator&=(R delta) {
+    this->value = bswap<T>(bswap<T>(this->value) & delta);
+    return *this;
+  }
+  template <typename R>
+  reverse_endian& operator|=(R delta) {
+    this->value = bswap<T>(bswap<T>(this->value) | delta);
+    return *this;
+  }
+  template <typename R>
+  reverse_endian& operator^=(R delta) {
+    this->value = bswap<T>(bswap<T>(this->value) ^ delta);
+    return *this;
+  }
+  template <typename R>
+  reverse_endian& operator<<=(R delta) {
+    this->value = bswap<T>(bswap<T>(this->value) << delta);
+    return *this;
+  }
+  template <typename R>
+  reverse_endian& operator>>=(R delta) {
+    this->value = bswap<T>(bswap<T>(this->value) >> delta);
+    return *this;
+  }
+  T operator++() {
+    this->value = bswap<T>(bswap<T>(this->value) + 1);
+    return this->value;
+  }
+  T operator--() {
+    this->value = bswap<T>(bswap<T>(this->value) - 1);
+    return this->value;
+  }
+  T operator++(int) {
+    T ret = bswap<T>(this->value);
+    this->value = bswap<T>(ret + 1);
+    return ret;
+  }
+  T operator--(int) {
+    T ret = bswap<T>(this->value);
+    this->value = bswap<T>(ret - 1);
+    return ret;
   }
 } __attribute__((packed));
 
