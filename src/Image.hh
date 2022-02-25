@@ -113,6 +113,7 @@ public:
   // canvas functions
   void reverse_horizontal();
   void reverse_vertical();
+  void set_channel_width(uint8_t new_width);
   void set_has_alpha(bool has_alpha);
   void set_alpha_from_mask_color(uint64_t r, uint64_t g, uint64_t b);
   void set_alpha_from_mask_color(uint32_t c);
