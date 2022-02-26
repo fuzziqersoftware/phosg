@@ -160,10 +160,12 @@ private:
   T value;
 
 public:
-  reverse_endian() { }
+  reverse_endian() = default;
   reverse_endian(T v) : value(bswap<T>(v)) { }
-  reverse_endian(const reverse_endian<T>& other) : value(other.value) { }
-  reverse_endian(reverse_endian<T>&& other) : value(other.value) { }
+  reverse_endian(const reverse_endian<T>& other) = default;
+  reverse_endian(reverse_endian<T>&& other) = default;
+  reverse_endian& operator=(const reverse_endian<T>& other) = default;
+  reverse_endian& operator=(reverse_endian<T>&& other) = default;
 
   // Access operators
   operator T() const {
@@ -179,10 +181,6 @@ public:
   // Assignment operators
   reverse_endian& operator=(T v) {
     this->value = bswap<T>(v);
-    return *this;
-  };
-  reverse_endian& operator=(const reverse_endian<T>& other) {
-    this->value = other.value;
     return *this;
   };
 
