@@ -171,6 +171,12 @@ public:
   operator T() const {
     return bswap<T>(this->value);
   }
+  void store(T v) {
+    this->value = bswap<T>(v);
+  }
+  T load() const {
+    return bswap<T>(this->value);
+  }
   void store_raw(T v) {
     this->value = v;
   }
