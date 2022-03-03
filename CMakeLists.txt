@@ -28,6 +28,9 @@ add_library(phosg src/Encoding.cc src/Filesystem.cc src/Hash.cc src/Image.cc src
 add_executable(jsonformat src/JSONFormat.cc)
 target_link_libraries(jsonformat phosg)
 
+add_executable(parse-data src/ParseData.cc)
+target_link_libraries(parse-data phosg)
+
 
 
 # Test definitions
@@ -47,4 +50,5 @@ endforeach()
 file(GLOB Headers ${CMAKE_SOURCE_DIR}/src/*.hh)
 install(TARGETS phosg DESTINATION lib)
 install(TARGETS jsonformat DESTINATION bin)
+install(TARGETS parse-data DESTINATION bin)
 install(FILES ${Headers} DESTINATION include/phosg)
