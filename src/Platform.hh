@@ -18,3 +18,17 @@
 #else
 #error "Unknown platform"
 #endif
+
+
+
+#define PHOSG_LITTLE_ENDIAN_VALUE 0x31323334UL
+#define PHOSG_BIG_ENDIAN_VALUE    0x34333231UL
+#define PHOSG_ENDIAN_ORDER_VALUE  ('1234')
+
+#if PHOSG_ENDIAN_ORDER_VALUE == PHOSG_LITTLE_ENDIAN_VALUE
+  #define PHOSG_LITTLE_ENDIAN
+#elif PHOSG_ENDIAN_ORDER_VALUE == PHOSG_BIG_ENDIAN_VALUE
+  #define PHOSG_BIG_ENDIAN
+#else
+  #error "Unrecignozed host system endianness"
+#endif

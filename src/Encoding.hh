@@ -4,6 +4,8 @@
 
 #include <string>
 
+#include "Platform.hh"
+
 
 static inline uint8_t bswap8(uint8_t a) {
   return a;
@@ -92,9 +94,10 @@ struct always_false {
   static constexpr bool v = false;
 };
 
-template <typename T>
-T bswap(T) {
-  static_assert(always_false<T>::v, "unspecialized bswap should never be called");
+template <typename ArgT, typename ResultT = ArgT>
+ResultT bswap(ArgT) {
+  static_assert(always_false<ArgT, ResultT>::v,
+      "unspecialized bswap should never be called");
 }
 
 template <>
@@ -127,164 +130,66 @@ inline int64_t bswap<int64_t>(int64_t v) {
   return bswap64(v);
 }
 
-template <typename FromT, typename ToT>
-ToT bswapf(FromT) {
-  static_assert(always_false<FromT, ToT>::v, "unspecialized bswapf should never be called");
-}
-
 template <>
-inline uint32_t bswapf<float, uint32_t>(float v) {
+inline uint32_t bswap<float, uint32_t>(float v) {
   return bswap32f(v);
 }
 
 template <>
-inline float bswapf<uint32_t, float>(uint32_t v) {
+inline float bswap<uint32_t, float>(uint32_t v) {
   return bswap32f(v);
 }
 
 template <>
-inline uint64_t bswapf<double, uint64_t>(double v) {
+inline uint64_t bswap<double, uint64_t>(double v) {
   return bswap64f(v);
 }
 
 template <>
-inline double bswapf<uint64_t, double>(uint64_t v) {
+inline double bswap<uint64_t, double>(uint64_t v) {
   return bswap64f(v);
 }
 
 
 
-template <typename T>
-class reverse_endian {
+template <typename ArgT, typename ResultT = ArgT>
+struct bswap_st {
+  static inline ResultT fn(ArgT v) {
+    return bswap<ArgT, ResultT>(v);
+  }
+};
+
+template <typename ArgT, typename ResultT = ArgT>
+struct ident_st {
+  static inline ResultT fn(ArgT v) {
+    return v;
+  }
+};
+
+
+
+template <typename ExposedT, typename StoredT, typename OnStoreSt, typename OnLoadSt>
+class converted_endian {
 private:
-  T value;
-
-public:
-  reverse_endian() = default;
-  reverse_endian(T v) : value(bswap<T>(v)) { }
-  reverse_endian(const reverse_endian<T>& other) = default;
-  reverse_endian(reverse_endian<T>&& other) = default;
-  reverse_endian& operator=(const reverse_endian<T>& other) = default;
-  reverse_endian& operator=(reverse_endian<T>&& other) = default;
-
-  // Access operators
-  operator T() const {
-    return bswap<T>(this->value);
-  }
-  void store(T v) {
-    this->value = bswap<T>(v);
-  }
-  T load() const {
-    return bswap<T>(this->value);
-  }
-  void store_raw(T v) {
-    this->value = v;
-  }
-  T load_raw() const {
-    return this->value;
-  }
-
-  // Assignment operators
-  reverse_endian& operator=(T v) {
-    this->value = bswap<T>(v);
-    return *this;
-  };
-
-  // Arithmetic assignment operators
-  template <typename R>
-  reverse_endian& operator+=(R delta) {
-    this->value = bswap<T>(bswap<T>(this->value) + delta);
-    return *this;
-  }
-  template <typename R>
-  reverse_endian& operator-=(R delta) {
-    this->value = bswap<T>(bswap<T>(this->value) - delta);
-    return *this;
-  }
-  template <typename R>
-  reverse_endian& operator*=(R delta) {
-    this->value = bswap<T>(bswap<T>(this->value) * delta);
-    return *this;
-  }
-  template <typename R>
-  reverse_endian& operator/=(R delta) {
-    this->value = bswap<T>(bswap<T>(this->value) / delta);
-    return *this;
-  }
-  template <typename R>
-  reverse_endian& operator%=(R delta) {
-    this->value = bswap<T>(bswap<T>(this->value) % delta);
-    return *this;
-  }
-  template <typename R>
-  reverse_endian& operator&=(R delta) {
-    this->value = bswap<T>(bswap<T>(this->value) & delta);
-    return *this;
-  }
-  template <typename R>
-  reverse_endian& operator|=(R delta) {
-    this->value = bswap<T>(bswap<T>(this->value) | delta);
-    return *this;
-  }
-  template <typename R>
-  reverse_endian& operator^=(R delta) {
-    this->value = bswap<T>(bswap<T>(this->value) ^ delta);
-    return *this;
-  }
-  template <typename R>
-  reverse_endian& operator<<=(R delta) {
-    this->value = bswap<T>(bswap<T>(this->value) << delta);
-    return *this;
-  }
-  template <typename R>
-  reverse_endian& operator>>=(R delta) {
-    this->value = bswap<T>(bswap<T>(this->value) >> delta);
-    return *this;
-  }
-  T operator++() {
-    this->value = bswap<T>(bswap<T>(this->value) + 1);
-    return this->value;
-  }
-  T operator--() {
-    this->value = bswap<T>(bswap<T>(this->value) - 1);
-    return this->value;
-  }
-  T operator++(int) {
-    T ret = bswap<T>(this->value);
-    this->value = bswap<T>(ret + 1);
-    return ret;
-  }
-  T operator--(int) {
-    T ret = bswap<T>(this->value);
-    this->value = bswap<T>(ret - 1);
-    return ret;
-  }
-} __attribute__((packed));
-
-using re_uint16_t = reverse_endian<uint16_t>;
-using re_int16_t = reverse_endian<int16_t>;
-using re_uint32_t = reverse_endian<uint32_t>;
-using re_int32_t = reverse_endian<int32_t>;
-using re_uint64_t = reverse_endian<uint64_t>;
-using re_int64_t = reverse_endian<int64_t>;
-
-
-
-template <typename ExposedT, typename StoredT>
-class reverse_endian_float {
-private:
-  static_assert(sizeof(ExposedT) == sizeof(StoredT), "ExposedT and StoredT must be the same size");
   StoredT value;
 
 public:
-  reverse_endian_float() { }
-  reverse_endian_float(ExposedT v) : value(bswapf<ExposedT, StoredT>(v)) { }
-  reverse_endian_float& operator=(ExposedT v) {
-    this->value = bswapf<ExposedT, StoredT>(v);
-    return *this;
-  };
+  converted_endian() = default;
+  converted_endian(ExposedT v) : value(OnStoreSt::fn(v)) { }
+  converted_endian(const converted_endian& other) = default;
+  converted_endian(converted_endian&& other) = default;
+  converted_endian& operator=(const converted_endian& other) = default;
+  converted_endian& operator=(converted_endian&& other) = default;
+
+  // Access operators
   operator ExposedT() const {
-    return bswapf<StoredT, ExposedT>(this->value);
+    return OnLoadSt::fn(this->value);
+  }
+  void store(ExposedT v) {
+    this->value = OnStoreSt::fn(v);
+  }
+  ExposedT load() const {
+    return OnLoadSt::fn(this->value);
   }
   void store_raw(StoredT v) {
     this->value = v;
@@ -292,10 +197,150 @@ public:
   StoredT load_raw() const {
     return this->value;
   }
+
+  // Assignment operators
+  converted_endian& operator=(ExposedT v) {
+    this->value = OnStoreSt::fn(v);
+    return *this;
+  };
+
+  // Arithmetic assignment operators
+  template <typename R>
+  converted_endian& operator+=(R delta) {
+    this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) + delta);
+    return *this;
+  }
+  template <typename R>
+  converted_endian& operator-=(R delta) {
+    this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) - delta);
+    return *this;
+  }
+  template <typename R>
+  converted_endian& operator*=(R delta) {
+    this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) * delta);
+    return *this;
+  }
+  template <typename R>
+  converted_endian& operator/=(R delta) {
+    this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) / delta);
+    return *this;
+  }
+  template <typename R>
+  converted_endian& operator%=(R delta) {
+    this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) % delta);
+    return *this;
+  }
+  template <typename R>
+  converted_endian& operator&=(R delta) {
+    this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) & delta);
+    return *this;
+  }
+  template <typename R>
+  converted_endian& operator|=(R delta) {
+    this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) | delta);
+    return *this;
+  }
+  template <typename R>
+  converted_endian& operator^=(R delta) {
+    this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) ^ delta);
+    return *this;
+  }
+  template <typename R>
+  converted_endian& operator<<=(R delta) {
+    this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) << delta);
+    return *this;
+  }
+  template <typename R>
+  converted_endian& operator>>=(R delta) {
+    this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) >> delta);
+    return *this;
+  }
+  ExposedT operator++() {
+    this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) + 1);
+    return this->value;
+  }
+  ExposedT operator--() {
+    this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) - 1);
+    return this->value;
+  }
+  ExposedT operator++(int) {
+    ExposedT ret = OnLoadSt::fn(this->value);
+    this->value = OnStoreSt::fn(ret + 1);
+    return ret;
+  }
+  ExposedT operator--(int) {
+    ExposedT ret = OnLoadSt::fn(this->value);
+    this->value = OnStoreSt::fn(ret - 1);
+    return ret;
+  }
 } __attribute__((packed));
 
-using re_float = reverse_endian_float<float, uint32_t>;
-using re_double = reverse_endian_float<double, uint64_t>;
+
+
+template <typename ExposedT, typename StoredT = ExposedT>
+class reverse_endian
+  : public converted_endian<ExposedT, StoredT, bswap_st<ExposedT, StoredT>, bswap_st<StoredT, ExposedT>> {
+public:
+  using converted_endian<ExposedT, StoredT, bswap_st<ExposedT, StoredT>, bswap_st<StoredT, ExposedT>>::converted_endian;
+};
+
+template <typename ExposedT, typename StoredT = ExposedT>
+class same_endian
+  : public converted_endian<ExposedT, StoredT, ident_st<ExposedT, StoredT>, ident_st<StoredT, ExposedT>> {
+public:
+  using converted_endian<ExposedT, StoredT, ident_st<ExposedT, StoredT>, ident_st<StoredT, ExposedT>>::converted_endian;
+};
+
+
+
+using re_uint16_t = reverse_endian<uint16_t>;
+using re_int16_t = reverse_endian<int16_t>;
+using re_uint32_t = reverse_endian<uint32_t>;
+using re_int32_t = reverse_endian<int32_t>;
+using re_uint64_t = reverse_endian<uint64_t>;
+using re_int64_t = reverse_endian<int64_t>;
+using re_float = reverse_endian<float, uint32_t>;
+using re_double = reverse_endian<double, uint64_t>;
+
+#ifdef PHOSG_LITTLE_ENDIAN
+
+using le_uint16_t = same_endian<uint16_t>;
+using le_int16_t = same_endian<int16_t>;
+using le_uint32_t = same_endian<uint32_t>;
+using le_int32_t = same_endian<int32_t>;
+using le_uint64_t = same_endian<uint64_t>;
+using le_int64_t = same_endian<int64_t>;
+using be_uint16_t = reverse_endian<uint16_t>;
+using be_int16_t = reverse_endian<int16_t>;
+using be_uint32_t = reverse_endian<uint32_t>;
+using be_int32_t = reverse_endian<int32_t>;
+using be_uint64_t = reverse_endian<uint64_t>;
+using be_int64_t = reverse_endian<int64_t>;
+
+#elif defined(PHOSG_BIG_ENDIAN)
+
+using le_uint16_t = reverse_endian<uint16_t>;
+using le_int16_t = reverse_endian<int16_t>;
+using le_uint32_t = reverse_endian<uint32_t>;
+using le_int32_t = reverse_endian<int32_t>;
+using le_uint64_t = reverse_endian<uint64_t>;
+using le_int64_t = reverse_endian<int64_t>;
+using be_uint16_t = same_endian<uint16_t>;
+using be_int16_t = same_endian<int16_t>;
+using be_uint32_t = same_endian<uint32_t>;
+using be_int32_t = same_endian<int32_t>;
+using be_uint64_t = same_endian<uint64_t>;
+using be_int64_t = same_endian<int64_t>;
+
+#else
+
+#error "No endianness define exists"
+
+#endif
+
+
+
+// TODO: implement the above endian-converted types for floats
 
 
 

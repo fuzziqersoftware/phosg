@@ -47,6 +47,21 @@ int main(int, char** argv) {
     expect_eq(0x000000000000F03F, x.load_raw());
   }
 
+  {
+    union {
+      uint8_t bytes[4];
+      le_uint32_t le32;
+      be_uint32_t be32;
+    } data;
+
+    data.le32 = 0x01020304;
+    expect_eq(data.be32, 0x04030201);
+    expect_eq(data.bytes[0], 0x04);
+    data.be32 = 0x01020304;
+    expect_eq(data.le32, 0x04030201);
+    expect_eq(data.bytes[0], 0x01);
+  }
+
   // TODO: test custom alphabets
   expect_eq("", base64_encode("", 0));
   expect_eq("MQ==", base64_encode("1", 1));
