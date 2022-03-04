@@ -292,6 +292,7 @@ public:
 
   size_t size() const;
 
+  void write(const void* data, size_t size);
   void write(const std::string& data);
 
   template <typename T> void put(const T& v) {
