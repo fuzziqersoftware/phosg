@@ -154,7 +154,7 @@ int listen(const string& addr, int port, int backlog, bool nonblocking) {
   }
 
   if (port == 0) {
-    // delete the socket file before we start listening on it
+    // Delete the socket file before we start listening on it
     unlink(addr);
   }
 
@@ -164,7 +164,14 @@ int listen(const string& addr, int port, int backlog, bool nonblocking) {
         ": " + string_for_error(errno));
   }
 
-  // only listen() on stream sockets
+  // New sockets are created with 0755 by default, which is annoying if we're
+  // running as root and will drop privileges soon. Make them accessible from
+  // everywhere instead.
+  if (port == 0) {
+    chmod(addr.c_str(), 0777);
+  }
+
+  // Only listen() on stream sockets
   if (backlog && (listen(fd, backlog) != 0)) {
     close(fd);
     throw runtime_error("can\'t listen on socket: " + string_for_error(errno));
