@@ -430,6 +430,7 @@ void print_data(FILE* stream, const void* _data, uint64_t size,
   bool print_double = flags & PrintDataFlags::PrintDouble;
   bool reverse_endian = flags & PrintDataFlags::ReverseEndian;
   bool collapse_zero_lines = flags & PrintDataFlags::CollapseZeroLines;
+  bool skip_separator = flags & PrintDataFlags::SkipSeparator;
 
   // if color is disabled or no diff source is given, disable diffing
   const uint8_t* data = (const uint8_t*)_data;
@@ -445,7 +446,7 @@ void print_data(FILE* stream, const void* _data, uint64_t size,
       continue;
     }
 
-    fprintf(stream, "%016" PRIX64 " |", line_start_address);
+    fprintf(stream, skip_separator ? "%016" PRIX64 : "%016" PRIX64 " |", line_start_address);
 
     // print the hex view
     {
@@ -467,7 +468,7 @@ void print_data(FILE* stream, const void* _data, uint64_t size,
 
     // print the ascii view
     if (print_ascii) {
-      fputs(" | ", stream);
+      fputs(skip_separator ? " " : " | ", stream);
 
       uint64_t address = line_start_address;
       for (; (address < start_address) && (address < line_end_address); address++) {
@@ -492,7 +493,7 @@ void print_data(FILE* stream, const void* _data, uint64_t size,
 
     // print the float view
     if (print_float) {
-      fputs(" |", stream);
+      fputs(skip_separator ? " " : " |", stream);
 
       uint64_t address = line_start_address;
       for (; (address < start_address) && (address < line_end_address); address += sizeof(float)) {
@@ -516,7 +517,7 @@ void print_data(FILE* stream, const void* _data, uint64_t size,
 
     // print the double view
     if (print_double) {
-      fputs(" |", stream);
+      fputs(skip_separator ? " " : " |", stream);
 
       uint64_t address = line_start_address;
       for (; (address < start_address) && (address < line_end_address); address += sizeof(double)) {

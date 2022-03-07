@@ -102,12 +102,13 @@ void print_color_escape(FILE* stream, TerminalFormat color, ...);
 void print_indent(FILE* stream, int indent_level);
 
 enum PrintDataFlags {
-  UseColor = 1, // use terminal escape codes to show differences
-  PrintAscii = 2, // print ascii view on the right
-  PrintFloat = 4, // print float view on the right
-  PrintDouble = 8, // print double view on the right
-  ReverseEndian = 16, // floats/doubles should be byteswapped
-  CollapseZeroLines = 32, // skips lines of all zeroes
+  UseColor          = 0x01, // use terminal escape codes to show differences
+  PrintAscii        = 0x02, // print ascii view on the right
+  PrintFloat        = 0x04, // print float view on the right
+  PrintDouble       = 0x08, // print double view on the right
+  ReverseEndian     = 0x10, // floats/doubles should be byteswapped
+  CollapseZeroLines = 0x20, // skips lines of all zeroes
+  SkipSeparator     = 0x40, // instead of " | ", print just " "
 };
 
 void print_data(FILE* stream, const void* _data, uint64_t size,
