@@ -21,14 +21,23 @@
 
 
 
-#define PHOSG_LITTLE_ENDIAN_VALUE 0x31323334UL
-#define PHOSG_BIG_ENDIAN_VALUE    0x34333231UL
-#define PHOSG_ENDIAN_ORDER_VALUE  ('1234')
-
-#if PHOSG_ENDIAN_ORDER_VALUE == PHOSG_LITTLE_ENDIAN_VALUE
+// Try to determine endianess from GCC defines first. If they aren't available,
+// use some constants to try to figure it out
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   #define PHOSG_LITTLE_ENDIAN
-#elif PHOSG_ENDIAN_ORDER_VALUE == PHOSG_BIG_ENDIAN_VALUE
+#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
   #define PHOSG_BIG_ENDIAN
+
 #else
-  #error "Unrecignozed host system endianness"
+  #define PHOSG_LITTLE_ENDIAN_VALUE 0x31323334UL
+  #define PHOSG_BIG_ENDIAN_VALUE    0x34333231UL
+  #define PHOSG_ENDIAN_ORDER_VALUE  ('1234')
+
+  #if PHOSG_ENDIAN_ORDER_VALUE == PHOSG_LITTLE_ENDIAN_VALUE
+    #define PHOSG_LITTLE_ENDIAN
+  #elif PHOSG_ENDIAN_ORDER_VALUE == PHOSG_BIG_ENDIAN_VALUE
+    #define PHOSG_BIG_ENDIAN
+  #else
+    #error "Unrecognized host system endianness"
+  #endif
 #endif
