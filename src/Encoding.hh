@@ -282,14 +282,14 @@ class reverse_endian
   : public converted_endian<ExposedT, StoredT, bswap_st<ExposedT, StoredT>, bswap_st<StoredT, ExposedT>> {
 public:
   using converted_endian<ExposedT, StoredT, bswap_st<ExposedT, StoredT>, bswap_st<StoredT, ExposedT>>::converted_endian;
-};
+} __attribute__((packed));
 
 template <typename ExposedT, typename StoredT = ExposedT>
 class same_endian
   : public converted_endian<ExposedT, StoredT, ident_st<ExposedT, StoredT>, ident_st<StoredT, ExposedT>> {
 public:
   using converted_endian<ExposedT, StoredT, ident_st<ExposedT, StoredT>, ident_st<StoredT, ExposedT>>::converted_endian;
-};
+} __attribute__((packed));
 
 
 
