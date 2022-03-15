@@ -310,12 +310,16 @@ using le_uint32_t = same_endian<uint32_t>;
 using le_int32_t = same_endian<int32_t>;
 using le_uint64_t = same_endian<uint64_t>;
 using le_int64_t = same_endian<int64_t>;
+using le_float = same_endian<float, uint32_t>;
+using le_double = same_endian<double, uint64_t>;
 using be_uint16_t = reverse_endian<uint16_t>;
 using be_int16_t = reverse_endian<int16_t>;
 using be_uint32_t = reverse_endian<uint32_t>;
 using be_int32_t = reverse_endian<int32_t>;
 using be_uint64_t = reverse_endian<uint64_t>;
 using be_int64_t = reverse_endian<int64_t>;
+using be_float = reverse_endian<float, uint32_t>;
+using be_double = reverse_endian<double, uint64_t>;
 
 #elif defined(PHOSG_BIG_ENDIAN)
 
@@ -325,12 +329,16 @@ using le_uint32_t = reverse_endian<uint32_t>;
 using le_int32_t = reverse_endian<int32_t>;
 using le_uint64_t = reverse_endian<uint64_t>;
 using le_int64_t = reverse_endian<int64_t>;
+using le_float = reverse_endian<float, uint32_t>;
+using le_double = reverse_endian<double, uint64_t>;
 using be_uint16_t = same_endian<uint16_t>;
 using be_int16_t = same_endian<int16_t>;
 using be_uint32_t = same_endian<uint32_t>;
 using be_int32_t = same_endian<int32_t>;
 using be_uint64_t = same_endian<uint64_t>;
 using be_int64_t = same_endian<int64_t>;
+using be_float = same_endian<float, uint32_t>;
+using be_double = same_endian<double, uint64_t>;
 
 #else
 
