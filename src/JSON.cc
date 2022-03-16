@@ -18,19 +18,19 @@ JSONObject::index_error::index_error(const string& what) : runtime_error(what) {
 static void skip_whitespace_and_comments(StringReader& r) {
   bool reading_comment = false;
   while (!r.eof()) {
-    char ch = r.get_ch(false);
+    char ch = r.get_s8(false);
     if (reading_comment) {
       if ((ch == '\n') || (ch == '\r')) {
         reading_comment = false;
       }
     } else {
-      if ((ch == '/') && (r.pget_ch(r.where() + 1) == '/')) {
+      if ((ch == '/') && (r.pget_s8(r.where() + 1) == '/')) {
         reading_comment = true;
       } else if ((ch != ' ') && (ch != '\t') && (ch != '\r') && (ch != '\n')) {
         return;
       }
     }
-    r.get_ch();
+    r.get_s8();
   }
 }
 
@@ -38,12 +38,12 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r) {
   skip_whitespace_and_comments(r);
 
   shared_ptr<JSONObject> ret(new JSONObject());
-  char root_type_ch = r.get_ch(false);
+  char root_type_ch = r.get_s8(false);
   if (root_type_ch == '{') {
 
     dict_type data;
     char expected_separator = '{';
-    char separator = r.get_ch();
+    char separator = r.get_s8();
     while (separator != '}') {
       if (separator != expected_separator) {
         throw parse_error("string is not a dictionary; pos=" + to_string(r.where()));
@@ -51,22 +51,22 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r) {
       expected_separator = ',';
 
       skip_whitespace_and_comments(r);
-      if (r.get_ch(false) == '}') {
-        r.get_ch();
+      if (r.get_s8(false) == '}') {
+        r.get_s8();
         break;
       }
 
       shared_ptr<JSONObject> key = JSONObject::parse(r);
       skip_whitespace_and_comments(r);
 
-      if (r.get_ch() != ':') {
+      if (r.get_s8() != ':') {
         throw parse_error("dictionary does not contain key/value pairs; pos=" + to_string(r.where()));
       }
       skip_whitespace_and_comments(r);
 
       data.emplace(key->as_string(), JSONObject::parse(r));
       skip_whitespace_and_comments(r);
-      separator = r.get_ch();
+      separator = r.get_s8();
     }
 
     ret->value = move(data);
@@ -74,7 +74,7 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r) {
   } else if (root_type_ch == '[') {
     list_type data;
     char expected_separator = '[';
-    char separator = r.get_ch();
+    char separator = r.get_s8();
     while (separator != ']') {
       if (separator != expected_separator) {
         throw parse_error("string is not a list; pos=" + to_string(r.where()));
@@ -82,14 +82,14 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r) {
       expected_separator = ',';
 
       skip_whitespace_and_comments(r);
-      if (r.get_ch(false) == ']') {
-        r.get_ch();
+      if (r.get_s8(false) == ']') {
+        r.get_s8();
         break;
       }
 
       data.emplace_back(JSONObject::parse(r));
       skip_whitespace_and_comments(r);
-      separator = r.get_ch();
+      separator = r.get_s8();
     }
 
     ret->value = move(data);
@@ -102,48 +102,48 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r) {
     bool negative = false;
     if (root_type_ch == '-') {
       negative = true;
-      r.get_ch();
+      r.get_s8();
     }
 
     if (((r.where() + 2) < r.size()) &&
-        (r.get_ch(false) == '0') &&
-        (r.pget_ch(r.where() + 1) == 'x')) { // hex
+        (r.get_s8(false) == '0') &&
+        (r.pget_s8(r.where() + 1) == 'x')) { // hex
       r.go(r.where() + 2);
 
       int_data = 0;
-      while (!r.eof() && isxdigit(r.get_ch(false))) {
-        int_data = (int_data << 4) | value_for_hex_char(r.get_ch());
+      while (!r.eof() && isxdigit(r.get_s8(false))) {
+        int_data = (int_data << 4) | value_for_hex_char(r.get_s8());
       }
 
     } else { // decimal
       int_data = 0;
-      while (!r.eof() && isdigit(r.get_ch(false))) {
-        int_data = int_data * 10 + (r.get_ch() - '0');
+      while (!r.eof() && isdigit(r.get_s8(false))) {
+        int_data = int_data * 10 + (r.get_s8() - '0');
       }
 
       double this_place = 0.1;
       float_data = int_data;
-      if (!r.eof() && r.get_ch(false) == '.') {
+      if (!r.eof() && r.get_s8(false) == '.') {
         is_int = false;
-        r.get_ch();
-        while (!r.eof() && isdigit(r.get_ch(false))) {
-          float_data += (r.get_ch() - '0') * this_place;
+        r.get_s8();
+        while (!r.eof() && isdigit(r.get_s8(false))) {
+          float_data += (r.get_s8() - '0') * this_place;
           this_place *= 0.1;
         }
       }
 
-      char exp_specifier = r.eof() ? '\0' : r.get_ch(false);
+      char exp_specifier = r.eof() ? '\0' : r.get_s8(false);
       if (exp_specifier == 'e' || exp_specifier == 'E') {
-        r.get_ch();
-        char sign_char = r.get_ch(false);
+        r.get_s8();
+        char sign_char = r.get_s8(false);
         bool e_negative = sign_char == '-';
         if (sign_char == '-' || sign_char == '+') {
-          r.get_ch();
+          r.get_s8();
         }
 
         int e = 0;
-        while (!r.eof() && isdigit(r.get_ch(false))) {
-          e = e * 10 + (r.get_ch() - '0');
+        while (!r.eof() && isdigit(r.get_s8(false))) {
+          e = e * 10 + (r.get_s8() - '0');
         }
 
         if (e_negative) {
@@ -172,13 +172,13 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r) {
     }
 
   } else if (root_type_ch == '\"') {
-    r.get_ch();
+    r.get_s8();
 
     string data;
-    while (r.get_ch(false) != '\"') {
-      char ch = r.get_ch();
+    while (r.get_s8(false) != '\"') {
+      char ch = r.get_s8();
       if (ch == '\\') {
-        ch = r.get_ch();
+        ch = r.get_s8();
         if (ch == '\"') {
           data.push_back('\"');
         } else if (ch == '\\') {
@@ -198,10 +198,10 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r) {
         } else if (ch == 'u') {
           uint16_t value;
           try {
-            value = value_for_hex_char(r.get_ch()) << 12;
-            value |= value_for_hex_char(r.get_ch()) << 8;
-            value |= value_for_hex_char(r.get_ch()) << 4;
-            value |= value_for_hex_char(r.get_ch());
+            value = value_for_hex_char(r.get_s8()) << 12;
+            value |= value_for_hex_char(r.get_s8()) << 8;
+            value |= value_for_hex_char(r.get_s8()) << 4;
+            value |= value_for_hex_char(r.get_s8());
           } catch (const out_of_range&) {
             throw parse_error("incomplete unicode escape sequence in string; pos=" + to_string(r.where()));
           }
@@ -216,7 +216,7 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r) {
         data.push_back(ch);
       }
     }
-    r.get_ch();
+    r.get_s8();
 
     ret->value = move(data);
 

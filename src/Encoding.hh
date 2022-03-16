@@ -7,6 +7,14 @@
 #include "Platform.hh"
 
 
+static inline int32_t ext24(uint32_t a) {
+  return (a & 0x00800000) ? (a | 0xFF000000) : a;
+}
+
+static inline int64_t ext48(uint64_t a) {
+  return (a & 0x00008000000000) ? (a | 0xFFFF0000000000) : a;
+}
+
 static inline uint8_t bswap8(uint8_t a) {
   return a;
 }
@@ -162,7 +170,7 @@ struct bswap_st {
 template <typename ArgT, typename ResultT = ArgT>
 struct ident_st {
   static inline ResultT fn(ArgT v) {
-    return v;
+    return *reinterpret_cast<const ResultT*>(&v);
   }
 };
 

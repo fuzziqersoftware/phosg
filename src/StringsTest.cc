@@ -146,6 +146,187 @@ void test_bit_reader() {
   expect(r.eof());
 }
 
+void test_string_reader() {
+  fprintf(stderr, "-- StringReader\n");
+
+  string data(
+      /*00*/ "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F" // 16 bytes (to be read as various int sizes)
+      /*10*/ "\x3F\x80\x00\x00" // 1.0f (big-endian)
+      /*14*/ "\x00\x00\x80\x3F" // 1.0f (little-endian)
+      /*18*/ "\x3F\xF0\x00\x00\x00\x00\x00\x00" // 1.0 (big-endian)
+      /*20*/ "\x00\x00\x00\x00\x00\x00\xF0\x3F" // 1.0 (little-endian)
+      /*28*/ "\x11this is a pstring"
+      /*3A*/ "and this is a cstring\0",
+      80);
+
+  fprintf(stderr, "---- construct\n");
+  StringReader r(data);
+  expect_eq(r.size(), data.size());
+
+  fprintf(stderr, "---- position getters\n");
+  expect_eq(r.where(), 0);
+  expect_eq(r.remaining(), data.size());
+  expect(!r.eof());
+
+  fprintf(stderr, "---- all\n");
+  expect_eq(r.all(), data);
+  expect_eq(data.data(), r.peek(0));
+
+  {
+    fprintf(stderr, "---- read/pread\n");
+    expect_eq(r.read(0x100, false), data);
+    expect_eq(r.where(), 0);
+    expect_eq(r.remaining(), data.size());
+    expect(!r.eof());
+
+    expect_eq(r.pread(0, 0x100), data);
+    expect_eq(r.where(), 0);
+    expect_eq(r.remaining(), data.size());
+    expect(!r.eof());
+
+    expect_eq(r.read(0x100), data);
+    expect_eq(r.where(), data.size());
+    expect_eq(r.remaining(), 0);
+    expect(r.eof());
+
+    expect_eq(r.read(0x100), "");
+    expect_eq(r.where(), data.size());
+    expect_eq(r.remaining(), 0);
+    expect(r.eof());
+
+    expect_eq(r.pread(0, 0x100), data);
+    expect_eq(r.where(), data.size());
+    expect_eq(r.remaining(), 0);
+    expect(r.eof());
+
+    r.go(0);
+  }
+
+  {
+    fprintf(stderr, "---- readx/preadx\n");
+    try {
+      r.readx(0x100);
+      expect(false);
+    } catch (const out_of_range&) { }
+
+    try {
+      r.preadx(0, 0x100);
+      expect(false);
+    } catch (const out_of_range&) { }
+
+    expect_eq(r.readx(data.size(), false), data);
+    expect_eq(r.where(), 0);
+    expect_eq(r.remaining(), data.size());
+    expect(!r.eof());
+
+    expect_eq(r.readx(data.size()), data);
+    expect_eq(r.where(), data.size());
+    expect_eq(r.remaining(), 0);
+    expect(r.eof());
+
+    try {
+      r.readx(1);
+      expect(false);
+    } catch (const out_of_range&) { }
+
+    expect_eq(r.preadx(0, data.size()), data);
+    expect_eq(r.where(), data.size());
+    expect_eq(r.remaining(), 0);
+    expect(r.eof());
+
+    r.go(0);
+  }
+
+  {
+    fprintf(stderr, "---- get/pget\n");
+    struct TestStruct {
+      be_uint32_t a;
+      le_uint32_t b;
+    };
+    auto x = r.get<TestStruct>();
+    auto y = r.pget<TestStruct>(4);
+    expect_eq(x.a, 0x00010203);
+    expect_eq(x.b, 0x07060504);
+    expect_eq(y.a, 0x04050607);
+    expect_eq(y.b, 0x0B0A0908);
+  }
+
+  struct GetTestCase {
+    const char* name;
+    function<void(StringReader&)> fn;
+    size_t start_offset;
+    size_t expected_advance;
+  };
+
+  vector<GetTestCase> get_test_cases({
+    {"get_u8",    [](StringReader& r) { expect_eq(r.get_u8(), 0x00); }, 0, 1},
+    {"get_s8",    [](StringReader& r) { expect_eq(r.get_s8(), 0x00); }, 0, 1},
+    {"get_u16b",  [](StringReader& r) { expect_eq(r.get_u16b(), 0x0001); }, 0, 2},
+    {"get_u16l",  [](StringReader& r) { expect_eq(r.get_u16l(), 0x0100); }, 0, 2},
+    {"get_s16b",  [](StringReader& r) { expect_eq(r.get_s16b(), 0x0001); }, 0, 2},
+    {"get_s16l",  [](StringReader& r) { expect_eq(r.get_s16l(), 0x0100); }, 0, 2},
+    {"get_u24b",  [](StringReader& r) { expect_eq(r.get_u24b(), 0x000102); }, 0, 3},
+    {"get_u24l",  [](StringReader& r) { expect_eq(r.get_u24l(), 0x020100); }, 0, 3},
+    {"get_s24b",  [](StringReader& r) { expect_eq(r.get_s24b(), 0x000102); }, 0, 3},
+    {"get_s24l",  [](StringReader& r) { expect_eq(r.get_s24l(), 0x020100); }, 0, 3},
+    {"get_u32b",  [](StringReader& r) { expect_eq(r.get_u32b(), 0x00010203); }, 0, 4},
+    {"get_u32l",  [](StringReader& r) { expect_eq(r.get_u32l(), 0x03020100); }, 0, 4},
+    {"get_s32b",  [](StringReader& r) { expect_eq(r.get_s32b(), 0x00010203); }, 0, 4},
+    {"get_s32l",  [](StringReader& r) { expect_eq(r.get_s32l(), 0x03020100); }, 0, 4},
+    {"get_u48b",  [](StringReader& r) { expect_eq(r.get_u48b(), 0x000102030405); }, 0, 6},
+    {"get_u48l",  [](StringReader& r) { expect_eq(r.get_u48l(), 0x050403020100); }, 0, 6},
+    {"get_s48b",  [](StringReader& r) { expect_eq(r.get_s48b(), 0x000102030405); }, 0, 6},
+    {"get_s48l",  [](StringReader& r) { expect_eq(r.get_s48l(), 0x050403020100); }, 0, 6},
+    {"get_u64b",  [](StringReader& r) { expect_eq(r.get_u64b(), 0x0001020304050607); }, 0, 8},
+    {"get_u64l",  [](StringReader& r) { expect_eq(r.get_u64l(), 0x0706050403020100); }, 0, 8},
+    {"get_s64b",  [](StringReader& r) { expect_eq(r.get_s64b(), 0x0001020304050607); }, 0, 8},
+    {"get_s64l",  [](StringReader& r) { expect_eq(r.get_s64l(), 0x0706050403020100); }, 0, 8},
+    {"get_f32b",  [](StringReader& r) { expect_eq(r.get_f32b(), 1.0f); }, 0x10, 4},
+    {"get_f32l",  [](StringReader& r) { expect_eq(r.get_f32l(), 1.0f); }, 0x14, 4},
+    {"get_f64b",  [](StringReader& r) { expect_eq(r.get_f64b(), 1.0); }, 0x18, 8},
+    {"get_f64l",  [](StringReader& r) { expect_eq(r.get_f64l(), 1.0); }, 0x20, 8},
+    {"pget_u8",   [](StringReader& r) { expect_eq(r.pget_u8(4), 0x04); }, 0, 0},
+    {"pget_s8",   [](StringReader& r) { expect_eq(r.pget_s8(4), 0x04); }, 0, 0},
+    {"pget_u16b", [](StringReader& r) { expect_eq(r.pget_u16b(4), 0x0405); }, 0, 0},
+    {"pget_u16l", [](StringReader& r) { expect_eq(r.pget_u16l(4), 0x0504); }, 0, 0},
+    {"pget_s16b", [](StringReader& r) { expect_eq(r.pget_s16b(4), 0x0405); }, 0, 0},
+    {"pget_s16l", [](StringReader& r) { expect_eq(r.pget_s16l(4), 0x0504); }, 0, 0},
+    {"pget_u24b", [](StringReader& r) { expect_eq(r.pget_u24b(4), 0x040506); }, 0, 0},
+    {"pget_u24l", [](StringReader& r) { expect_eq(r.pget_u24l(4), 0x060504); }, 0, 0},
+    {"pget_s24b", [](StringReader& r) { expect_eq(r.pget_s24b(4), 0x040506); }, 0, 0},
+    {"pget_s24l", [](StringReader& r) { expect_eq(r.pget_s24l(4), 0x060504); }, 0, 0},
+    {"pget_u32b", [](StringReader& r) { expect_eq(r.pget_u32b(4), 0x04050607); }, 0, 0},
+    {"pget_u32l", [](StringReader& r) { expect_eq(r.pget_u32l(4), 0x07060504); }, 0, 0},
+    {"pget_s32b", [](StringReader& r) { expect_eq(r.pget_s32b(4), 0x04050607); }, 0, 0},
+    {"pget_s32l", [](StringReader& r) { expect_eq(r.pget_s32l(4), 0x07060504); }, 0, 0},
+    {"pget_u48b", [](StringReader& r) { expect_eq(r.pget_u48b(4), 0x040506070809); }, 0, 0},
+    {"pget_u48l", [](StringReader& r) { expect_eq(r.pget_u48l(4), 0x090807060504); }, 0, 0},
+    {"pget_s48b", [](StringReader& r) { expect_eq(r.pget_s48b(4), 0x040506070809); }, 0, 0},
+    {"pget_s48l", [](StringReader& r) { expect_eq(r.pget_s48l(4), 0x090807060504); }, 0, 0},
+    {"pget_u64b", [](StringReader& r) { expect_eq(r.pget_u64b(4), 0x0405060708090A0B); }, 0, 0},
+    {"pget_u64l", [](StringReader& r) { expect_eq(r.pget_u64l(4), 0x0B0A090807060504); }, 0, 0},
+    {"pget_s64b", [](StringReader& r) { expect_eq(r.pget_s64b(4), 0x0405060708090A0B); }, 0, 0},
+    {"pget_s64l", [](StringReader& r) { expect_eq(r.pget_s64l(4), 0x0B0A090807060504); }, 0, 0},
+    {"pget_f32b", [](StringReader& r) { expect_eq(r.pget_f32b(0x10), 1.0f); }, 0, 0},
+    {"pget_f32l", [](StringReader& r) { expect_eq(r.pget_f32l(0x14), 1.0f); }, 0, 0},
+    {"pget_f64b", [](StringReader& r) { expect_eq(r.pget_f64b(0x18), 1.0); }, 0, 0},
+    {"pget_f64l", [](StringReader& r) { expect_eq(r.pget_f64l(0x20), 1.0); }, 0, 0},
+  });
+
+  for (const auto& get_test_case : get_test_cases) {
+    fprintf(stderr, "---- %s\n", get_test_case.name);
+    r.go(get_test_case.start_offset);
+    get_test_case.fn(r);
+    expect_eq(r.where(), get_test_case.start_offset + get_test_case.expected_advance);
+  }
+
+  fprintf(stderr, "---- get_cstr/pget_cstr\n");
+  r.go(0x3A);
+  expect_eq(r.get_cstr(), "and this is a cstring");
+  expect(r.eof());
+  expect_eq(r.pget_cstr(0x3A), "and this is a cstring");
+}
+
 
 int main(int, char** argv) {
 
@@ -393,6 +574,8 @@ int main(int, char** argv) {
   print_data_test();
 
   test_bit_reader();
+
+  test_string_reader();
 
   // TODO: test string_vprintf
   // TODO: test log_level, set_log_level, log

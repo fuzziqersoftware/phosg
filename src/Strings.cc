@@ -1135,16 +1135,16 @@ string StringReader::readx(size_t size, bool advance) {
   return ret;
 }
 
-size_t StringReader::read_into(void* data, size_t size, bool advance) {
-  size_t ret = this->pread_into(this->offset, data, size);
+size_t StringReader::read(void* data, size_t size, bool advance) {
+  size_t ret = this->pread(this->offset, data, size);
   if (ret && advance) {
     this->offset += ret;
   }
   return ret;
 }
 
-void StringReader::readx_into(void* data, size_t size, bool advance) {
-  this->preadx_into(this->offset, data, size);
+void StringReader::readx(void* data, size_t size, bool advance) {
+  this->preadx(this->offset, data, size);
   if (advance) {
     this->offset += size;
   }
@@ -1167,7 +1167,7 @@ string StringReader::preadx(size_t offset, size_t size) const {
   return string(reinterpret_cast<const char*>(this->data + offset), size);
 }
 
-size_t StringReader::pread_into(size_t offset, void* data, size_t size) const {
+size_t StringReader::pread(size_t offset, void* data, size_t size) const {
   if (offset >= this->length) {
     return 0;
   }
@@ -1183,326 +1183,11 @@ size_t StringReader::pread_into(size_t offset, void* data, size_t size) const {
   return ret;
 }
 
-void StringReader::preadx_into(size_t offset, void* data, size_t size) const {
+void StringReader::preadx(size_t offset, void* data, size_t size) const {
   if ((offset >= this->length) || (offset + size > this->length)) {
     throw out_of_range("not enough data to read");
   }
   memcpy(data, this->data + offset, size);
-}
-
-uint8_t StringReader::get_u8(bool advance) {
-  uint8_t ret = this->pget_u8(this->offset);
-  if (advance) {
-    this->offset++;
-  }
-  return ret;
-}
-
-int8_t StringReader::get_s8(bool advance) {
-  int8_t ret = this->pget_s8(this->offset);
-  if (advance) {
-    this->offset++;
-  }
-  return ret;
-}
-
-uint16_t StringReader::get_u16(bool advance) {
-  uint16_t ret = this->pget_u16(this->offset);
-  if (advance) {
-    this->offset += 2;
-  }
-  return ret;
-}
-
-int16_t StringReader::get_s16(bool advance) {
-  int16_t ret = this->pget_s16(this->offset);
-  if (advance) {
-    this->offset += 2;
-  }
-  return ret;
-}
-
-uint32_t StringReader::get_u24(bool advance) {
-  uint32_t ret = this->pget_u24(this->offset);
-  if (advance) {
-    this->offset += 3;
-  }
-  return ret;
-}
-
-int32_t StringReader::get_s24(bool advance) {
-  uint32_t x = this->get_u24(advance);
-  if (x & 0x00800000) {
-    return x | 0xFF000000;
-  }
-  return x;
-}
-
-uint32_t StringReader::get_u32(bool advance) {
-  uint32_t ret = this->pget_u32(this->offset);
-  if (advance) {
-    this->offset += 4;
-  }
-  return ret;
-}
-
-int32_t StringReader::get_s32(bool advance) {
-  int32_t ret = this->pget_s32(this->offset);
-  if (advance) {
-    this->offset += 4;
-  }
-  return ret;
-}
-
-uint64_t StringReader::get_u48(bool advance) {
-  uint64_t ret = this->pget_u48(this->offset);
-  if (advance) {
-    this->offset += 6;
-  }
-  return ret;
-}
-
-int64_t StringReader::get_s48(bool advance) {
-  uint32_t x = this->get_u48(advance);
-  if (x & 0x0000800000000000) {
-    return x | 0xFFFF000000000000;
-  }
-  return x;
-}
-
-uint64_t StringReader::get_u64(bool advance) {
-  uint64_t ret = this->pget_u64(this->offset);
-  if (advance) {
-    this->offset += 8;
-  }
-  return ret;
-}
-
-int64_t StringReader::get_s64(bool advance) {
-  int64_t ret = this->pget_s64(this->offset);
-  if (advance) {
-    this->offset += 8;
-  }
-  return ret;
-}
-
-float StringReader::get_f32(bool advance) {
-  float ret = this->pget_f32(this->offset);
-  if (advance) {
-    this->offset += 4;
-  }
-  return ret;
-}
-
-double StringReader::get_f64(bool advance) {
-  double ret = this->pget_f64(this->offset);
-  if (advance) {
-    this->offset += 8;
-  }
-  return ret;
-}
-
-uint16_t StringReader::get_u16r(bool advance) {
-  return bswap16(this->get_u16(advance));
-}
-
-int16_t StringReader::get_s16r(bool advance) {
-  return bswap16(this->get_s16(advance));
-}
-
-uint32_t StringReader::get_u24r(bool advance) {
-  return bswap24(this->get_u24(advance));
-}
-
-int32_t StringReader::get_s24r(bool advance) {
-  return bswap24s(this->get_s24(advance));
-}
-
-uint32_t StringReader::get_u32r(bool advance) {
-  return bswap32(this->get_u32(advance));
-}
-
-int32_t StringReader::get_s32r(bool advance) {
-  return bswap32(this->get_s32(advance));
-}
-
-uint64_t StringReader::get_u48r(bool advance) {
-  return bswap48(this->get_u48(advance));
-}
-
-int64_t StringReader::get_s48r(bool advance) {
-  return bswap48s(this->get_s48(advance));
-}
-
-uint64_t StringReader::get_u64r(bool advance) {
-  return bswap64(this->get_u64(advance));
-}
-
-int64_t StringReader::get_s64r(bool advance) {
-  return bswap64(this->get_s64(advance));
-}
-
-float StringReader::get_f32r(bool advance) {
-  return bswap32f(this->get_u32(advance));
-}
-
-double StringReader::get_f64r(bool advance) {
-  return bswap64f(this->get_u64(advance));
-}
-
-uint8_t StringReader::pget_u8(size_t offset) const {
-  if (offset >= this->length) {
-    throw out_of_range("end of string");
-  }
-  return static_cast<uint8_t>(this->data[offset]);
-}
-
-int8_t StringReader::pget_s8(size_t offset) const {
-  if (offset >= this->length) {
-    throw out_of_range("end of string");
-  }
-  return static_cast<int8_t>(this->data[offset]);
-}
-
-uint16_t StringReader::pget_u16(size_t offset) const {
-  if (offset >= this->length - 1) {
-    throw out_of_range("end of string");
-  }
-  return *reinterpret_cast<const uint16_t*>(this->data + offset);
-}
-
-int16_t StringReader::pget_s16(size_t offset) const {
-  if (offset >= this->length - 1) {
-    throw out_of_range("end of string");
-  }
-  return *reinterpret_cast<const int16_t*>(this->data + offset);
-}
-
-uint32_t StringReader::pget_u24(size_t offset) const {
-  if (offset >= this->length - 2) {
-    throw out_of_range("end of string");
-  }
-  uint32_t ret = this->data[offset] | (this->data[offset + 1] << 8) | (this->data[offset + 2] << 16);
-  return ret;
-}
-
-int32_t StringReader::pget_s24(size_t offset) const {
-  uint32_t x = this->pget_u24(offset);
-  if (x & 0x00800000) {
-    return x | 0xFF000000;
-  }
-  return x;
-}
-
-uint32_t StringReader::pget_u32(size_t offset) const {
-  if (offset >= this->length - 3) {
-    throw out_of_range("end of string");
-  }
-  return *reinterpret_cast<const uint32_t*>(this->data + offset);
-}
-
-int32_t StringReader::pget_s32(size_t offset) const {
-  if (offset >= this->length - 3) {
-    throw out_of_range("end of string");
-  }
-  return *reinterpret_cast<const int32_t*>(this->data + offset);
-}
-
-uint64_t StringReader::pget_u48(size_t offset) const {
-  if (offset >= this->length - 5) {
-    throw out_of_range("end of string");
-  }
-  uint64_t ret = static_cast<uint64_t>(this->data[offset]) |
-      (static_cast<uint64_t>(this->data[offset + 1]) << 8) |
-      (static_cast<uint64_t>(this->data[offset + 2]) << 16) |
-      (static_cast<uint64_t>(this->data[offset + 3]) << 24) |
-      (static_cast<uint64_t>(this->data[offset + 4]) << 32) |
-      (static_cast<uint64_t>(this->data[offset + 5]) << 40);
-  return ret;
-}
-
-int64_t StringReader::pget_s48(size_t offset) const {
-  uint32_t x = this->pget_u48(offset);
-  if (x & 0x0000800000000000) {
-    return x | 0xFFFF000000000000;
-  }
-  return x;
-}
-
-uint64_t StringReader::pget_u64(size_t offset) const {
-  if (offset >= this->length - 7) {
-    throw out_of_range("end of string");
-  }
-  return *reinterpret_cast<const uint64_t*>(this->data + offset);
-}
-
-int64_t StringReader::pget_s64(size_t offset) const {
-  if (offset >= this->length - 7) {
-    throw out_of_range("end of string");
-  }
-  return *reinterpret_cast<const int64_t*>(this->data + offset);
-}
-
-float StringReader::pget_f32(size_t offset) const {
-  if (offset >= this->length - 3) {
-    throw out_of_range("end of string");
-  }
-  return *reinterpret_cast<const float*>(this->data + offset);
-}
-
-double StringReader::pget_f64(size_t offset) const {
-  if (offset >= this->length - 7) {
-    throw out_of_range("end of string");
-  }
-  return *reinterpret_cast<const double*>(this->data + offset);
-}
-
-uint16_t StringReader::pget_u16r(size_t offset) const {
-  return bswap16(this->pget_u16(offset));
-}
-
-int16_t StringReader::pget_s16r(size_t offset) const {
-  return bswap16(this->pget_s16(offset));
-}
-
-uint32_t StringReader::pget_u24r(size_t offset) const {
-  return bswap24(this->pget_u24(offset));
-}
-
-int32_t StringReader::pget_s24r(size_t offset) const {
-  return bswap24s(this->pget_s24(offset));
-}
-
-uint32_t StringReader::pget_u32r(size_t offset) const {
-  return bswap32(this->pget_u32(offset));
-}
-
-int32_t StringReader::pget_s32r(size_t offset) const {
-  return bswap32(this->pget_s32(offset));
-}
-
-uint64_t StringReader::pget_u48r(size_t offset) const {
-  return bswap48(this->pget_u48(offset));
-}
-
-int64_t StringReader::pget_s48r(size_t offset) const {
-  return bswap48s(this->pget_s48(offset));
-}
-
-uint64_t StringReader::pget_u64r(size_t offset) const {
-  return bswap64(this->pget_u64(offset));
-}
-
-int64_t StringReader::pget_s64r(size_t offset) const {
-  return bswap64(this->pget_s64(offset));
-}
-
-float StringReader::pget_f32r(size_t offset) const {
-  return bswap32f(this->pget_u32(offset));
-}
-
-double StringReader::pget_f64r(size_t offset) const {
-  return bswap64f(this->pget_u64(offset));
 }
 
 string StringReader::get_cstr(bool advance) {

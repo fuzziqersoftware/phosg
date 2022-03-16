@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "Platform.hh"
+#include "Encoding.hh"
 
 
 std::unique_ptr<void, void (*)(void*)> malloc_unique(size_t size);
@@ -175,106 +176,142 @@ public:
 
   std::string read(size_t size, bool advance = true);
   std::string readx(size_t size, bool advance = true);
-  size_t read_into(void* data, size_t size, bool advance = true);
-  void readx_into(void* data, size_t size, bool advance = true);
+  size_t read(void* data, size_t size, bool advance = true);
+  void readx(void* data, size_t size, bool advance = true);
   std::string pread(size_t offset, size_t size) const;
   std::string preadx(size_t offset, size_t size) const;
-  size_t pread_into(size_t offset, void* data, size_t size) const;
-  void preadx_into(size_t offset, void* data, size_t size) const;
+  size_t pread(size_t offset, void* data, size_t size) const;
+  void preadx(size_t offset, void* data, size_t size) const;
 
-  template <typename T> const T& get(bool advance = true) {
-    if (this->offset > this->length - sizeof(T)) {
+  template <typename T> const T& pget(size_t offset, size_t size = sizeof(T)) const {
+    if (offset > this->length - size) {
       throw std::out_of_range("end of string");
     }
-    const T& ret = *reinterpret_cast<const T*>(this->data + this->offset);
+    return *reinterpret_cast<const T*>(this->data + offset);
+  }
+
+  template <typename T> const T& get(bool advance = true) {
+    const T& ret = this->pget<T>(this->offset);
     if (advance) {
       this->offset += sizeof(T);
     }
     return ret;
   }
 
-  template <typename T> const T& pget(size_t offset) const {
-    if (offset > this->length - sizeof(T)) {
+  inline uint8_t get_u8(bool advance = true)     { return this->get<uint8_t>(advance); }
+  inline int8_t get_s8(bool advance = true)      { return this->get<int8_t>(advance); }
+  inline uint8_t pget_u8(size_t offset) const    { return this->pget<uint8_t>(offset); }
+  inline int8_t pget_s8(size_t offset) const     { return this->pget<int8_t>(offset); }
+
+  inline uint16_t get_u16b(bool advance = true)  { return this->get<be_uint16_t>(advance); }
+  inline uint16_t get_u16l(bool advance = true)  { return this->get<le_uint16_t>(advance); }
+  inline int16_t get_s16b(bool advance = true)   { return this->get<be_int16_t>(advance); }
+  inline int16_t get_s16l(bool advance = true)   { return this->get<le_int16_t>(advance); }
+  inline uint16_t pget_u16b(size_t offset) const { return this->pget<be_uint16_t>(offset); }
+  inline uint16_t pget_u16l(size_t offset) const { return this->pget<le_uint16_t>(offset); }
+  inline int16_t pget_s16b(size_t offset) const  { return this->pget<be_int16_t>(offset); }
+  inline int16_t pget_s16l(size_t offset) const  { return this->pget<le_int16_t>(offset); }
+
+  inline uint32_t get_u32b(bool advance = true)  { return this->get<be_uint32_t>(advance); }
+  inline uint32_t get_u32l(bool advance = true)  { return this->get<le_uint32_t>(advance); }
+  inline int32_t get_s32b(bool advance = true)   { return this->get<be_int32_t>(advance); }
+  inline int32_t get_s32l(bool advance = true)   { return this->get<le_int32_t>(advance); }
+  inline uint32_t pget_u32b(size_t offset) const { return this->pget<be_uint32_t>(offset); }
+  inline uint32_t pget_u32l(size_t offset) const { return this->pget<le_uint32_t>(offset); }
+  inline int32_t pget_s32b(size_t offset) const  { return this->pget<be_int32_t>(offset); }
+  inline int32_t pget_s32l(size_t offset) const  { return this->pget<le_int32_t>(offset); }
+
+  inline uint64_t get_u64b(bool advance = true)  { return this->get<be_uint64_t>(advance); }
+  inline uint64_t get_u64l(bool advance = true)  { return this->get<le_uint64_t>(advance); }
+  inline int64_t get_s64b(bool advance = true)   { return this->get<be_int64_t>(advance); }
+  inline int64_t get_s64l(bool advance = true)   { return this->get<le_int64_t>(advance); }
+  inline uint64_t pget_u64b(size_t offset) const { return this->pget<be_uint64_t>(offset); }
+  inline uint64_t pget_u64l(size_t offset) const { return this->pget<le_uint64_t>(offset); }
+  inline int64_t pget_s64b(size_t offset) const  { return this->pget<be_int64_t>(offset); }
+  inline int64_t pget_s64l(size_t offset) const  { return this->pget<le_int64_t>(offset); }
+
+  inline float get_f32b(bool advance = true)     { return this->get<be_float>(advance); }
+  inline float get_f32l(bool advance = true)     { return this->get<le_float>(advance); }
+  inline float pget_f32b(size_t offset) const    { return this->pget<be_float>(offset); }
+  inline float pget_f32l(size_t offset) const    { return this->pget<le_float>(offset); }
+
+  inline double get_f64b(bool advance = true)    { return this->get<be_double>(advance); }
+  inline double get_f64l(bool advance = true)    { return this->get<le_double>(advance); }
+  inline double pget_f64b(size_t offset) const   { return this->pget<be_double>(offset); }
+  inline double pget_f64l(size_t offset) const   { return this->pget<le_double>(offset); }
+
+  inline uint32_t get_u24b(bool advance = true) {
+    uint32_t ret = this->pget_u24b(this->offset);
+    if (advance) {
+      this->offset += 3;
+    }
+    return ret;
+  }
+  inline uint32_t get_u24l(bool advance = true) {
+    uint32_t ret = this->pget_u24l(this->offset);
+    if (advance) {
+      this->offset += 3;
+    }
+    return ret;
+  }
+  inline int32_t get_s24b(bool advance = true) { return ext24(this->get_u24b(advance)); }
+  inline int32_t get_s24l(bool advance = true) { return ext24(this->get_u24l(advance)); }
+
+  inline uint32_t pget_u24b(size_t offset) const {
+    if (offset >= this->length - 2) {
       throw std::out_of_range("end of string");
     }
-    return *reinterpret_cast<const T*>(this->data + offset);
+    return (this->data[offset] << 16) | (this->data[offset + 1] << 8) | this->data[offset + 2];
   }
+  inline uint32_t pget_u24l(size_t offset) const {
+    if (offset >= this->length - 2) {
+      throw std::out_of_range("end of string");
+    }
+    return this->data[offset] | (this->data[offset + 1] << 8) | (this->data[offset + 2] << 16);
+  }
+  inline int32_t pget_s24b(size_t offset) const { return ext24(this->pget_u24b(offset)); }
+  inline int32_t pget_s24l(size_t offset) const { return ext24(this->pget_u24l(offset)); }
 
-  template <typename T> T get_sw(bool advance = true) {
-    T ret = this->get<T>(advance);
-    ret.byteswap();
+  inline uint64_t get_u48b(bool advance = true) {
+    uint64_t ret = this->pget_u48b(this->offset);
+    if (advance) {
+      this->offset += 6;
+    }
     return ret;
   }
-
-  template <typename T> T pget_sw(size_t offset) const {
-    T ret = this->pget<T>(offset);
-    ret.byteswap();
+  inline uint64_t get_u48l(bool advance = true) {
+    uint64_t ret = this->pget_u48l(this->offset);
+    if (advance) {
+      this->offset += 6;
+    }
     return ret;
   }
-
-  inline char get_ch(bool advance = true) {
-    return this->get_s8(advance);
+  inline int64_t get_s48b(bool advance = true) { return ext48(this->get_u48b(advance)); }
+  inline int64_t get_s48l(bool advance = true) { return ext48(this->get_u48l(advance)); }
+  inline uint64_t pget_u48b(size_t offset) const {
+    if (offset >= this->length - 5) {
+      throw std::out_of_range("end of string");
+    }
+    return (static_cast<uint64_t>(this->data[offset]) << 40) |
+           (static_cast<uint64_t>(this->data[offset + 1]) << 32) |
+           (static_cast<uint64_t>(this->data[offset + 2]) << 24) |
+           (static_cast<uint64_t>(this->data[offset + 3]) << 16) |
+           (static_cast<uint64_t>(this->data[offset + 4]) << 8) |
+           (static_cast<uint64_t>(this->data[offset + 5]));
   }
-
-  uint8_t get_u8(bool advance = true);
-  int8_t get_s8(bool advance = true);
-  uint16_t get_u16(bool advance = true);
-  int16_t get_s16(bool advance = true);
-  uint32_t get_u24(bool advance = true);
-  int32_t get_s24(bool advance = true);
-  uint32_t get_u32(bool advance = true);
-  int32_t get_s32(bool advance = true);
-  uint64_t get_u48(bool advance = true);
-  int64_t get_s48(bool advance = true);
-  uint64_t get_u64(bool advance = true);
-  int64_t get_s64(bool advance = true);
-  float get_f32(bool advance = true);
-  double get_f64(bool advance = true);
-
-  uint16_t get_u16r(bool advance = true);
-  int16_t get_s16r(bool advance = true);
-  uint32_t get_u24r(bool advance = true);
-  int32_t get_s24r(bool advance = true);
-  uint32_t get_u32r(bool advance = true);
-  int32_t get_s32r(bool advance = true);
-  uint64_t get_u48r(bool advance = true);
-  int64_t get_s48r(bool advance = true);
-  uint64_t get_u64r(bool advance = true);
-  int64_t get_s64r(bool advance = true);
-  float get_f32r(bool advance = true);
-  double get_f64r(bool advance = true);
-
-  inline char pget_ch(size_t offset) const {
-    return this->pget_s8(offset);
+  inline uint64_t pget_u48l(size_t offset) const {
+    if (offset >= this->length - 5) {
+      throw std::out_of_range("end of string");
+    }
+    return (static_cast<uint64_t>(this->data[offset])) |
+           (static_cast<uint64_t>(this->data[offset + 1]) << 8) |
+           (static_cast<uint64_t>(this->data[offset + 2]) << 16) |
+           (static_cast<uint64_t>(this->data[offset + 3]) << 24) |
+           (static_cast<uint64_t>(this->data[offset + 4]) << 32) |
+           (static_cast<uint64_t>(this->data[offset + 5]) << 40);
   }
-
-  uint8_t pget_u8(size_t offset) const;
-  int8_t pget_s8(size_t offset) const;
-  uint16_t pget_u16(size_t offset) const;
-  int16_t pget_s16(size_t offset) const;
-  uint32_t pget_u24(size_t offset) const;
-  int32_t pget_s24(size_t offset) const;
-  uint32_t pget_u32(size_t offset) const;
-  int32_t pget_s32(size_t offset) const;
-  uint64_t pget_u48(size_t offset) const;
-  int64_t pget_s48(size_t offset) const;
-  uint64_t pget_u64(size_t offset) const;
-  int64_t pget_s64(size_t offset) const;
-  float pget_f32(size_t offset) const;
-  double pget_f64(size_t offset) const;
-
-  uint16_t pget_u16r(size_t offset) const;
-  int16_t pget_s16r(size_t offset) const;
-  uint32_t pget_u24r(size_t offset) const;
-  int32_t pget_s24r(size_t offset) const;
-  uint32_t pget_u32r(size_t offset) const;
-  int32_t pget_s32r(size_t offset) const;
-  uint64_t pget_u48r(size_t offset) const;
-  int64_t pget_s48r(size_t offset) const;
-  uint64_t pget_u64r(size_t offset) const;
-  int64_t pget_s64r(size_t offset) const;
-  float pget_f32r(size_t offset) const;
-  double pget_f64r(size_t offset) const;
+  inline int64_t pget_s48b(size_t offset) const { return ext48(this->pget_u48b(offset)); }
+  inline int64_t pget_s48l(size_t offset) const { return ext48(this->pget_u48l(offset)); }
 
   std::string get_cstr(bool advance = true);
   std::string pget_cstr(size_t offset) const;
@@ -298,11 +335,6 @@ public:
 
   template <typename T> void put(const T& v) {
     this->data.append(reinterpret_cast<const char*>(&v), sizeof(v));
-  }
-
-  template <typename T> void put_sw(const T& v) {
-    this->data.append(reinterpret_cast<const char*>(&v), sizeof(v));
-    reinterpret_cast<T*>(this->data[this->data.size() - sizeof(v)])->byteswap();
   }
 
   void put_u8(uint8_t v);
