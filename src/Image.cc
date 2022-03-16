@@ -1268,17 +1268,17 @@ static inline void clamp_blit_dimensions(
   }
   // If the area extends beyond the source, trim off the right/bottom
   if (*sx + *w > static_cast<ssize_t>(source.get_width())) {
-    *w = *sx + source.get_width();
+    *w = source.get_width() - *sx;
   }
   if (*sy + *h > static_cast<ssize_t>(source.get_height())) {
-    *h = *sy + source.get_height();
+    *h = source.get_height() - *sy;
   }
   // If the area extends beyond the dest, trim off the right/bottom
   if (*x + *w > static_cast<ssize_t>(dest.get_width())) {
-    *w = *x + dest.get_width();
+    *w = dest.get_width() - *x;
   }
   if (*y + *h > static_cast<ssize_t>(dest.get_height())) {
-    *h = *y + dest.get_height();
+    *h = dest.get_height() - *y;
   }
 
   // If either width or height are negative, then the entire area is out of
