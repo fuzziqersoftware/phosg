@@ -170,7 +170,10 @@ public:
   bool eof() const;
   std::string all() const;
 
+  StringReader sub(size_t offset) const;
   StringReader sub(size_t offset, size_t size) const;
+  StringReader subx(size_t offset) const;
+  StringReader subx(size_t offset, size_t size) const;
 
   const char* peek(size_t size);
 

@@ -1105,9 +1105,39 @@ string StringReader::all() const {
   return string(reinterpret_cast<const char*>(this->data), this->length);
 }
 
+StringReader StringReader::sub(size_t offset) const {
+  if (offset > this->length) {
+    return StringReader();
+  }
+  return StringReader(
+      reinterpret_cast<const char*>(this->data) + offset,
+      this->length - offset);
+}
+
 StringReader StringReader::sub(size_t offset, size_t size) const {
+  if (offset >= this->length) {
+    return StringReader();
+  }
   if (offset + size > this->length) {
-    throw out_of_range("sub-reader extends beyond end of data");
+    return StringReader(
+        reinterpret_cast<const char*>(this->data) + offset,
+        this->length - offset);
+  }
+  return StringReader(reinterpret_cast<const char*>(this->data) + offset, size);
+}
+
+StringReader StringReader::subx(size_t offset) const {
+  if (offset > this->length) {
+    throw out_of_range("sub-reader begins beyond end of data");
+  }
+  return StringReader(
+      reinterpret_cast<const char*>(this->data) + offset,
+      this->length - offset);
+}
+
+StringReader StringReader::subx(size_t offset, size_t size) const {
+  if (offset + size > this->length) {
+    throw out_of_range("sub-reader begins or extends beyond end of data");
   }
   return StringReader(reinterpret_cast<const char*>(this->data) + offset, size);
 }
