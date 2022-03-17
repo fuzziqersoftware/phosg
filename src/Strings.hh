@@ -187,7 +187,7 @@ public:
   void preadx(size_t offset, void* data, size_t size) const;
 
   template <typename T> const T& pget(size_t offset, size_t size = sizeof(T)) const {
-    if (offset > this->length - size) {
+    if (offset + size > this->length) {
       throw std::out_of_range("end of string");
     }
     return *reinterpret_cast<const T*>(this->data + offset);
@@ -261,13 +261,13 @@ public:
   inline int32_t get_s24l(bool advance = true) { return ext24(this->get_u24l(advance)); }
 
   inline uint32_t pget_u24b(size_t offset) const {
-    if (offset >= this->length - 2) {
+    if (offset + 3 > this->length) {
       throw std::out_of_range("end of string");
     }
     return (this->data[offset] << 16) | (this->data[offset + 1] << 8) | this->data[offset + 2];
   }
   inline uint32_t pget_u24l(size_t offset) const {
-    if (offset >= this->length - 2) {
+    if (offset + 3 > this->length) {
       throw std::out_of_range("end of string");
     }
     return this->data[offset] | (this->data[offset + 1] << 8) | (this->data[offset + 2] << 16);
@@ -292,7 +292,7 @@ public:
   inline int64_t get_s48b(bool advance = true) { return ext48(this->get_u48b(advance)); }
   inline int64_t get_s48l(bool advance = true) { return ext48(this->get_u48l(advance)); }
   inline uint64_t pget_u48b(size_t offset) const {
-    if (offset >= this->length - 5) {
+    if (offset + 6 > this->length) {
       throw std::out_of_range("end of string");
     }
     return (static_cast<uint64_t>(this->data[offset]) << 40) |
@@ -303,7 +303,7 @@ public:
            (static_cast<uint64_t>(this->data[offset + 5]));
   }
   inline uint64_t pget_u48l(size_t offset) const {
-    if (offset >= this->length - 5) {
+    if (offset + 6 > this->length) {
       throw std::out_of_range("end of string");
     }
     return (static_cast<uint64_t>(this->data[offset])) |
