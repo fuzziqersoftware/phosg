@@ -193,10 +193,10 @@ public:
     return *reinterpret_cast<const T*>(this->data + offset);
   }
 
-  template <typename T> const T& get(bool advance = true) {
-    const T& ret = this->pget<T>(this->offset);
+  template <typename T> const T& get(bool advance = true, size_t size = sizeof(T)) {
+    const T& ret = this->pget<T>(this->offset, size);
     if (advance) {
-      this->offset += sizeof(T);
+      this->offset += size;
     }
     return ret;
   }
