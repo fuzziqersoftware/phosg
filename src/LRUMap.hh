@@ -1,8 +1,10 @@
 #pragma once
 
 #include <stdint.h>
+#include <sys/types.h>
 
 #include <unordered_map>
+#include <stdexcept>
 
 
 template <typename KeyT, typename ValueT>
