@@ -186,13 +186,23 @@ public:
   size_t pread(size_t offset, void* data, size_t size) const;
   void preadx(size_t offset, void* data, size_t size) const;
 
-  template <typename T> const T& pget(size_t offset, size_t size = sizeof(T)) const {
+  inline const void* pgetv(size_t offset, size_t size) const {
     if (offset + size > this->length) {
       throw std::out_of_range("end of string");
     }
-    return *reinterpret_cast<const T*>(this->data + offset);
+    return this->data + offset;
+  }
+  template <typename T> const T& pget(size_t offset, size_t size = sizeof(T)) const {
+    return *reinterpret_cast<const T*>(this->pgetv(offset, size));
   }
 
+  inline const void* getv(size_t size, bool advance = true) {
+    const void* ret = this->pgetv(this->offset, size);
+    if (advance) {
+      this->offset += size;
+    }
+    return ret;
+  }
   template <typename T> const T& get(bool advance = true, size_t size = sizeof(T)) {
     const T& ret = this->pget<T>(this->offset, size);
     if (advance) {
