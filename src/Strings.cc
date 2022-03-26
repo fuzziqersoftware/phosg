@@ -1057,6 +1057,31 @@ uint64_t BitReader::read(uint8_t size, bool advance) {
 
 
 
+BitWriter::BitWriter() : last_byte_unset_bits(0) { }
+
+size_t BitWriter::size() const {
+  return this->data.size() * 8 - this->last_byte_unset_bits;
+}
+
+void BitWriter::reset() {
+  this->data.clear();
+  this->last_byte_unset_bits = 0;
+}
+
+void BitWriter::write(bool v) {
+  if (this->last_byte_unset_bits > 0) {
+    this->last_byte_unset_bits--;
+    if (v) {
+      this->data[this->data.size() - 1] |= (1 << this->last_byte_unset_bits);
+    }
+  } else {
+    this->data.push_back(v ? 0x80 : 0x00);
+    this->last_byte_unset_bits = 7;
+  }
+}
+
+
+
 StringReader::StringReader()
   : owned_data(nullptr), data(nullptr), length(0), offset(0) { }
 

@@ -153,6 +153,28 @@ private:
   size_t offset;
 };
 
+// This class exists because apparently vector<bool> isn't required to store its
+// elements continguously, and in many reverse-engineering situations we
+// definitely want the bits to all be contiguous.
+class BitWriter {
+public:
+  BitWriter();
+  ~BitWriter() = default;
+
+  size_t size() const;
+  void reset();
+
+  void write(bool v);
+
+  inline const std::string& str() {
+    return this->data;
+  }
+
+private:
+  std::string data;
+  uint8_t last_byte_unset_bits;
+};
+
 class StringReader {
 public:
   StringReader();
