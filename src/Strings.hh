@@ -103,20 +103,20 @@ void print_color_escape(FILE* stream, TerminalFormat color, ...);
 void print_indent(FILE* stream, int indent_level);
 
 enum PrintDataFlags {
-  UseColor          = 0x01, // use terminal escape codes to show differences
-  PrintAscii        = 0x02, // print ascii view on the right
-  PrintFloat        = 0x04, // print float view on the right
-  PrintDouble       = 0x08, // print double view on the right
-  ReverseEndian     = 0x10, // floats/doubles should be byteswapped
-  CollapseZeroLines = 0x20, // skips lines of all zeroes
-  SkipSeparator     = 0x40, // instead of " | ", print just " "
+  USE_COLOR           = 0x01, // use terminal escape codes to show differences
+  PRINT_ASCII         = 0x02, // print ascii view on the right
+  PRINT_FLOAT         = 0x04, // print float view on the right
+  PRINT_DOUBLE        = 0x08, // print double view on the right
+  REVERSE_ENDIAN      = 0x10, // floats/doubles should be byteswapped
+  COLLAPSE_ZERO_LINES = 0x20, // skips lines of all zeroes
+  SKIP_SEPARATOR      = 0x40, // instead of " | ", print just " "
 };
 
 void print_data(FILE* stream, const void* _data, uint64_t size,
     uint64_t address = 0, const void* _prev = nullptr,
-    uint64_t flags = PrintDataFlags::PrintAscii);
+    uint64_t flags = PrintDataFlags::PRINT_ASCII);
 void print_data(FILE* stream, const std::string& data, uint64_t address = 0,
-    const void* prev = nullptr, uint64_t flags = PrintDataFlags::PrintAscii);
+    const void* prev = nullptr, uint64_t flags = PrintDataFlags::PRINT_ASCII);
 
 std::string parse_data_string(const std::string& s, std::string* mask = nullptr);
 std::string format_data_string(const std::string& data, const std::string* mask = nullptr);

@@ -108,9 +108,9 @@ int main(int, char** argv) {
       expect_eq(img, img2);
     }
 
-    vector<Image::ImageFormat> formats({Image::ImageFormat::ColorPPM});
+    vector<Image::Format> formats({Image::Format::COLOR_PPM});
     if (channel_width == 8) {
-      formats.emplace_back(Image::ImageFormat::WindowsBitmap);
+      formats.emplace_back(Image::Format::WINDOWS_BITMAP);
     }
 
     for (auto format : formats) {

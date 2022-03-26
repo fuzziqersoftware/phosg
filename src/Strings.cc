@@ -424,13 +424,13 @@ void print_data(FILE* stream, const void* _data, uint64_t size,
 
   uint64_t end_address = start_address + size;
 
-  bool use_color = flags & PrintDataFlags::UseColor;
-  bool print_ascii = flags & PrintDataFlags::PrintAscii;
-  bool print_float = flags & PrintDataFlags::PrintFloat;
-  bool print_double = flags & PrintDataFlags::PrintDouble;
-  bool reverse_endian = flags & PrintDataFlags::ReverseEndian;
-  bool collapse_zero_lines = flags & PrintDataFlags::CollapseZeroLines;
-  bool skip_separator = flags & PrintDataFlags::SkipSeparator;
+  bool use_color = flags & PrintDataFlags::USE_COLOR;
+  bool print_ascii = flags & PrintDataFlags::PRINT_ASCII;
+  bool print_float = flags & PrintDataFlags::PRINT_FLOAT;
+  bool print_double = flags & PrintDataFlags::PRINT_DOUBLE;
+  bool reverse_endian = flags & PrintDataFlags::REVERSE_ENDIAN;
+  bool collapse_zero_lines = flags & PrintDataFlags::COLLAPSE_ZERO_LINES;
+  bool skip_separator = flags & PrintDataFlags::SKIP_SEPARATOR;
 
   // if color is disabled or no diff source is given, disable diffing
   const uint8_t* data = (const uint8_t*)_data;

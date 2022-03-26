@@ -12,7 +12,7 @@ using namespace std;
 
 void print_data_test_case(const string& expected_output, const string& data,
     uint64_t address = 0, const string& prev = "",
-    uint64_t flags = PrintDataFlags::PrintAscii) {
+    uint64_t flags = PrintDataFlags::PRINT_ASCII) {
 
   // osx doesn't have fmemopen, so we just write to a file because I'm too lazy
   // to use funopen()
@@ -82,54 +82,54 @@ string("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 0x10)
 0000000107B50FE0 |                                     00 00 00 00 |                 \n\
 0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 | Vom      [ @    \n\
 0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |     n7 C>Q?@    \n",
-float_data, 0x0000000107B50FEC, "", PrintDataFlags::PrintAscii);
+float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_ASCII);
   print_data_test_case("\
 0000000107B50FE0 |                                     00 00 00 00 |                                                   0\n\
 0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 |      -237.43            0       6.2612            0\n\
 0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |            0       318.43       2.9893             \n",
-float_data, 0x0000000107B50FEC, "", PrintDataFlags::PrintFloat);
+float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_FLOAT);
   print_data_test_case("\
 0000000107B50FE0 |                                     00 00 00 00 |                  |                                                   0\n\
 0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 | Vom      [ @     |      -237.43            0       6.2612            0\n\
 0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |     n7 C>Q?@     |            0       318.43       2.9893             \n",
-float_data, 0x0000000107B50FEC, "", PrintDataFlags::PrintAscii | PrintDataFlags::PrintFloat);
+float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_ASCII | PrintDataFlags::PRINT_FLOAT);
 
   // reverse-endian floats
   print_data_test_case("\
 0000000107B50FE0 |                                     00 00 00 00 |                                                   0\n\
 0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 |   6.5814e+13            0  -1.9063e-16            0\n\
 0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |            0   1.4207e+28      0.20434             \n",
-float_data, 0x0000000107B50FEC, "", PrintDataFlags::PrintFloat | PrintDataFlags::ReverseEndian);
+float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_FLOAT | PrintDataFlags::REVERSE_ENDIAN);
 
   // float alignment
   print_data_test_case("\
 0000000000000000 |    00 00 00 00 00 00 00 00                      |                         0                          \n",
-string("\0\0\0\0\0\0\0\0", 8), 1, "", PrintDataFlags::PrintFloat);
+string("\0\0\0\0\0\0\0\0", 8), 1, "", PrintDataFlags::PRINT_FLOAT);
 
   // doubles
   print_data_test_case("\
 0000000000000000 | 3F F0 00 00 00 00 00 00 41 FC 80 AC EA 2C AA 40 |  3.0387e-319       3350.5\n\
 0000000000000010 | 40 00 00 00 00 00 00 00                         |   3.162e-322             \n",
 string("\x3F\xF0\0\0\0\0\0\0\x41\xFC\x80\xAC\xEA\x2C\xAA\x40\x40\0\0\0\0\0\0\0", 0x18),
-0, "", PrintDataFlags::PrintDouble | PrintDataFlags::PrintDouble);
+0, "", PrintDataFlags::PRINT_DOUBLE | PrintDataFlags::PRINT_DOUBLE);
   print_data_test_case("\
 0000000000000000 | 3F F0 00 00 00 00 00 00 41 FC 80 AC EA 2C AA 40 |            1   7.6511e+09\n\
 0000000000000010 | 40 00 00 00 00 00 00 00                         |            2             \n",
 string("\x3F\xF0\0\0\0\0\0\0\x41\xFC\x80\xAC\xEA\x2C\xAA\x40\x40\0\0\0\0\0\0\0", 0x18),
-0, "", PrintDataFlags::PrintDouble | PrintDataFlags::ReverseEndian);
+0, "", PrintDataFlags::PRINT_DOUBLE | PrintDataFlags::REVERSE_ENDIAN);
 
   // reverse-endian doubles
   print_data_test_case("\
 0000000000000000 | 3F F0 00 00 00 00 00 00 41 FC 80 AC EA 2C AA 40 | ?       A    , @ |            1   7.6511e+09\n\
 0000000000000010 | 40 00 00 00 00 00 00 00                         | @                |            2             \n",
 string("\x3F\xF0\0\0\0\0\0\0\x41\xFC\x80\xAC\xEA\x2C\xAA\x40\x40\0\0\0\0\0\0\0", 0x18),
-0, "", PrintDataFlags::PrintDouble | PrintDataFlags::PrintAscii | PrintDataFlags::ReverseEndian);
+0, "", PrintDataFlags::PRINT_DOUBLE | PrintDataFlags::PRINT_ASCII | PrintDataFlags::REVERSE_ENDIAN);
 
   // double alignment
   print_data_test_case("\
 0000000000000000 |    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |                         0\n\
 0000000000000010 | 00                                              |                          \n",
-string("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 16), 1, "", PrintDataFlags::PrintDouble);
+string("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 16), 1, "", PrintDataFlags::PRINT_DOUBLE);
 
   // TODO: test diffing
 }

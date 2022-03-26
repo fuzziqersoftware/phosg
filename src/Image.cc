@@ -84,19 +84,19 @@ void Image::load(FILE* f) {
   freadx(f, sig, 2);
 
   // find out what kind of image it is
-  ImageFormat format;
+  Format format;
   if (sig[0] == 'P' && sig[1] == '5') {
-    format = GrayscalePPM;
+    format = Format::GRAYSCALE_PPM;
   } else if (sig[0] == 'P' && sig[1] == '6') {
-    format = ColorPPM;
+    format = Format::COLOR_PPM;
   } else if (sig[0] == 'B' && sig[1] == 'M') {
-    format = WindowsBitmap;
+    format = Format::WINDOWS_BITMAP;
   } else {
     throw unknown_format(string_printf(
         "can\'t load image; type signature is %02X%02X", sig[0], sig[1]));
   }
 
-  if (format == GrayscalePPM || format == ColorPPM) {
+  if (format == Format::GRAYSCALE_PPM || format == Format::COLOR_PPM) {
     size_t new_width, new_height;
     uint64_t new_max_value;
     if (fscanf(f, "%zu", &new_width) != 1) {
@@ -135,7 +135,7 @@ void Image::load(FILE* f) {
     if (!new_data.raw) {
       throw bad_alloc();
     }
-    freadx(f, new_data.raw, new_width * new_height * (format == ColorPPM ? 3 : 1) * (new_channel_width / 8));
+    freadx(f, new_data.raw, new_width * new_height * (format == Format::COLOR_PPM ? 3 : 1) * (new_channel_width / 8));
 
     // if the read succeeded, we can commit the changes - nothing after here can
     // throw an exception
@@ -148,7 +148,7 @@ void Image::load(FILE* f) {
     this->data.raw = new_data.raw;
 
     // expand grayscale data into color data if necessary
-    if (format == GrayscalePPM) {
+    if (format == Format::GRAYSCALE_PPM) {
       if (this->channel_width == 8) {
         for (ssize_t y = this->height - 1; y >= 0; y--) {
           for (ssize_t x = this->width - 1; x >= 0; x--) {
@@ -184,7 +184,7 @@ void Image::load(FILE* f) {
       }
     }
 
-  } else if (format == WindowsBitmap) {
+  } else if (format == Format::WINDOWS_BITMAP) {
     WindowsBitmapHeader header;
     memcpy(&header.file_header.magic, sig, 2);
     freadx(f, reinterpret_cast<uint8_t*>(&header) + 2, sizeof(header) - 2);
@@ -429,24 +429,24 @@ bool Image::operator!=(const Image& other) const {
   return !this->operator==(other);
 }
 
-const char* Image::mime_type_for_format(ImageFormat format) {
+const char* Image::mime_type_for_format(Format format) {
   switch (format) {
-    case GrayscalePPM:
-    case ColorPPM:
+    case Format::GRAYSCALE_PPM:
+    case Format::COLOR_PPM:
       return "image/x-portable-pixmap";
-    case WindowsBitmap:
+    case Format::WINDOWS_BITMAP:
       return "image/bmp";
     default:
       return "text/plain";
   }
 }
 
-const char* Image::file_extension_for_format(ImageFormat format) {
+const char* Image::file_extension_for_format(Format format) {
   switch (format) {
-    case GrayscalePPM:
-    case ColorPPM:
+    case Format::GRAYSCALE_PPM:
+    case Format::COLOR_PPM:
       return "ppm";
-    case WindowsBitmap:
+    case Format::WINDOWS_BITMAP:
       return "bmp";
     default:
       return "raw";
@@ -454,13 +454,13 @@ const char* Image::file_extension_for_format(ImageFormat format) {
 }
 
 // save the image to an already-open file
-void Image::save(FILE* f, Image::ImageFormat format) const {
+void Image::save(FILE* f, Format format) const {
 
   switch (format) {
-    case GrayscalePPM:
+    case Format::GRAYSCALE_PPM:
       throw runtime_error("can\'t save grayscale ppm files");
 
-    case ColorPPM:
+    case Format::COLOR_PPM:
       if (this->has_alpha) {
         throw runtime_error("can\'t save color ppm with alpha");
       }
@@ -469,7 +469,7 @@ void Image::save(FILE* f, Image::ImageFormat format) const {
       fwritex(f, this->data.raw, this->get_data_size());
       break;
 
-    case WindowsBitmap: {
+    case Format::WINDOWS_BITMAP: {
       if (this->channel_width != 8) {
         throw runtime_error("can\'t save bmp with more than 8-bit channels");
       }
@@ -537,15 +537,15 @@ void Image::save(FILE* f, Image::ImageFormat format) const {
 }
 
 // save the image to a string in memory
-string Image::save(Image::ImageFormat format) const {
+string Image::save(Format format) const {
 
   // TODO: deduplicate this implementation with Image::save(FILE*)
 
   switch (format) {
-    case GrayscalePPM:
+    case Format::GRAYSCALE_PPM:
       throw runtime_error("can\'t save grayscale ppm files");
 
-    case ColorPPM: {
+    case Format::COLOR_PPM: {
       if (this->has_alpha) {
         throw runtime_error("can\'t save color ppm with alpha");
       }
@@ -555,7 +555,7 @@ string Image::save(Image::ImageFormat format) const {
       return s;
     }
 
-    case WindowsBitmap: {
+    case Format::WINDOWS_BITMAP: {
       if (this->channel_width != 8) {
         throw runtime_error("can\'t save bmp with more than 8-bit channels");
       }
@@ -625,7 +625,7 @@ string Image::save(Image::ImageFormat format) const {
 }
 
 // saves the Image. if nullptr is given for filename, writes to stdout
-void Image::save(const char* filename, Image::ImageFormat format) const {
+void Image::save(const char* filename, Format format) const {
   if (filename) {
     auto f = fopen_unique(filename, "wb");
     this->save(f.get(), format);
@@ -635,7 +635,7 @@ void Image::save(const char* filename, Image::ImageFormat format) const {
 }
 
 // saves the Image
-void Image::save(const string& filename, Image::ImageFormat format) const {
+void Image::save(const string& filename, Format format) const {
   auto f = fopen_unique(filename, "wb");
   this->save(f.get(), format);
 }

@@ -83,10 +83,10 @@ public:
     return this->width * this->height * (3 + this->has_alpha) * (this->channel_width / 8);
   }
 
-  enum ImageFormat {
-    GrayscalePPM = 0,
-    ColorPPM = 1,
-    WindowsBitmap = 2,
+  enum class Format {
+    GRAYSCALE_PPM = 0,
+    COLOR_PPM = 1,
+    WINDOWS_BITMAP = 2,
   };
 
   class unknown_format : virtual public std::runtime_error {
@@ -94,13 +94,13 @@ public:
     unknown_format(const std::string& what);
   };
 
-  static const char* mime_type_for_format(ImageFormat format);
-  static const char* file_extension_for_format(ImageFormat format);
+  static const char* mime_type_for_format(Format format);
+  static const char* file_extension_for_format(Format format);
 
-  void save(FILE* f, ImageFormat format) const;
-  void save(const char* filename, ImageFormat format) const;
-  void save(const std::string& filename, ImageFormat format) const;
-  std::string save(ImageFormat format) const;
+  void save(FILE* f, Format format) const;
+  void save(const char* filename, Format format) const;
+  void save(const std::string& filename, Format format) const;
+  std::string save(Format format) const;
 
   // read/write functions
   void clear(uint64_t r, uint64_t g, uint64_t b, uint64_t a = 0xFF);
