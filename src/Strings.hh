@@ -164,6 +164,8 @@ public:
   size_t size() const;
   void reset();
 
+  void truncate(size_t bits);
+
   void write(bool v);
 
   inline const std::string& str() {

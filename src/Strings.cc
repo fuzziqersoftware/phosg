@@ -1068,6 +1068,19 @@ void BitWriter::reset() {
   this->last_byte_unset_bits = 0;
 }
 
+void BitWriter::truncate(size_t size) {
+  if (size > ((this->data.size() * 8) - this->last_byte_unset_bits)) {
+    throw logic_error("cannot extend a BitWriter via truncate()");
+  }
+  this->data.resize((size + 7) / 8);
+  this->last_byte_unset_bits = (8 - (size & 7)) & 7;
+  // The if statement is important here (we can't just let the & become
+  // degenerate) because this->data could now be empty
+  if (this->last_byte_unset_bits) {
+    this->data[this->data.size() - 1] &= (0xFF << this->last_byte_unset_bits);
+  }
+}
+
 void BitWriter::write(bool v) {
   if (this->last_byte_unset_bits > 0) {
     this->last_byte_unset_bits--;
