@@ -1247,6 +1247,10 @@ size_t StringWriter::size() const {
   return this->data.size();
 }
 
+void StringWriter::reset() {
+  this->data.clear();
+}
+
 void StringWriter::write(const void* data, size_t size) {
   this->data.append(reinterpret_cast<const char*>(data), size);
 }

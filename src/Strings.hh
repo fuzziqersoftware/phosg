@@ -342,6 +342,7 @@ public:
   ~StringWriter() = default;
 
   size_t size() const;
+  void reset();
 
   void write(const void* data, size_t size);
   void write(const std::string& data);
