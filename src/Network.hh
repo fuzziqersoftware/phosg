@@ -13,6 +13,8 @@ std::pair<struct sockaddr_storage, size_t> make_sockaddr_storage(
 
 std::string render_sockaddr_storage(const sockaddr_storage& s);
 
+uint32_t resolve_ipv4(const std::string& addr);
+
 /**
  * Opens a socket to accept connections or data.
  *
