@@ -17,8 +17,26 @@ std::unique_ptr<void, void (*)(void*)> malloc_unique(size_t size);
 bool starts_with(const std::string& s, const std::string& start);
 bool ends_with(const std::string& s, const std::string& end);
 
-void strip_trailing_zeroes(std::string& s);
-void strip_trailing_whitespace(std::string& s);
+template <typename StrT>
+void strip_trailing_zeroes(StrT& s) {
+  size_t index = s.find_last_not_of('\0');
+  if (index != StrT::npos) {
+    s.resize(index + 1);
+  } else if (!s.empty() && s[0] == '\0') {
+    s.resize(0); // String is entirely zeroes
+  }
+}
+
+template <typename StrT>
+void strip_trailing_whitespace(StrT& s) {
+  size_t index = s.find_last_not_of(" \t\r\n");
+  if (index != StrT::npos) {
+    s.resize(index + 1);
+  } else if (!s.empty() &&
+      ((s[0] == ' ') || (s[0] == '\t') || (s[0] == '\r') || (s[0] == '\n'))) {
+    s.resize(0); // String is entirely whitespace
+  }
+}
 
 std::string escape_quotes(const std::string& s);
 std::string escape_url(const std::string& s, bool escape_slash = false);

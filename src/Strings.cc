@@ -49,25 +49,6 @@ bool ends_with(const string& s, const string& end) {
   return false;
 }
 
-void strip_trailing_zeroes(string& s) {
-  size_t index = s.find_last_not_of('\0');
-  if (index != string::npos) {
-    s.resize(index + 1);
-  } else if (!s.empty() && s[0] == '\0') {
-    s.resize(0); // String is entirely zeroes
-  }
-}
-
-void strip_trailing_whitespace(string& s) {
-  size_t index = s.find_last_not_of(" \t\r\n");
-  if (index != string::npos) {
-    s.resize(index + 1);
-  } else if (!s.empty() &&
-      ((s[0] == ' ') || (s[0] == '\t') || (s[0] == '\r') || (s[0] == '\n'))) {
-    s.resize(0); // String is entirely whitespace
-  }
-}
-
 string escape_quotes(const string& s) {
   string ret;
   for (size_t x = 0; x < s.size(); x++) {
