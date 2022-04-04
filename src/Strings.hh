@@ -59,8 +59,17 @@ uint8_t value_for_hex_char(char x);
 
 int log_level();
 void set_log_level(int new_level);
+void logv(int level, const char* fmt, va_list va);
 void log(int level, const char* fmt, ...)
-__attribute__((format(printf, 2, 3)));
+    __attribute__((format(printf, 2, 3)));
+
+struct PrefixedLogger {
+  std::string prefix;
+
+  explicit PrefixedLogger(const std::string& prefix);
+  void operator()(int level, const char* fmt, ...)
+      __attribute__((format(printf, 3, 4)));
+};
 
 std::vector<std::string> split(const std::string& s, char delim, size_t max_splits = 0);
 std::vector<std::wstring> split(const std::wstring& s, wchar_t delim, size_t max_splits = 0);

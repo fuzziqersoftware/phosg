@@ -157,6 +157,8 @@ uint8_t value_for_hex_char(char x) {
   throw out_of_range(string_printf("invalid hex char: %c", x));
 }
 
+
+
 static int current_log_level = INFO;
 
 int log_level() {
@@ -171,11 +173,7 @@ static const vector<char> log_level_chars({
   'D', 'I', 'W', 'E',
 });
 
-void log(int level, const char* fmt, ...) {
-  if (level < current_log_level) {
-    return;
-  }
-
+static void print_log_prefix(FILE* stream, int level) {
   char time_buffer[32];
   time_t now_secs = time(nullptr);
   struct tm now_tm;
@@ -183,17 +181,47 @@ void log(int level, const char* fmt, ...) {
   strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", &now_tm);
 #ifdef PHOSG_WINDOWS
   // don't include the pid on windows
-  fprintf(stderr, "%c %s - ", log_level_chars[level], time_buffer);
+  fprintf(stream, "%c %s - ", log_level_chars[level], time_buffer);
 #else
-  fprintf(stderr, "%c %d %s - ", log_level_chars[level], getpid_cached(), time_buffer);
+  fprintf(stream, "%c %d %s - ", log_level_chars[level], getpid_cached(), time_buffer);
 #endif
+}
 
-  va_list va;
-  va_start(va, fmt);
+void logv(int level, const char* fmt, va_list va) {
+  if (level < current_log_level) {
+    return;
+  }
+  print_log_prefix(stderr, level);
   vfprintf(stderr, fmt, va);
-  va_end(va);
   putc('\n', stderr);
 }
+
+void log(int level, const char* fmt, ...) {
+  if (level < current_log_level) {
+    return;
+  }
+  va_list va;
+  va_start(va, fmt);
+  logv(level, fmt, va);
+  va_end(va);
+}
+
+PrefixedLogger::PrefixedLogger(const std::string& prefix) : prefix(prefix) { }
+
+void PrefixedLogger::operator()(int level, const char* fmt, ...) {
+  if (level < current_log_level) {
+    return;
+  }
+  va_list va;
+  va_start(va, fmt);
+  print_log_prefix(stderr, level);
+  fwritex(stderr, this->prefix);
+  vfprintf(stderr, fmt, va);
+  putc('\n', stderr);
+  va_end(va);
+}
+
+
 
 vector<string> split(const string& s, char delim, size_t max_splits) {
   vector<string> ret;
