@@ -43,11 +43,14 @@ private:
   Node* find_subtree_min_max(Node* n, size_t target_dim, bool find_max);
 
 public:
-  class Iterator : public std::iterator<
-      std::input_iterator_tag, std::pair<CoordType, ValueType>, ssize_t,
-      const std::pair<CoordType, ValueType>*, std::pair<CoordType, ValueType>&> {
-
+  class Iterator {
   public:
+    using iterator_category = std::forward_iterator_tag;
+    using value_type = std::pair<CoordType, ValueType>;
+    using difference_type = ssize_t;
+    using pointer = const value_type*;
+    using reference = value_type&;
+
     explicit Iterator(Node* n);
     Iterator& operator++();
     Iterator operator++(int);
