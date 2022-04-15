@@ -395,6 +395,13 @@ public:
   size_t size() const;
   void reset();
 
+  inline void extend_to(size_t size, char v = '\0') {
+    this->data.resize(size, v);
+  }
+  inline void extend_by(size_t size, char v = '\0') {
+    this->data.resize(this->data.size() + size, v);
+  }
+
   void write(const void* data, size_t size);
   void write(const std::string& data);
 
