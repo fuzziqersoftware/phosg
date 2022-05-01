@@ -17,6 +17,9 @@ std::unique_ptr<void, void (*)(void*)> malloc_unique(size_t size);
 bool starts_with(const std::string& s, const std::string& start);
 bool ends_with(const std::string& s, const std::string& end);
 
+std::string toupper(const std::string& s);
+std::string tolower(const std::string& s);
+
 template <typename StrT>
 void strip_trailing_zeroes(StrT& s) {
   size_t index = s.find_last_not_of('\0');

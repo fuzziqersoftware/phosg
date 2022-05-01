@@ -49,6 +49,24 @@ bool ends_with(const string& s, const string& end) {
   return false;
 }
 
+std::string toupper(const std::string& s) {
+  std::string ret;
+  ret.reserve(s.size());
+  for (char ch : s) {
+    ret.push_back(toupper(ch));
+  }
+  return ret;
+}
+
+std::string tolower(const std::string& s) {
+  std::string ret;
+  ret.reserve(s.size());
+  for (char ch : s) {
+    ret.push_back(tolower(ch));
+  }
+  return ret;
+}
+
 string escape_quotes(const string& s) {
   string ret;
   for (size_t x = 0; x < s.size(); x++) {
