@@ -6,6 +6,37 @@
 
 
 int main(int, char** argv) {
+  expect_eq(0x0000, (sign_extend<uint16_t, uint8_t>(0x00)));
+  expect_eq(0x0001, (sign_extend<uint16_t, uint8_t>(0x01)));
+  expect_eq(0x007F, (sign_extend<uint16_t, uint8_t>(0x7F)));
+  expect_eq(0xFF80, (sign_extend<uint16_t, uint8_t>(0x80)));
+  expect_eq(0xFFFF, (sign_extend<uint16_t, uint8_t>(0xFF)));
+  expect_eq(0x00000000, (sign_extend<uint32_t, uint8_t>(0x00)));
+  expect_eq(0x00000001, (sign_extend<uint32_t, uint8_t>(0x01)));
+  expect_eq(0x0000007F, (sign_extend<uint32_t, uint8_t>(0x7F)));
+  expect_eq(0xFFFFFF80, (sign_extend<uint32_t, uint8_t>(0x80)));
+  expect_eq(0xFFFFFFFF, (sign_extend<uint32_t, uint8_t>(0xFF)));
+  expect_eq(0x0000000000000000, (sign_extend<uint64_t, uint8_t>(0x00)));
+  expect_eq(0x0000000000000001, (sign_extend<uint64_t, uint8_t>(0x01)));
+  expect_eq(0x000000000000007F, (sign_extend<uint64_t, uint8_t>(0x7F)));
+  expect_eq(0xFFFFFFFFFFFFFF80, (sign_extend<uint64_t, uint8_t>(0x80)));
+  expect_eq(0xFFFFFFFFFFFFFFFF, (sign_extend<uint64_t, uint8_t>(0xFF)));
+  expect_eq(0x00000000, (sign_extend<uint32_t, uint16_t>(0x0000)));
+  expect_eq(0x00000001, (sign_extend<uint32_t, uint16_t>(0x0001)));
+  expect_eq(0x00007FFF, (sign_extend<uint32_t, uint16_t>(0x7FFF)));
+  expect_eq(0xFFFF8000, (sign_extend<uint32_t, uint16_t>(0x8000)));
+  expect_eq(0xFFFFFFFF, (sign_extend<uint32_t, uint16_t>(0xFFFF)));
+  expect_eq(0x0000000000000000, (sign_extend<uint64_t, uint16_t>(0x0000)));
+  expect_eq(0x0000000000000001, (sign_extend<uint64_t, uint16_t>(0x0001)));
+  expect_eq(0x0000000000007FFF, (sign_extend<uint64_t, uint16_t>(0x7FFF)));
+  expect_eq(0xFFFFFFFFFFFF8000, (sign_extend<uint64_t, uint16_t>(0x8000)));
+  expect_eq(0xFFFFFFFFFFFFFFFF, (sign_extend<uint64_t, uint16_t>(0xFFFF)));
+  expect_eq(0x0000000000000000, (sign_extend<uint64_t, uint32_t>(0x00000000)));
+  expect_eq(0x0000000000000001, (sign_extend<uint64_t, uint32_t>(0x00000001)));
+  expect_eq(0x000000007FFFFFFF, (sign_extend<uint64_t, uint32_t>(0x7FFFFFFF)));
+  expect_eq(0xFFFFFFFF80000000, (sign_extend<uint64_t, uint32_t>(0x80000000)));
+  expect_eq(0xFFFFFFFFFFFFFFFF, (sign_extend<uint64_t, uint32_t>(0xFFFFFFFF)));
+
   expect_eq(0x2301, bswap16(0x0123));
   expect_eq(0x452301, bswap24(0x012345));
   expect_eq(0x674523, bswap24(0x01234567));

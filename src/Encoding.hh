@@ -7,6 +7,18 @@
 #include "Platform.hh"
 
 
+
+template <typename ResultT, typename SrcT>
+ResultT sign_extend(SrcT src) {
+  if (src & (1 << ((sizeof(SrcT) << 3) - 1))) {
+    return static_cast<ResultT>(src) | (static_cast<ResultT>(-1) << (sizeof(SrcT) << 3));
+  } else {
+    return static_cast<ResultT>(src);
+  }
+}
+
+
+
 static inline int32_t ext24(uint32_t a) {
   return (a & 0x00800000) ? (a | 0xFF000000) : a;
 }
