@@ -195,6 +195,11 @@ T load_object_file(const std::string& filename, bool allow_oversize = false) {
 }
 
 template <typename T>
+T save_object_file(const std::string& filename, const T& obj) {
+  save_file(filename, &obj, sizeof(obj));
+}
+
+template <typename T>
 std::vector<T> load_vector_file(const std::string& filename) {
   scoped_fd fd(filename, O_RDONLY);
   size_t file_size = fstat(fd).st_size;
@@ -204,6 +209,11 @@ std::vector<T> load_vector_file(const std::string& filename) {
   std::vector<T> ret(item_count);
   readx(fd, ret.data(), read_size);
   return ret;
+}
+
+template <typename T>
+T save_vector_file(const std::string& filename, const std::vector<T>& v) {
+  save_file(filename, v.data(), v.size() * sizeof(T));
 }
 
 std::string load_file(const std::string& filename);
