@@ -15,3 +15,5 @@ std::string sha256(const std::string& data);
 
 std::string md5(const void* data, size_t size);
 std::string md5(const std::string& data);
+
+uint32_t crc32(const void* vdata, size_t size, uint32_t cs = 0);

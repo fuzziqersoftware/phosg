@@ -306,3 +306,24 @@ string md5(const void* data, size_t size) {
 string md5(const std::string& data) {
   return md5(data.data(), data.size());
 }
+
+
+
+// TODO: This can be made faster by using an 0x100-value lookup table instead of
+// handling one bit at a time
+uint32_t crc32(const void* vdata, size_t size, uint32_t cs) {
+  const uint8_t* data = reinterpret_cast<const uint8_t*>(vdata);
+
+  cs = ~cs;
+  for (size_t offset = 0; offset < size; offset++) {
+    cs ^= data[offset];
+    for (size_t y = 0; y < 8; y++) {
+      if (cs & 1) {
+        cs = ((cs >> 1) & 0x7FFFFFFF) ^ 0xEDB88320;
+      } else {
+        cs = (cs >> 1) & 0x7FFFFFFF;
+      }
+    }
+  }
+  return ~cs;
+}
