@@ -16,6 +16,8 @@ else()
     add_compile_options(-Wall -Wextra -Werror -Wno-strict-aliasing -Wno-unused-result -Wno-overflow)
 endif()
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 include_directories("/usr/local/include")
 link_directories("/usr/local/lib")
 
