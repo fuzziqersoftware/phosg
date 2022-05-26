@@ -1468,3 +1468,51 @@ void Image::blend_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
     }
   }
 }
+
+
+void Image::custom_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
+    ssize_t h, ssize_t sx, ssize_t sy,
+    function<void(uint32_t&, uint32_t)> per_pixel_fn) {
+  if (w < 0) {
+    w = source.get_width();
+  }
+  if (h < 0) {
+    h = source.get_height();
+  }
+
+  clamp_blit_dimensions(*this, source, &x, &y, &w, &h, &sx, &sy);
+
+  for (int yy = 0; yy < h; yy++) {
+    for (int xx = 0; xx < w; xx++) {
+      uint32_t sc = source.read_pixel(sx + xx, sy + yy);
+      uint32_t dc = this->read_pixel(x + xx, y + yy);
+      per_pixel_fn(dc, sc);
+      this->write_pixel(x + xx, y + yy, dc);
+    }
+  }
+}
+
+void Image::custom_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
+    ssize_t h, ssize_t sx, ssize_t sy,
+    function<void(uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t, uint64_t, uint64_t, uint64_t)> per_pixel_fn) {
+  if (w < 0) {
+    w = source.get_width();
+  }
+  if (h < 0) {
+    h = source.get_height();
+  }
+
+  clamp_blit_dimensions(*this, source, &x, &y, &w, &h, &sx, &sy);
+
+  for (int yy = 0; yy < h; yy++) {
+    for (int xx = 0; xx < w; xx++) {
+      uint64_t sr, sg, sb, sa, dr, dg, db, da;
+      source.read_pixel(sx + xx, sy + yy, &sr, &sg, &sb, &sa);
+      this->read_pixel(x + xx, y + yy, &dr, &dg, &db, &da);
+
+      per_pixel_fn(dr, dg, db, da, sr, sg, sb, sa);
+
+      this->write_pixel(x + xx, y + yy, dr, dg, db, da);
+    }
+  }
+}

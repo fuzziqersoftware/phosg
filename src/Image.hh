@@ -175,6 +175,10 @@ public:
       ssize_t h, ssize_t sx, ssize_t sy, uint32_t transparent_color);
   void mask_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
       ssize_t h, ssize_t sx, ssize_t sy, const Image& mask);
+  void custom_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w, ssize_t h,
+      ssize_t sx, ssize_t sy, std::function<void(uint32_t&, uint32_t)> per_pixel_fn);
+  void custom_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w, ssize_t h,
+      ssize_t sx, ssize_t sy, std::function<void(uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t, uint64_t, uint64_t, uint64_t)> per_pixel_fn);
 
   // blend functions
   void blend_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w, ssize_t h,
