@@ -1516,3 +1516,68 @@ void Image::custom_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
     }
   }
 }
+
+void Image::resize_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
+    ssize_t h, ssize_t sx, ssize_t sy, ssize_t sw, ssize_t sh) {
+  if (w <= 0 || h <= 0) {
+    throw invalid_argument("source width/height must be specified");
+  }
+  if (sw < 0) {
+    sw = source.get_width();
+  }
+  if (sh < 0) {
+    sh = source.get_height();
+  }
+
+  for (ssize_t yy = 0; yy < h; yy++) {
+    double y_rel_dist = static_cast<double>(yy) / (h - 1);
+    double source_y_progress = y_rel_dist * (sh - 1);
+    size_t source_y1 = sy + source_y_progress;
+    size_t source_y2 = source_y1 + 1;
+    double source_y2_factor = source_y_progress - source_y1;
+    double source_y1_factor = 1.0 - source_y2_factor;
+
+    for (ssize_t xx = 0; xx < w; xx++) {
+      double x_rel_dist = static_cast<double>(xx) / (w - 1);
+      double source_x_progress = x_rel_dist * (sw - 1);
+      size_t source_x1 = sx + source_x_progress;
+      size_t source_x2 = source_x1 + 1;
+      double source_x2_factor = source_x_progress - source_x1;
+      double source_x1_factor = 1.0 - source_x2_factor;
+
+      uint64_t sr11 = 0, sg11 = 0, sb11 = 0, sa11 = 0;
+      uint64_t sr12 = 0, sg12 = 0, sb12 = 0, sa12 = 0;
+      uint64_t sr21 = 0, sg21 = 0, sb21 = 0, sa21 = 0;
+      uint64_t sr22 = 0, sg22 = 0, sb22 = 0, sa22 = 0;
+      source.read_pixel(source_x1, source_y1, &sr11, &sg11, &sb11, &sa11);
+      if (source_y2_factor != 0.0) {
+        source.read_pixel(source_x1, source_y2, &sr12, &sg12, &sb12, &sa12);
+      }
+      if (source_x2_factor != 0.0) {
+        source.read_pixel(source_x2, source_y1, &sr21, &sg21, &sb21, &sa21);
+      }
+      if (source_x2_factor != 0.0 && source_y2_factor != 0.0) {
+        source.read_pixel(source_x2, source_y2, &sr22, &sg22, &sb22, &sa22);
+      }
+
+      uint64_t dr = sr11 * (source_x1_factor * source_y1_factor) +
+                    sr12 * (source_x1_factor * source_y2_factor) +
+                    sr21 * (source_x2_factor * source_y1_factor) +
+                    sr22 * (source_x2_factor * source_y2_factor);
+      uint64_t dg = sg11 * (source_x1_factor * source_y1_factor) +
+                    sg12 * (source_x1_factor * source_y2_factor) +
+                    sg21 * (source_x2_factor * source_y1_factor) +
+                    sg22 * (source_x2_factor * source_y2_factor);
+      uint64_t db = sb11 * (source_x1_factor * source_y1_factor) +
+                    sb12 * (source_x1_factor * source_y2_factor) +
+                    sb21 * (source_x2_factor * source_y1_factor) +
+                    sb22 * (source_x2_factor * source_y2_factor);
+      uint64_t da = sa11 * (source_x1_factor * source_y1_factor) +
+                    sa12 * (source_x1_factor * source_y2_factor) +
+                    sa21 * (source_x2_factor * source_y1_factor) +
+                    sa22 * (source_x2_factor * source_y2_factor);
+
+      this->write_pixel(x + xx, y + yy, dr, dg, db, da);
+    }
+  }
+}
