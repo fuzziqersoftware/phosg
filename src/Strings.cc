@@ -1160,6 +1160,10 @@ void StringReader::go(size_t offset) {
 
 void StringReader::skip(size_t bytes) {
   this->offset += bytes;
+  if (this->offset > this->length) {
+    this->offset = this->length;
+    throw out_of_range("skip beyond end of string");
+  }
 }
 
 bool StringReader::eof() const {
