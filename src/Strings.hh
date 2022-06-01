@@ -380,6 +380,8 @@ public:
   inline int64_t pget_s48b(size_t offset) const { return ext48(this->pget_u48b(offset)); }
   inline int64_t pget_s48l(size_t offset) const { return ext48(this->pget_u48l(offset)); }
 
+  std::string get_line(bool advance = true);
+
   std::string get_cstr(bool advance = true);
   std::string pget_cstr(size_t offset) const;
 

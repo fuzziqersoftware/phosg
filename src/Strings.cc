@@ -1289,6 +1289,33 @@ void StringReader::preadx(size_t offset, void* data, size_t size) const {
   memcpy(data, this->data + offset, size);
 }
 
+string StringReader::get_line(bool advance) {
+  if (this->eof()) {
+    throw out_of_range("end of string");
+  }
+
+  string ret;
+  for (;;) {
+    size_t ch_offset = this->offset + ret.size();
+    if (ch_offset >= this->length) {
+      break;
+    }
+    uint8_t ch = this->pget_s8(ch_offset);
+    if (ch != '\n') {
+      ret += ch;
+    } else {
+      break;
+    }
+  }
+  if (advance) {
+    this->offset += (ret.size() + 1);
+  }
+  if (ends_with(ret, "\r")) {
+    ret.pop_back();
+  }
+  return ret;
+}
+
 string StringReader::get_cstr(bool advance) {
   string ret = this->pget_cstr(this->offset);
   if (advance) {
