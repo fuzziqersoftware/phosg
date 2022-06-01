@@ -41,6 +41,17 @@ void strip_trailing_whitespace(StrT& s) {
   }
 }
 
+template <typename StrT>
+void strip_leading_whitespace(StrT& s) {
+  size_t index = s.find_first_not_of(" \t\r\n");
+  if (index != StrT::npos) {
+    s = s.substr(index);
+  } else if (!s.empty() &&
+      ((s[0] == ' ') || (s[0] == '\t') || (s[0] == '\r') || (s[0] == '\n'))) {
+    s.resize(0); // String is entirely whitespace
+  }
+}
+
 std::string escape_quotes(const std::string& s);
 std::string escape_url(const std::string& s, bool escape_slash = false);
 
