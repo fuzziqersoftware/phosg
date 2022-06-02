@@ -41,7 +41,7 @@ std::string basename(const std::string& filename) {
 
 std::string dirname(const std::string& filename) {
   size_t slash_pos = filename.rfind('/');
-  return (slash_pos == string::npos) ? filename : filename.substr(0, slash_pos);
+  return (slash_pos == string::npos) ? "" : filename.substr(0, slash_pos);
 }
 
 unordered_set<string> list_directory(const string& dirname) {
