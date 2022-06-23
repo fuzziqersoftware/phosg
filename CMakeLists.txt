@@ -17,6 +17,7 @@ else()
 endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_BUILD_TYPE Debug)
 
 include_directories("/usr/local/include")
 link_directories("/usr/local/lib")

@@ -556,7 +556,7 @@ void print_data(
       for (; x < line_invalid_start_bytes; x++) {
         fputs("   ", stream);
       }
-      for (; x < 0x10 - line_invalid_end_bytes; x++) {
+      for (; x < static_cast<size_t>(0x10 - line_invalid_end_bytes); x++) {
         uint8_t current_value = line_buf[x];
         uint8_t previous_value = prev_line_data[x];
 
@@ -575,7 +575,7 @@ void print_data(
       for (; x < line_invalid_start_bytes; x++) {
         fputc(' ', stream);
       }
-      for (; x < 0x10 - line_invalid_end_bytes; x++) {
+      for (; x < static_cast<size_t>(0x10 - line_invalid_end_bytes); x++) {
         uint8_t current_value = line_buf[x];
         uint8_t previous_value = prev_line_data[x];
 
@@ -606,7 +606,7 @@ void print_data(
       for (; x < line_invalid_start_floats; x++) {
         fputs("             ", stream);
       }
-      for (; x < 4 - line_invalid_end_floats; x++) {
+      for (; x < static_cast<size_t>(4 - line_invalid_end_floats); x++) {
         float current_value = reverse_endian
             ? line_re_floats[x].load() : line_floats[x];
         float previous_value = reverse_endian
@@ -634,7 +634,7 @@ void print_data(
       for (; x < line_invalid_start_doubles; x++) {
         fputs("             ", stream);
       }
-      for (; x < 2 - line_invalid_end_doubles; x++) {
+      for (; x < static_cast<size_t>(2 - line_invalid_end_doubles); x++) {
         double current_value = reverse_endian
             ? line_re_doubles[x].load() : line_doubles[x];
         double previous_value = reverse_endian
