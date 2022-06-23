@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <sys/types.h>
+#include <sys/uio.h>
 
 #include <memory>
 #include <stdexcept>
@@ -144,20 +145,45 @@ void print_color_escape(FILE* stream, TerminalFormat color, ...);
 void print_indent(FILE* stream, int indent_level);
 
 enum PrintDataFlags {
-  USE_COLOR           = 0x01, // use terminal escape codes to show differences
-  PRINT_ASCII         = 0x02, // print ascii view on the right
-  PRINT_FLOAT         = 0x04, // print float view on the right
-  PRINT_DOUBLE        = 0x08, // print double view on the right
-  REVERSE_ENDIAN      = 0x10, // floats/doubles should be byteswapped
-  COLLAPSE_ZERO_LINES = 0x20, // skips lines of all zeroes
-  SKIP_SEPARATOR      = 0x40, // instead of " | ", print just " "
+  USE_COLOR           = 0x01, // Force color output (for diffs and non-ASCII)
+  PRINT_ASCII         = 0x02, // Print ASCII view on the right
+  PRINT_FLOAT         = 0x04, // Print float view on the right
+  PRINT_DOUBLE        = 0x08, // Print double view on the right
+  REVERSE_ENDIAN      = 0x10, // Floats/doubles should be byteswapped
+  COLLAPSE_ZERO_LINES = 0x20, // Skip lines of all zeroes
+  SKIP_SEPARATOR      = 0x40, // Instead of " | ", print just " "
+  DISABLE_COLOR       = 0x80, // Never use color output
+
+  DEFAULT             = PRINT_ASCII,
 };
 
-void print_data(FILE* stream, const void* _data, uint64_t size,
-    uint64_t address = 0, const void* _prev = nullptr,
-    uint64_t flags = PrintDataFlags::PRINT_ASCII);
-void print_data(FILE* stream, const std::string& data, uint64_t address = 0,
-    const void* prev = nullptr, uint64_t flags = PrintDataFlags::PRINT_ASCII);
+void print_data(
+    FILE* stream,
+    const struct iovec* iovs,
+    size_t num_iovs,
+    uint64_t start_address = 0,
+    const struct iovec* prev_iovs = nullptr,
+    size_t num_prev_iovs = 0,
+    uint64_t flags = PrintDataFlags::DEFAULT);
+void print_data(
+    FILE* stream,
+    const std::vector<struct iovec>& iovs,
+    uint64_t start_address = 0,
+    const std::vector<struct iovec>* prev_iovs = nullptr,
+    uint64_t flags = PrintDataFlags::DEFAULT);
+void print_data(
+    FILE* stream,
+    const void* _data,
+    uint64_t size,
+    uint64_t address = 0,
+    const void* _prev = nullptr,
+    uint64_t flags = PrintDataFlags::DEFAULT);
+void print_data(
+    FILE* stream,
+    const std::string& data,
+    uint64_t address = 0,
+    const void* prev = nullptr,
+    uint64_t flags = PrintDataFlags::DEFAULT);
 
 std::string parse_data_string(const std::string& s, std::string* mask = nullptr);
 std::string format_data_string(const std::string& data, const std::string* mask = nullptr);

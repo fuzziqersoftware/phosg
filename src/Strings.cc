@@ -442,16 +442,46 @@ private:
   bool active;
 };
 
-void print_data(FILE* stream, const void* _data, uint64_t size,
-    uint64_t start_address, const void* _prev, uint64_t flags) {
-
-  if (size == 0) {
+void print_data(
+    FILE* stream,
+    const struct iovec* iovs,
+    size_t num_iovs,
+    uint64_t start_address,
+    const struct iovec* prev_iovs,
+    size_t num_prev_iovs,
+    uint64_t flags) {
+  if (num_iovs == 0) {
     return;
   }
 
-  uint64_t end_address = start_address + size;
+  size_t total_size = 0;
+  for (size_t x = 0; x < num_iovs; x++) {
+    total_size += iovs[x].iov_len;
+  }
+  if (total_size == 0) {
+    return;
+  }
 
-  bool use_color = flags & PrintDataFlags::USE_COLOR;
+  if (num_prev_iovs) {
+    size_t total_prev_size = 0;
+    for (size_t x = 0; x < num_prev_iovs; x++) {
+      total_prev_size += prev_iovs[x].iov_len;
+    }
+    if (total_prev_size != total_size) {
+      throw runtime_error("previous iovs given, but data size does not match");
+    }
+  }
+
+  uint64_t end_address = start_address + total_size;
+
+  bool use_color;
+  if (flags & PrintDataFlags::USE_COLOR) {
+    use_color = true;
+  } else if (flags & PrintDataFlags::DISABLE_COLOR) {
+    use_color = false;
+  } else {
+    use_color = isatty(fileno(stream));
+  }
   bool print_ascii = flags & PrintDataFlags::PRINT_ASCII;
   bool print_float = flags & PrintDataFlags::PRINT_FLOAT;
   bool print_double = flags & PrintDataFlags::PRINT_DOUBLE;
@@ -459,51 +489,95 @@ void print_data(FILE* stream, const void* _data, uint64_t size,
   bool collapse_zero_lines = flags & PrintDataFlags::COLLAPSE_ZERO_LINES;
   bool skip_separator = flags & PrintDataFlags::SKIP_SEPARATOR;
 
-  // if color is disabled or no diff source is given, disable diffing
-  const uint8_t* data = (const uint8_t*)_data;
-  const uint8_t* prev = (const uint8_t*)(_prev ? _prev : _data);
+  // Reserve space for the current/previous line data
+  uint8_t line_buf[0x10];
+  memset(line_buf, 0, sizeof(line_buf));
 
-  // print the data
+  uint8_t prev_line_buf[0x10];
+  uint8_t* prev_line_data = prev_line_buf;
+  if (num_prev_iovs) {
+    memset(prev_line_buf, 0, sizeof(prev_line_buf));
+  } else {
+    prev_line_data = line_buf;
+  }
+
+  size_t current_iov_index = 0;
+  size_t current_iov_bytes = 0;
+  size_t prev_iov_index = 0;
+  size_t prev_iov_bytes = 0;
   for (uint64_t line_start_address = start_address & (~0x0F);
        line_start_address < end_address;
        line_start_address += 0x10) {
+
+    // Figure out the boundaries of the current line
     uint64_t line_end_address = line_start_address + 0x10;
-    if (collapse_zero_lines && (line_start_address > start_address) && (line_end_address <= end_address) &&
-        !memcmp(&data[line_start_address - start_address], "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 16)) {
+    uint8_t line_invalid_start_bytes = max<int64_t>(start_address - line_start_address, 0);
+    uint8_t line_invalid_end_bytes = max<int64_t>(line_end_address - end_address, 0);
+    uint8_t line_bytes = 0x10 - line_invalid_end_bytes - line_invalid_start_bytes;
+
+    // Read the current and previous data for this line
+    for (size_t x = 0; x < line_bytes; x++) {
+      while (current_iov_bytes >= iovs[current_iov_index].iov_len) {
+        current_iov_bytes = 0;
+        current_iov_index++;
+        if (current_iov_index >= num_iovs) {
+          throw logic_error("reads exceeded final iov");
+        }
+      }
+      line_buf[x + line_invalid_start_bytes] = reinterpret_cast<const uint8_t*>(
+          iovs[current_iov_index].iov_base)[current_iov_bytes];
+      current_iov_bytes++;
+    }
+    if (num_prev_iovs) {
+      for (size_t x = 0; x < line_bytes; x++) {
+        while (prev_iov_bytes >= prev_iovs[prev_iov_index].iov_len) {
+          prev_iov_bytes = 0;
+          prev_iov_index++;
+          if (prev_iov_index >= num_prev_iovs) {
+            throw logic_error("reads exceeded final prev iov");
+          }
+        }
+        prev_line_buf[x + line_invalid_start_bytes] = reinterpret_cast<const uint8_t*>(
+            prev_iovs[prev_iov_index].iov_base)[prev_iov_bytes];
+        prev_iov_bytes++;
+      }
+    }
+
+    if (collapse_zero_lines && (line_start_address > start_address) && (line_end_address < end_address) &&
+        !memcmp(line_buf, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 16) &&
+        !memcmp(prev_line_data, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 16)) {
       continue;
     }
 
     fprintf(stream, skip_separator ? "%016" PRIX64 : "%016" PRIX64 " |", line_start_address);
 
-    // print the hex view
     {
-      uint64_t address = line_start_address;
-      for (; (address < start_address) && (address < line_end_address); address++) {
+      size_t x = 0;
+      for (; x < line_invalid_start_bytes; x++) {
         fputs("   ", stream);
       }
-      for (; (address < end_address) && (address < line_end_address); address++) {
-        uint8_t current_value = data[address - start_address];
-        uint8_t previous_value = prev[address - start_address];
+      for (; x < 0x10 - line_invalid_end_bytes; x++) {
+        uint8_t current_value = line_buf[x];
+        uint8_t previous_value = prev_line_data[x];
 
         RedBoldTerminalGuard g(stream, use_color && (previous_value != current_value));
         fprintf(stream, " %02" PRIX8, current_value);
       }
-      for (; address < line_end_address; address++) {
+      for (; x < 0x10; x++) {
         fputs("   ", stream);
       }
     }
 
-    // print the ascii view
     if (print_ascii) {
       fputs(skip_separator ? " " : " | ", stream);
 
-      uint64_t address = line_start_address;
-      for (; (address < start_address) && (address < line_end_address); address++) {
+      size_t x = 0;
+      for (; x < line_invalid_start_bytes; x++) {
         fputc(' ', stream);
       }
-      for (; (address < end_address) && (address < line_end_address); address++) {
-        uint8_t current_value = data[address - start_address];
-        uint8_t previous_value = prev[address - start_address];
+      for (; x < 0x10 - line_invalid_end_bytes; x++) {
+        uint8_t current_value = line_buf[x];
+        uint8_t previous_value = prev_line_data[x];
 
         RedBoldTerminalGuard g1(stream, use_color && (previous_value != current_value));
         if ((current_value < 0x20) || (current_value >= 0x7F)) {
@@ -513,61 +587,98 @@ void print_data(FILE* stream, const void* _data, uint64_t size,
           fputc(current_value, stream);
         }
       }
-      for (; address < line_end_address; address++) {
+      for (; x < 0x10; x++) {
         fputc(' ', stream);
       }
     }
 
-    // print the float view
     if (print_float) {
       fputs(skip_separator ? " " : " |", stream);
 
-      uint64_t address = line_start_address;
-      for (; (address < start_address) && (address < line_end_address); address += sizeof(float)) {
+      const auto* line_floats = reinterpret_cast<const float*>(line_buf);
+      const auto* line_re_floats = reinterpret_cast<const re_float*>(line_buf);
+      const auto* prev_line_floats = reinterpret_cast<const float*>(prev_line_data);
+      const auto* prev_line_re_floats = reinterpret_cast<const re_float*>(prev_line_data);
+      uint8_t line_invalid_start_floats = (line_invalid_start_bytes + 3) >> 2;
+      uint8_t line_invalid_end_floats = (line_invalid_end_bytes + 3) >> 2;
+
+      size_t x = 0;
+      for (; x < line_invalid_start_floats; x++) {
         fputs("             ", stream);
       }
-      for (; (address + sizeof(float) <= end_address) && (address < line_end_address); address += sizeof(float)) {
-        float current_value = reverse_endian ?
-            bswap32f(*(uint32_t*)(&data[address - start_address])) :
-            *(float*)(&data[address - start_address]);
-        float previous_value = reverse_endian ?
-            bswap32f(*(uint32_t*)(&prev[address - start_address])) :
-            *(float*)(&prev[address - start_address]);
+      for (; x < 4 - line_invalid_end_floats; x++) {
+        float current_value = reverse_endian
+            ? line_re_floats[x].load() : line_floats[x];
+        float previous_value = reverse_endian
+            ? prev_line_re_floats[x].load() : prev_line_floats[x];
 
         RedBoldTerminalGuard g1(stream, use_color && (previous_value != current_value));
         fprintf(stream, " %12.5g", current_value);
       }
-      for (; address < line_end_address; address += sizeof(float)) {
+      for (; x < 4; x++) {
         fputs("             ", stream);
       }
     }
 
-    // print the double view
     if (print_double) {
       fputs(skip_separator ? " " : " |", stream);
 
-      uint64_t address = line_start_address;
-      for (; (address < start_address) && (address < line_end_address); address += sizeof(double)) {
+      const auto* line_doubles = reinterpret_cast<const double*>(line_buf);
+      const auto* line_re_doubles = reinterpret_cast<const re_double*>(line_buf);
+      const auto* prev_line_doubles = reinterpret_cast<const double*>(prev_line_data);
+      const auto* prev_line_re_doubles = reinterpret_cast<const re_double*>(prev_line_data);
+      uint8_t line_invalid_start_doubles = (line_invalid_start_bytes + 7) >> 3;
+      uint8_t line_invalid_end_doubles = (line_invalid_end_bytes + 7) >> 3;
+
+      size_t x = 0;
+      for (; x < line_invalid_start_doubles; x++) {
         fputs("             ", stream);
       }
-      for (; (address + sizeof(double) <= end_address) && (address < line_end_address); address += sizeof(double)) {
-        double current_value = reverse_endian ?
-            bswap64f(*(uint64_t*)(&data[address - start_address])) :
-            *(double*)(&data[address - start_address]);
-        double previous_value = reverse_endian ?
-            bswap64f(*(uint64_t*)(&prev[address - start_address])) :
-            *(double*)(&prev[address - start_address]);
+      for (; x < 2 - line_invalid_end_doubles; x++) {
+        double current_value = reverse_endian
+            ? line_re_doubles[x].load() : line_doubles[x];
+        double previous_value = reverse_endian
+            ? prev_line_re_doubles[x].load() : prev_line_doubles[x];
 
         RedBoldTerminalGuard g1(stream, use_color && (previous_value != current_value));
         fprintf(stream, " %12.5lg", current_value);
       }
-      for (; address < line_end_address; address += sizeof(double)) {
+      for (; x < 2; x++) {
         fputs("             ", stream);
       }
     }
 
-    // done with this line
     fputc('\n', stream);
+  }
+}
+
+void print_data(
+    FILE* stream,
+    const vector<struct iovec>& iovs,
+    uint64_t start_address,
+    const vector<struct iovec>* prev_iovs,
+    uint64_t flags) {
+  if (prev_iovs) {
+    print_data(stream, iovs.data(), iovs.size(), start_address,
+        prev_iovs->data(), prev_iovs->size(), flags);
+  } else {
+    print_data(stream, iovs.data(), iovs.size(), start_address, nullptr, 0,
+        flags);
+  }
+}
+
+void print_data(FILE* stream, const void* data, uint64_t size,
+    uint64_t start_address, const void* prev, uint64_t flags) {
+  iovec iov;
+  iov.iov_base = const_cast<void*>(data);
+  iov.iov_len = size;
+  if (prev) {
+    iovec prev_iov;
+    prev_iov.iov_base = const_cast<void*>(prev);
+    prev_iov.iov_len = size;
+    print_data(stream, &iov, 1, start_address, &prev_iov, 1, flags);
+  } else {
+    print_data(stream, &iov, 1, start_address, nullptr, 0, flags);
   }
 }
 
@@ -575,6 +686,7 @@ void print_data(FILE* stream, const std::string& data, uint64_t address,
     const void* prev, uint64_t flags) {
   print_data(stream, data.data(), data.size(), address, prev, flags);
 }
+
 
 
 static inline void add_mask_bits(string* mask, bool mask_enabled, size_t num_bytes) {
