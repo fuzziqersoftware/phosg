@@ -11,6 +11,7 @@
 
 #include "Platform.hh"
 #include "Encoding.hh"
+#include "Filesystem.hh"
 
 
 std::unique_ptr<void, void (*)(void*)> malloc_unique(size_t size);
@@ -64,30 +65,109 @@ std::wstring wstring_vprintf(const wchar_t* fmt, va_list va);
 
 uint8_t value_for_hex_char(char x);
 
-#define DEBUG 0
-#define INFO 1
-#define WARNING 2
-#ifndef PHOSG_WINDOWS
-// wingdi.h defined ERROR as 0, lolz
-#define ERROR 3
-#endif
+enum class LogLevel : int {
+  USE_DEFAULT = -1,
+  DEBUG = 0,
+  INFO = 1,
+  WARNING = 2,
+  ERROR = 3,
+  DISABLED = 4,
+};
 
-int log_level();
-void set_log_level(int new_level);
-void logv(int level, const char* fmt, va_list va);
-void log(int level, const char* fmt, ...)
-    __attribute__((format(printf, 2, 3)));
+LogLevel log_level();
+void set_log_level(LogLevel new_level);
+
+void print_log_prefix(FILE* stream, LogLevel level);
+
+inline bool should_log(LogLevel incoming_level, LogLevel min_level) {
+  return (static_cast<int>(incoming_level) >= static_cast<int>(min_level));
+}
+
+inline bool should_log(LogLevel incoming_level) {
+  return should_log(incoming_level, log_level());
+}
+
+template <LogLevel LEVEL>
+void log_v(const char* fmt, va_list va) {
+  if (should_log(LEVEL)) {
+    print_log_prefix(stderr, LEVEL);
+    vfprintf(stderr, fmt, va);
+    putc('\n', stderr);
+  }
+}
+
+void log_debug_v(const char* fmt, va_list va);
+void log_info_v(const char* fmt, va_list va);
+void log_warning_v(const char* fmt, va_list va);
+void log_error_v(const char* fmt, va_list va);
+
+
+template <LogLevel LEVEL>
+__attribute__((format(printf, 1, 2)))
+void log(const char* fmt, ...) {
+  if (should_log(LEVEL)) {
+    va_list va;
+    va_start(va, fmt);
+    log_v<LEVEL>(fmt, va);
+    va_end(va);
+  }
+}
+
+__attribute__((format(printf, 1, 2))) void log_debug(const char* fmt, ...);
+__attribute__((format(printf, 1, 2))) void log_info(const char* fmt, ...);
+__attribute__((format(printf, 1, 2))) void log_warning(const char* fmt, ...);
+__attribute__((format(printf, 1, 2))) void log_error(const char* fmt, ...);
 
 struct PrefixedLogger {
   std::string prefix;
+  LogLevel min_level;
 
-  explicit PrefixedLogger(const std::string& prefix);
+  explicit PrefixedLogger(
+      const std::string& prefix, LogLevel min_level = LogLevel::USE_DEFAULT);
 
-  void logv(int level, const char* fmt, va_list va) const;
-  void log(int level, const char* fmt, ...) const
-      __attribute__((format(printf, 3, 4)));
-  void operator()(int level, const char* fmt, ...) const
-      __attribute__((format(printf, 3, 4)));
+  inline LogLevel effective_level() const {
+    return this->min_level == LogLevel::USE_DEFAULT ? log_level() : this->min_level;
+  }
+
+  template <LogLevel LEVEL>
+  void v(const char* fmt, va_list va) {
+    if (should_log(LEVEL, this->effective_level())) {
+      print_log_prefix(stderr, LEVEL);
+      fwritex(stderr, this->prefix);
+      vfprintf(stderr, fmt, va);
+      putc('\n', stderr);
+    }
+  }
+
+  void debug_v(const char* fmt, va_list va)   { this->v<LogLevel::DEBUG>(fmt, va); }
+  void info_v(const char* fmt, va_list va)    { this->v<LogLevel::INFO>(fmt, va); }
+  void warning_v(const char* fmt, va_list va) { this->v<LogLevel::WARNING>(fmt, va); }
+  void error_v(const char* fmt, va_list va)   { this->v<LogLevel::ERROR>(fmt, va); }
+
+  template <LogLevel LEVEL>
+  void operator()(const char* fmt, ...) __attribute__((format(printf, 2, 3))) {
+    if (should_log(LEVEL, this->effective_level())) {
+      va_list va;
+      va_start(va, fmt);
+      log_v<LEVEL>(fmt, va);
+      va_end(va);
+    }
+  }
+
+#define LOG_HELPER_BODY(LEVEL) \
+  if (should_log(LEVEL, this->effective_level())) { \
+    va_list va; \
+    va_start(va, fmt); \
+    this->v<LEVEL>(fmt, va); \
+    va_end(va); \
+  }
+
+  void debug(const char* fmt, ...) __attribute__((format(printf, 2, 3)))   { LOG_HELPER_BODY(LogLevel::DEBUG); }
+  void info(const char* fmt, ...) __attribute__((format(printf, 2, 3)))    { LOG_HELPER_BODY(LogLevel::INFO); }
+  void warning(const char* fmt, ...) __attribute__((format(printf, 2, 3))) { LOG_HELPER_BODY(LogLevel::WARNING); }
+  void error(const char* fmt, ...) __attribute__((format(printf, 2, 3)))   { LOG_HELPER_BODY(LogLevel::ERROR); }
+
+#undef LOG_HELPER_BODY
 };
 
 std::vector<std::string> split(const std::string& s, char delim, size_t max_splits = 0);

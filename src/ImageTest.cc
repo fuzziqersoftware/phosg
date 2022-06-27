@@ -7,6 +7,7 @@
 
 #include "Filesystem.hh"
 #include "Image.hh"
+#include "Strings.hh"
 #include "UnitTest.hh"
 
 using namespace std;

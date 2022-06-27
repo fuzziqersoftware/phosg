@@ -22,7 +22,6 @@
 #include <utility>
 #include <vector>
 
-#include "Strings.hh"
 
 
 std::string basename(const std::string& filename);

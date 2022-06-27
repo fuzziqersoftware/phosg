@@ -177,13 +177,13 @@ uint8_t value_for_hex_char(char x) {
 
 
 
-static int current_log_level = INFO;
+static LogLevel current_log_level = LogLevel::INFO;
 
-int log_level() {
+LogLevel log_level() {
   return current_log_level;
 }
 
-void set_log_level(int new_level) {
+void set_log_level(LogLevel new_level) {
   current_log_level = new_level;
 }
 
@@ -191,70 +191,43 @@ static const vector<char> log_level_chars({
   'D', 'I', 'W', 'E',
 });
 
-static void print_log_prefix(FILE* stream, int level) {
+void print_log_prefix(FILE* stream, LogLevel level) {
   char time_buffer[32];
   time_t now_secs = time(nullptr);
   struct tm now_tm;
   localtime_r(&now_secs, &now_tm);
   strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", &now_tm);
+  char level_char = log_level_chars.at(static_cast<int>(level));
 #ifdef PHOSG_WINDOWS
   // don't include the pid on windows
-  fprintf(stream, "%c %s - ", log_level_chars[level], time_buffer);
+  fprintf(stream, "%c %s - ", level_char, time_buffer);
 #else
-  fprintf(stream, "%c %d %s - ", log_level_chars[level], getpid_cached(), time_buffer);
+  fprintf(stream, "%c %d %s - ", level_char, getpid_cached(), time_buffer);
 #endif
 }
 
-void logv(int level, const char* fmt, va_list va) {
-  if (level < current_log_level) {
-    return;
-  }
-  print_log_prefix(stderr, level);
-  vfprintf(stderr, fmt, va);
-  putc('\n', stderr);
-}
+void log_debug_v(const char* fmt, va_list va)   { log_v<LogLevel::DEBUG>(fmt, va); }
+void log_info_v(const char* fmt, va_list va)    { log_v<LogLevel::INFO>(fmt, va); }
+void log_warning_v(const char* fmt, va_list va) { log_v<LogLevel::WARNING>(fmt, va); }
+void log_error_v(const char* fmt, va_list va)   { log_v<LogLevel::ERROR>(fmt, va); }
 
-void log(int level, const char* fmt, ...) {
-  if (level < current_log_level) {
-    return;
+#define LOG_HELPER_BODY(LEVEL) \
+  if (should_log(LEVEL)) { \
+    va_list va; \
+    va_start(va, fmt); \
+    log_v<LEVEL>(fmt, va); \
+    va_end(va); \
   }
-  va_list va;
-  va_start(va, fmt);
-  logv(level, fmt, va);
-  va_end(va);
-}
 
-PrefixedLogger::PrefixedLogger(const std::string& prefix) : prefix(prefix) { }
+__attribute__((format(printf, 1, 2))) void log_debug(const char* fmt, ...)   { LOG_HELPER_BODY(LogLevel::DEBUG); }
+__attribute__((format(printf, 1, 2))) void log_info(const char* fmt, ...)    { LOG_HELPER_BODY(LogLevel::INFO); }
+__attribute__((format(printf, 1, 2))) void log_warning(const char* fmt, ...) { LOG_HELPER_BODY(LogLevel::WARNING); }
+__attribute__((format(printf, 1, 2))) void log_error(const char* fmt, ...)   { LOG_HELPER_BODY(LogLevel::ERROR); }
 
-void PrefixedLogger::logv(int level, const char* fmt, va_list va) const {
-  if (level < current_log_level) {
-    return;
-  }
-  print_log_prefix(stderr, level);
-  fwritex(stderr, this->prefix);
-  vfprintf(stderr, fmt, va);
-  putc('\n', stderr);
-}
+#undef LOG_HELPER_BODY
 
-void PrefixedLogger::log(int level, const char* fmt, ...) const {
-  if (level < current_log_level) {
-    return;
-  }
-  va_list va;
-  va_start(va, fmt);
-  this->logv(level, fmt, va);
-  va_end(va);
-}
-
-void PrefixedLogger::operator()(int level, const char* fmt, ...) const {
-  if (level < current_log_level) {
-    return;
-  }
-  va_list va;
-  va_start(va, fmt);
-  this->logv(level, fmt, va);
-  va_end(va);
-}
+PrefixedLogger::PrefixedLogger(const std::string& prefix, LogLevel min_level)
+  : prefix(prefix), min_level(min_level) { }
 
 
 
