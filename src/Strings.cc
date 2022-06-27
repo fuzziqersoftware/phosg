@@ -226,16 +226,33 @@ void log(int level, const char* fmt, ...) {
 
 PrefixedLogger::PrefixedLogger(const std::string& prefix) : prefix(prefix) { }
 
-void PrefixedLogger::operator()(int level, const char* fmt, ...) {
+void PrefixedLogger::logv(int level, const char* fmt, va_list va) const {
+  if (level < current_log_level) {
+    return;
+  }
+  print_log_prefix(stderr, level);
+  fwritex(stderr, this->prefix);
+  vfprintf(stderr, fmt, va);
+  putc('\n', stderr);
+}
+
+void PrefixedLogger::log(int level, const char* fmt, ...) const {
   if (level < current_log_level) {
     return;
   }
   va_list va;
   va_start(va, fmt);
-  print_log_prefix(stderr, level);
-  fwritex(stderr, this->prefix);
-  vfprintf(stderr, fmt, va);
-  putc('\n', stderr);
+  this->logv(level, fmt, va);
+  va_end(va);
+}
+
+void PrefixedLogger::operator()(int level, const char* fmt, ...) const {
+  if (level < current_log_level) {
+    return;
+  }
+  va_list va;
+  va_start(va, fmt);
+  this->logv(level, fmt, va);
   va_end(va);
 }
 

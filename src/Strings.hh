@@ -82,7 +82,11 @@ struct PrefixedLogger {
   std::string prefix;
 
   explicit PrefixedLogger(const std::string& prefix);
-  void operator()(int level, const char* fmt, ...)
+
+  void logv(int level, const char* fmt, va_list va) const;
+  void log(int level, const char* fmt, ...) const
+      __attribute__((format(printf, 3, 4)));
+  void operator()(int level, const char* fmt, ...) const
       __attribute__((format(printf, 3, 4)));
 };
 
