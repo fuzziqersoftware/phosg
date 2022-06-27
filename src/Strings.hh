@@ -146,7 +146,8 @@ struct PrefixedLogger {
   void error_v(const char* fmt, va_list va)   { this->v<LogLevel::ERROR>(fmt, va); }
 
   template <LogLevel LEVEL>
-  void operator()(const char* fmt, ...) __attribute__((format(printf, 2, 3))) {
+  __attribute__((format(printf, 2, 3)))
+  void operator()(const char* fmt, ...) {
     if (should_log(LEVEL, this->effective_level())) {
       va_list va;
       va_start(va, fmt);
