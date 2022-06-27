@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdarg.h>
 #include <stdint.h>
 #include <sys/types.h>
 #include <sys/uio.h>
