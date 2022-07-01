@@ -188,6 +188,15 @@ std::string join(const ItemContainerT& items, DelimiterT& delim) {
   return ret;
 }
 
+template<typename ItemContainerT>
+std::string join(const ItemContainerT& items) {
+  std::string ret;
+  for (const auto& item : items) {
+    ret += item;
+  }
+  return ret;
+}
+
 size_t skip_whitespace(const std::string& s, size_t offset);
 size_t skip_whitespace(const char* s, size_t offset);
 size_t skip_non_whitespace(const std::string& s, size_t offset);
