@@ -22,6 +22,7 @@
 #endif
 
 #include <algorithm>
+#include <deque>
 #include <functional>
 #include <memory>
 #include <string>
@@ -495,6 +496,32 @@ uint8_t fgetcx(FILE* f) {
     }
   }
   return ret;
+}
+
+std::string fgets(FILE* f) {
+  deque<std::string> blocks;
+  for (;;) {
+    std::string& block = blocks.emplace_back(0x100, '\0');
+    if (!fgets(block.data(), block.size(), f)) {
+      blocks.pop_back();
+      if (feof(f)) {
+        break;
+      } else {
+        throw io_error(fileno(f), "cannot read from stream");
+      }
+    }
+    size_t block_bytes = strlen(block.c_str());
+    if ((block_bytes < 0x100) || (block[0xFF] == '\n')) {
+      block.resize(block_bytes);
+      break; // The line ends at the end of this block
+    }
+  }
+
+  if (blocks.size() == 1) {
+    return move(blocks.front());
+  } else {
+    return join(blocks);
+  }
 }
 
 string load_file(const string& filename) {

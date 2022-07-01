@@ -139,6 +139,8 @@ std::string freadx(FILE* f, size_t size);
 void fwritex(FILE* f, const std::string& data);
 uint8_t fgetcx(FILE* f);
 
+std::string fgets(FILE* f);
+
 
 
 template <typename T>
