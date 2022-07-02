@@ -11,12 +11,29 @@
 using namespace std;
 
 
-uint64_t fnv1a64(const void* data, size_t size, uint64_t hash) {
-  const uint8_t *data_ptr = (const uint8_t*)data;
-  const uint8_t *end_ptr = data_ptr + size;
+
+uint32_t fnv1a32(const void* data, size_t size, uint32_t hash) {
+  const uint8_t* data_ptr = reinterpret_cast<const uint8_t*>(data);
+  const uint8_t* end_ptr = data_ptr + size;
 
   for (; data_ptr != end_ptr; data_ptr++) {
-    hash = (hash ^ (uint64_t)*data_ptr) * 0x00000100000001B3;
+    hash = (hash ^ static_cast<uint32_t>(*data_ptr)) * 0x01000193;
+  }
+  return hash;
+}
+
+uint32_t fnv1a32(const std::string& data, uint32_t hash) {
+  return fnv1a32(data.data(), data.size(), hash);
+}
+
+
+
+uint64_t fnv1a64(const void* data, size_t size, uint64_t hash) {
+  const uint8_t* data_ptr = reinterpret_cast<const uint8_t*>(data);
+  const uint8_t* end_ptr = data_ptr + size;
+
+  for (; data_ptr != end_ptr; data_ptr++) {
+    hash = (hash ^ static_cast<uint64_t>(*data_ptr)) * 0x00000100000001B3;
   }
   return hash;
 }
