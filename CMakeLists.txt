@@ -27,6 +27,7 @@ link_directories("/usr/local/lib")
 # Library and executable definitions
 
 add_library(phosg src/Encoding.cc src/Filesystem.cc src/Hash.cc src/Image.cc src/JSON.cc src/Network.cc src/Process.cc src/Random.cc src/Strings.cc src/Time.cc src/Tools.cc src/UnitTest.cc)
+target_link_libraries(phosg pthread)
 
 add_executable(jsonformat src/JSONFormat.cc)
 target_link_libraries(jsonformat phosg)
