@@ -91,15 +91,15 @@ public:
   // integers and floating-point numbers; the separate types are an extension
   // implemented in this library in order to support precise values for the full
   // range of 64-bit integers.
-  dict_type& as_dict();
-  const dict_type& as_dict() const;
-  list_type& as_list();
-  const list_type& as_list() const;
+  bool as_bool() const;
   int64_t as_int() const;
   double as_float() const;
   std::string& as_string();
   const std::string& as_string() const;
-  bool as_bool() const;
+  list_type& as_list();
+  const list_type& as_list() const;
+  dict_type& as_dict();
+  const dict_type& as_dict() const;
 
   // Type inspectors
   bool is_dict() const;
