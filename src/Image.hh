@@ -135,7 +135,6 @@ public:
       uint64_t a = 0xFF);
   void draw_vertical_line(ssize_t x, ssize_t y1, ssize_t y2,
       ssize_t dash_length, uint32_t color);
-#ifndef PHOSG_WINDOWS
   void draw_text_v(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
       uint64_t r, uint64_t g, uint64_t b, uint64_t a, uint64_t br, uint64_t bg,
       uint64_t bb, uint64_t ba, const char* fmt, va_list va);
@@ -155,7 +154,6 @@ public:
   __attribute__((format(printf, 6, 7)));
   void draw_text(ssize_t x, ssize_t y, uint32_t color, const char* fmt, ...)
   __attribute__((format(printf, 5, 6)));
-#endif
   void fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint64_t r,
       uint64_t g, uint64_t b, uint64_t a = 0xFF);
   void fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint32_t color);

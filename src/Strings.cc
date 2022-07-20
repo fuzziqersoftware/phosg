@@ -16,13 +16,6 @@
 
 #include "Platform.hh"
 
-#ifdef PHOSG_WINDOWS
-#include <windows.h>
-
-#define PRIX8 "hhX"
-#define PRIX64 "llX"
-#endif
-
 #include "Encoding.hh"
 #include "Filesystem.hh"
 #include "Process.hh"
@@ -111,29 +104,8 @@ wstring wstring_printf(const wchar_t* fmt, ...) {
   return ret;
 }
 
-#ifdef PHOSG_WINDOWS
-static int vasprintf(char** out, const char *fmt, va_list va) {
-  int len = _vscprintf(fmt, va);
-  if (len < 0) {
-    return len;
-  }
-
-  char* s = reinterpret_cast<char*>(malloc(len + 1));
-  if (!s) {
-    return -1;
-  }
-
-  int r = vsprintf_s(s, len + 1, fmt, va);
-  if (r < 0) {
-    free(s);
-  } else {
-    *out = s;
-  }
-  return r;
-}
-#endif
-
 string string_vprintf(const char* fmt, va_list va) {
+#ifndef PHOSG_WINDOWS
   char* result = nullptr;
   int length = vasprintf(&result, fmt, va);
 
@@ -143,6 +115,19 @@ string string_vprintf(const char* fmt, va_list va) {
 
   string ret(result, length);
   free(result);
+
+#else
+  string ret(0x400, '\0');
+  int size = vsnprintf(ret.data(), ret.size(), fmt, va);
+  // TODO: We probably can handle this case more gracefully. Really, we should
+  // just restart va, resize the string, and call vsnprintf again, but I'm too
+  // lazy to test/verify that this works (or that va doesn't need restarting)
+  if (size > 0x400) {
+    throw logic_error("size too long");
+  }
+  ret.resize(size);
+
+#endif
   return ret;
 }
 
@@ -198,12 +183,7 @@ void print_log_prefix(FILE* stream, LogLevel level) {
   localtime_r(&now_secs, &now_tm);
   strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", &now_tm);
   char level_char = log_level_chars.at(static_cast<int>(level));
-#ifdef PHOSG_WINDOWS
-  // don't include the pid on windows
-  fprintf(stream, "%c %s - ", level_char, time_buffer);
-#else
   fprintf(stream, "%c %d %s - ", level_char, getpid_cached(), time_buffer);
-#endif
 }
 
 void log_debug_v(const char* fmt, va_list va)   { log_v<LogLevel::DEBUG>(fmt, va); }
@@ -352,11 +332,7 @@ size_t skip_word(const char* s, size_t offset) {
 
 std::string string_for_error(int error) {
   char buffer[1024] = "Unknown error";
-#ifndef PHOSG_WINDOWS
   strerror_r(error, buffer, sizeof(buffer));
-#else
-  strerror_s(buffer, sizeof(buffer), error);
-#endif
   return string_printf("%d (%s)", error, buffer);
 }
 

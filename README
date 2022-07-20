@@ -16,9 +16,13 @@ A short summary of its contents:
 
 Phosg also includes an executable (jsonformat) that reformats JSON.
 
-Building & installing on macOS or Linux:
+Building & installing on macOS, Linux, or Windows (in a Cygwin bash shell):
 - Install CMake and Python 3.
 - `cmake .`
 - `make`
 - `make test`
 - `sudo make install`
+
+The Windows build does not have continuous integration, so I may accidentally
+break it and not know for a while. Feel free to file a GitHub issue if it
+doesn't work.

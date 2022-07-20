@@ -3,10 +3,6 @@
 #include "Platform.hh"
 
 #include <string.h>
-#ifdef PHOSG_WINDOWS
-#include <windows.h>
-#include <wincrypt.h>
-#endif
 
 #include <stdexcept>
 #include <string>
@@ -17,22 +13,6 @@ using namespace std;
 
 
 void random_data(void* data, size_t bytes) {
-#ifdef PHOSG_WINDOWS
-  static thread_local bool crypt_prov_valid = false;
-  static thread_local HCRYPTPROV crypt_prov;
-
-  if (!crypt_prov_valid) {
-    if (!CryptAcquireContext(&crypt_prov, nullptr, "Microsoft Base Cryptographic Provider v1.0", PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
-      throw runtime_error("can\'t acquire crypt context");
-    }
-    crypt_prov_valid = true;
-  }
-
-  if (!CryptGenRandom(crypt_prov, bytes, static_cast<uint8_t*>(data))) {
-    throw runtime_error("can\'t generate random data");
-  }
-
-#else
   static scoped_fd fd("/dev/urandom", O_RDONLY);
   static thread_local string buffer;
 
@@ -47,7 +27,6 @@ void random_data(void* data, size_t bytes) {
     memcpy(data, buffer.data() + buffer.size() - bytes, bytes);
     buffer.resize(buffer.size() - bytes);
   }
-#endif
 }
 
 int64_t random_int(int64_t low, int64_t high) {

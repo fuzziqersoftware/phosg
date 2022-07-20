@@ -12,14 +12,9 @@
 
 #include "Platform.hh"
 
-#ifndef PHOSG_WINDOWS
 #include <dirent.h>
 #include <poll.h>
 #include <pwd.h>
-#define O_BINARY 0
-#else
-#include <windows.h>
-#endif
 
 #include <algorithm>
 #include <deque>
@@ -33,7 +28,6 @@
 using namespace std;
 
 
-#ifndef PHOSG_WINDOWS
 
 std::string basename(const std::string& filename) {
   size_t slash_pos = filename.rfind('/');
@@ -74,35 +68,6 @@ string getcwd() {
   ret.resize(strlen(ret.c_str()));
   return ret;
 }
-
-#else  // PHOSG_WINDOWS
-
-unordered_set<string> list_directory(const string& dirname) {
-  unordered_set<string> files;
-
-  WIN32_FIND_DATA fdata;
-  string pattern = dirname + "\\*";
-  HANDLE h = FindFirstFile(pattern.c_str(), &fdata);
-  if (h == INVALID_HANDLE_VALUE) {
-    throw runtime_error("cannot open directory");
-  }
-  do {
-    if (!strcmp(fdata.cFileName, ".") || !strcmp(fdata.cFileName, "..")) {
-      continue;
-    }
-    files.emplace(fdata.cFileName);
-  } while (FindNextFile(h, &fdata) != 0);
- 
-  if (GetLastError() != ERROR_NO_MORE_FILES) {
-    FindClose(h);
-    throw runtime_error(string_printf("error iterating directory: %d", GetLastError()));
-  }
- 
-  FindClose(h);
-  return files;
-}
-
-#endif
 
 
 #ifndef PHOSG_WINDOWS
@@ -161,8 +126,6 @@ struct stat stat(const string& filename) {
   return st;
 }
 
-#ifndef PHOSG_WINDOWS
-
 struct stat lstat(const string& filename) {
   struct stat st;
   if (lstat(filename.c_str(), &st)) {
@@ -170,8 +133,6 @@ struct stat lstat(const string& filename) {
   }
   return st;
 }
-
-#endif
 
 struct stat fstat(int fd) {
   struct stat st;
@@ -193,11 +154,9 @@ bool isdir(const struct stat& st) {
   return (st.st_mode & S_IFMT) == S_IFDIR;
 }
 
-#ifndef PHOSG_WINDOWS
 bool islink(const struct stat& st) {
   return (st.st_mode & S_IFMT) == S_IFLNK;
 }
-#endif
 
 bool isfile(const string& filename) {
   try {
@@ -215,7 +174,6 @@ bool isdir(const string& filename) {
   }
 }
 
-#ifndef PHOSG_WINDOWS
 bool lisfile(const string& filename) {
   try {
     return isfile(lstat(filename));
@@ -260,7 +218,6 @@ string realpath(const string& path) {
   data.shrink_to_fit();
   return data;
 }
-#endif
 
 scoped_fd::scoped_fd() : fd(-1) { }
 
@@ -301,7 +258,7 @@ scoped_fd::operator int() const {
 
 void scoped_fd::open(const char* filename, int mode, mode_t perm) {
   this->close();
-  this->fd = ::open(filename, mode | O_BINARY, perm);
+  this->fd = ::open(filename, mode, perm);
   if (this->fd < 0) {
     throw cannot_open_file(filename);
   }
@@ -426,8 +383,6 @@ void writex(int fd, const string& data) {
   writex(fd, data.data(), data.size());
 }
 
-#ifndef PHOSG_WINDOWS
-
 void preadx(int fd, void* data, size_t size, off_t offset) {
   ssize_t ret_size = pread(fd, data, size, offset);
   if (ret_size < 0) {
@@ -455,8 +410,6 @@ string preadx(int fd, size_t size, off_t offset) {
 void pwritex(int fd, const string& data, off_t offset) {
   pwritex(fd, data.data(), data.size(), offset);
 }
-
-#endif
 
 void freadx(FILE* f, void* data, size_t size) {
   ssize_t ret_size = fread(data, 1, size, f);
@@ -643,12 +596,6 @@ void unlink(const string& filename, bool recursive) {
 }
 
 void make_fd_nonblocking(int fd) {
-#ifdef PHOSG_WINDOWS
-  unsigned long nonblocking = 1;
-  if (ioctlsocket(fd, FIONBIO, &nonblocking) == SOCKET_ERROR) {
-    throw runtime_error("can\'t make socket nonblocking: " + string_for_error(errno));
-  }
-#else
   int flags = fcntl(fd, F_GETFL, 0);
   if (flags < 0) {
     throw runtime_error("can\'t get socket flags: " + string_for_error(errno));
@@ -656,10 +603,7 @@ void make_fd_nonblocking(int fd) {
   if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
     throw runtime_error("can\'t set socket flags: " + string_for_error(errno));
   }
-#endif
 }
-
-#ifndef PHOSG_WINDOWS
 
 pair<int, int> pipe() {
   int fds[2];
@@ -723,5 +667,3 @@ unordered_map<int, short> Poll::poll(int timeout_ms) {
   }
   return ret;
 }
-
-#endif

@@ -4,16 +4,11 @@
 
 #include "Platform.hh"
 
-#ifndef PHOSG_WINDOWS
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#else
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#endif
 
 #include <errno.h>
 #include <fcntl.h>
@@ -61,9 +56,6 @@ pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const string& addr,
 
   if (port == 0) {
     // unix socket
-#ifdef PHOSG_WINDOWS
-    throw logic_error("Unix sockets cannot be used on Windows");
-#else
     struct sockaddr_un* sun = (struct sockaddr_un*)&s;
     if ((addr.size() + 1) > sizeof(sun->sun_path)) {
       throw runtime_error("socket path is too long");
@@ -72,7 +64,6 @@ pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const string& addr,
     sun->sun_family = AF_UNIX;
     strcpy(sun->sun_path, addr.c_str());
     return make_pair(s, sizeof(sockaddr_un));
-#endif
   }
 
   // inet or inet6
@@ -127,12 +118,10 @@ pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const string& addr,
 
 string render_sockaddr_storage(const sockaddr_storage& s) {
   switch (s.ss_family) {
-#ifndef PHOSG_WINDOWS
     case AF_UNIX: {
       struct sockaddr_un* sun = (struct sockaddr_un*)&s;
       return string(sun->sun_path);
     }
-#endif
 
     case AF_INET: {
       struct sockaddr_in* sin = (struct sockaddr_in*)&s;
@@ -268,13 +257,7 @@ pair<string, uint16_t> parse_netloc(const string& netloc, int default_port) {
 }
 
 string gethostname() {
-#ifdef PHOSG_WINDOWS
-  // this is actually the max size according to MS documentation; there doesn't
-  // appear to be a define for this or anything
-  string buf(0x100, '\0');
-#else
   string buf(sysconf(_SC_HOST_NAME_MAX) + 1, '\0');
-#endif
   if (gethostname(buf.data(), buf.size())) {
     throw runtime_error("can\'t get hostname");
   }

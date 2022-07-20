@@ -2,8 +2,6 @@
 
 #include "Platform.hh"
 
-#ifndef PHOSG_WINDOWS
-
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -61,12 +59,14 @@ string name_for_pid(pid_t pid) {
 }
 
 pid_t pid_for_name(const string& name, bool search_commands, bool exclude_self) {
+  string lower_name = tolower(name);
 
   pid_t self_pid = exclude_self ? getpid() : 0;
 
   pid_t pid = 0;
   for (const auto& it : list_processes(search_commands)) {
-    if (!strcasestr(it.second.c_str(), name.c_str())) {
+    string lower_it_name = tolower(it.second);
+    if (!strstr(lower_it_name.c_str(), lower_name.c_str())) {
       continue;
     }
 
@@ -156,6 +156,7 @@ bool pid_is_zombie(pid_t pid) {
 }
 #endif
 
+#ifndef PHOSG_WINDOWS
 uint64_t start_time_for_pid(pid_t pid, bool allow_zombie) {
 #ifdef PHOSG_MACOS
   (void)allow_zombie;
@@ -193,6 +194,7 @@ uint64_t start_time_for_pid(pid_t pid, bool allow_zombie) {
   return start_time;
 #endif
 }
+#endif
 
 static bool atfork_handler_added = false;
 static pid_t cached_this_process_pid = 0;
@@ -220,6 +222,7 @@ pid_t getpid_cached() {
   return cached_this_process_pid;
 }
 
+#ifndef PHOSG_WINDOWS
 uint64_t this_process_start_time() {
   if (!cached_this_process_start_time) {
     // don't need to call maybe_add_atfork_handler; getpid_cached will do it
@@ -227,6 +230,7 @@ uint64_t this_process_start_time() {
   }
   return cached_this_process_start_time;
 }
+#endif
 
 static void replace_fd(int oldfd, int newfd) {
   if (oldfd != newfd) {
@@ -347,19 +351,19 @@ Subprocess::~Subprocess() {
   }
 }
 
-int Subprocess::stdin() {
+int Subprocess::stdin_fd() const {
   return this->stdin_write_fd;
 }
 
-int Subprocess::stdout() {
+int Subprocess::stdout_fd() const {
   return this->stdout_read_fd;
 }
 
-int Subprocess::stderr() {
+int Subprocess::stderr_fd() const {
   return this->stderr_read_fd;
 }
 
-pid_t Subprocess::pid() {
+pid_t Subprocess::pid() const {
   return this->child_pid;
 }
 
@@ -492,9 +496,9 @@ SubprocessResult run_process(const vector<string>& cmd, const string* stdin_data
 
   Subprocess sp(cmd, -1, -1, -1, cwd, env);
 
-  make_fd_nonblocking(sp.stdin());
-  make_fd_nonblocking(sp.stdout());
-  make_fd_nonblocking(sp.stderr());
+  make_fd_nonblocking(sp.stdin_fd());
+  make_fd_nonblocking(sp.stdout_fd());
+  make_fd_nonblocking(sp.stderr_fd());
 
   struct Buffer {
     const string* buf;
@@ -506,15 +510,15 @@ SubprocessResult run_process(const vector<string>& cmd, const string* stdin_data
 
   Poll p;
   if (stdin_data) {
-    write_fd_to_buffer.emplace(sp.stdin(), stdin_data);
-    p.add(sp.stdin(), POLLOUT);
+    write_fd_to_buffer.emplace(sp.stdin_fd(), stdin_data);
+    p.add(sp.stdin_fd(), POLLOUT);
   } else {
-    close(sp.stdin());
+    close(sp.stdin_fd());
   }
-  read_fd_to_buffer.emplace(sp.stdout(), &ret.stdout_contents);
-  p.add(sp.stdout(), POLLIN);
-  read_fd_to_buffer.emplace(sp.stderr(), &ret.stderr_contents);
-  p.add(sp.stderr(), POLLIN);
+  read_fd_to_buffer.emplace(sp.stdout_fd(), &ret.stdout_contents);
+  p.add(sp.stdout_fd(), POLLIN);
+  read_fd_to_buffer.emplace(sp.stderr_fd(), &ret.stderr_contents);
+  p.add(sp.stderr_fd(), POLLIN);
 
   // read/write to pipes as long as the process is running
   while ((ret.exit_status = sp.wait(true)) == -1) {
@@ -547,7 +551,7 @@ SubprocessResult run_process(const vector<string>& cmd, const string* stdin_data
         if (bytes_written > 0) {
           buf.offset += bytes_written;
           if (buf.offset == buf.buf->size()) {
-            p.remove(sp.stdin(), true);
+            p.remove(sp.stdin_fd(), true);
             write_fd_to_buffer.erase(pfd.first);
           }
         } else if (bytes_written < 0) {
@@ -604,5 +608,3 @@ SubprocessResult run_process(const vector<string>& cmd, const string* stdin_data
 
   return ret;
 }
-
-#endif

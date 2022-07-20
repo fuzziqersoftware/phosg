@@ -17,9 +17,7 @@
 
 #include "Platform.hh"
 
-#ifndef PHOSG_WINDOWS
 #include "ImageTextFont.hh"
-#endif
 
 using namespace std;
 
@@ -1041,21 +1039,15 @@ void Image::draw_vertical_line(ssize_t x, ssize_t y1, ssize_t y2,
   this->draw_vertical_line(x, y1, y2, dash_length, ec.r, ec.g, ec.b, ec.a);
 }
 
-#ifndef PHOSG_WINDOWS
-
 void Image::draw_text_v(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
     uint64_t r, uint64_t g, uint64_t b, uint64_t a, uint64_t br, uint64_t bg,
     uint64_t bb, uint64_t ba, const char* fmt, va_list va) {
 
-  char* buffer;
-  vasprintf(&buffer, fmt, va);
-  if (!buffer) {
-    throw bad_alloc();
-  }
+  string buffer = string_vprintf(fmt, va);
 
   ssize_t max_x_pos = 0;
   ssize_t x_pos = x, y_pos = y;
-  for (ssize_t z = 0; buffer[z]; z++) {
+  for (size_t z = 0; z < buffer.size(); z++) {
     uint8_t ch = buffer[z];
     if (ch == '\r') {
       continue;
@@ -1102,8 +1094,6 @@ void Image::draw_text_v(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
   if (height) {
     *height = y_pos + 7 - y;
   }
-
-  free(buffer);
 }
 
 void Image::draw_text(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
@@ -1179,8 +1169,6 @@ void Image::draw_text(ssize_t x, ssize_t y, uint32_t color, const char* fmt, ...
   }
   va_end(va);
 }
-
-#endif
 
 void Image::fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint64_t r,
     uint64_t g, uint64_t b, uint64_t a) {
