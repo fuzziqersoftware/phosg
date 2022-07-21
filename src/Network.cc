@@ -50,7 +50,7 @@ uint32_t resolve_ipv4(const string& addr) {
 
 
 pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const string& addr,
-    int port) {
+    uint16_t port) {
   struct sockaddr_storage s;
   memset(&s, 0, sizeof(s));
 

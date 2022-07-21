@@ -9,7 +9,12 @@
 
 
 std::pair<struct sockaddr_storage, size_t> make_sockaddr_storage(
-    const std::string& addr, int port);
+    const std::string& addr, uint16_t port);
+
+inline std::pair<struct sockaddr_storage, size_t> make_sockaddr_storage(
+    const std::pair<std::string, uint16_t>& netloc) {
+  return make_sockaddr_storage(netloc.first, netloc.second);
+}
 
 std::string render_sockaddr_storage(const sockaddr_storage& s);
 
