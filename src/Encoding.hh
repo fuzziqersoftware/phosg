@@ -10,8 +10,9 @@
 
 template <typename ResultT, typename SrcT>
 ResultT sign_extend(SrcT src) {
+  using UResultT = std::make_unsigned_t<ResultT>;
   if (src & (1 << ((sizeof(SrcT) << 3) - 1))) {
-    return static_cast<ResultT>(src) | (static_cast<ResultT>(-1) << (sizeof(SrcT) << 3));
+    return static_cast<ResultT>(src) | (static_cast<ResultT>(static_cast<UResultT>(-1) << (sizeof(SrcT) << 3)));
   } else {
     return static_cast<ResultT>(src);
   }
