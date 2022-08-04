@@ -325,41 +325,35 @@ using re_double = reverse_endian<double, uint64_t>;
 
 #ifdef PHOSG_LITTLE_ENDIAN
 
-using le_uint16_t = same_endian<uint16_t>;
-using le_int16_t = same_endian<int16_t>;
-using le_uint32_t = same_endian<uint32_t>;
-using le_int32_t = same_endian<int32_t>;
-using le_uint64_t = same_endian<uint64_t>;
-using le_int64_t = same_endian<int64_t>;
-using le_float = same_endian<float, uint32_t>;
-using le_double = same_endian<double, uint64_t>;
-using be_uint16_t = reverse_endian<uint16_t>;
-using be_int16_t = reverse_endian<int16_t>;
-using be_uint32_t = reverse_endian<uint32_t>;
-using be_int32_t = reverse_endian<int32_t>;
-using be_uint64_t = reverse_endian<uint64_t>;
-using be_int64_t = reverse_endian<int64_t>;
-using be_float = reverse_endian<float, uint32_t>;
-using be_double = reverse_endian<double, uint64_t>;
+template <typename ExposedT, typename StoredT = ExposedT>
+class big_endian
+  : public converted_endian<ExposedT, StoredT, bswap_st<ExposedT, StoredT>, bswap_st<StoredT, ExposedT>> {
+public:
+  using converted_endian<ExposedT, StoredT, bswap_st<ExposedT, StoredT>, bswap_st<StoredT, ExposedT>>::converted_endian;
+} __attribute__((packed));
+
+template <typename ExposedT, typename StoredT = ExposedT>
+class little_endian
+  : public converted_endian<ExposedT, StoredT, ident_st<ExposedT, StoredT>, ident_st<StoredT, ExposedT>> {
+public:
+  using converted_endian<ExposedT, StoredT, ident_st<ExposedT, StoredT>, ident_st<StoredT, ExposedT>>::converted_endian;
+} __attribute__((packed));
 
 #elif defined(PHOSG_BIG_ENDIAN)
 
-using le_uint16_t = reverse_endian<uint16_t>;
-using le_int16_t = reverse_endian<int16_t>;
-using le_uint32_t = reverse_endian<uint32_t>;
-using le_int32_t = reverse_endian<int32_t>;
-using le_uint64_t = reverse_endian<uint64_t>;
-using le_int64_t = reverse_endian<int64_t>;
-using le_float = reverse_endian<float, uint32_t>;
-using le_double = reverse_endian<double, uint64_t>;
-using be_uint16_t = same_endian<uint16_t>;
-using be_int16_t = same_endian<int16_t>;
-using be_uint32_t = same_endian<uint32_t>;
-using be_int32_t = same_endian<int32_t>;
-using be_uint64_t = same_endian<uint64_t>;
-using be_int64_t = same_endian<int64_t>;
-using be_float = same_endian<float, uint32_t>;
-using be_double = same_endian<double, uint64_t>;
+template <typename ExposedT, typename StoredT = ExposedT>
+class little_endian
+  : public converted_endian<ExposedT, StoredT, bswap_st<ExposedT, StoredT>, bswap_st<StoredT, ExposedT>> {
+public:
+  using converted_endian<ExposedT, StoredT, bswap_st<ExposedT, StoredT>, bswap_st<StoredT, ExposedT>>::converted_endian;
+} __attribute__((packed));
+
+template <typename ExposedT, typename StoredT = ExposedT>
+class big_endian
+  : public converted_endian<ExposedT, StoredT, ident_st<ExposedT, StoredT>, ident_st<StoredT, ExposedT>> {
+public:
+  using converted_endian<ExposedT, StoredT, ident_st<ExposedT, StoredT>, ident_st<StoredT, ExposedT>>::converted_endian;
+} __attribute__((packed));
 
 #else
 
@@ -367,9 +361,22 @@ using be_double = same_endian<double, uint64_t>;
 
 #endif
 
-
-
-// TODO: implement the above endian-converted types for floats
+using le_uint16_t = little_endian<uint16_t>;
+using le_int16_t = little_endian<int16_t>;
+using le_uint32_t = little_endian<uint32_t>;
+using le_int32_t = little_endian<int32_t>;
+using le_uint64_t = little_endian<uint64_t>;
+using le_int64_t = little_endian<int64_t>;
+using le_float = little_endian<float, uint32_t>;
+using le_double = little_endian<double, uint64_t>;
+using be_uint16_t = big_endian<uint16_t>;
+using be_int16_t = big_endian<int16_t>;
+using be_uint32_t = big_endian<uint32_t>;
+using be_int32_t = big_endian<int32_t>;
+using be_uint64_t = big_endian<uint64_t>;
+using be_int64_t = big_endian<int64_t>;
+using be_float = big_endian<float, uint32_t>;
+using be_double = big_endian<double, uint64_t>;
 
 
 
