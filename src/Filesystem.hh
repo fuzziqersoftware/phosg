@@ -112,6 +112,7 @@ std::string read_all(int fd);
 std::string read_all(FILE* f);
 
 std::string read(int fd, size_t size);
+std::string fread(FILE* f, size_t size);
 
 void readx(int fd, void* data, size_t size);
 void writex(int fd, const void* data, size_t size);

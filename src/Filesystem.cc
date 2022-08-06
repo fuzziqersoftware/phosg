@@ -355,6 +355,17 @@ string read(int fd, size_t size) {
   return data;
 }
 
+string fread(FILE* f, size_t size) {
+  string data(size, '\0');
+  ssize_t ret_size = fread(data.data(), 1, size, f);
+  if (ret_size < 0) {
+    throw io_error(fileno(f));
+  } else if (ret_size != static_cast<ssize_t>(size)) {
+    data.resize(ret_size);
+  }
+  return data;
+}
+
 void readx(int fd, void* data, size_t size) {
   ssize_t ret_size = read(fd, data, size);
   if (ret_size < 0) {
