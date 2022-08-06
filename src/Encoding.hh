@@ -122,6 +122,16 @@ ResultT bswap(ArgT) {
 }
 
 template <>
+inline uint8_t bswap<uint8_t>(uint8_t v) {
+  return v;
+}
+
+template <>
+inline int8_t bswap<int8_t>(int8_t v) {
+  return v;
+}
+
+template <>
 inline uint16_t bswap<uint16_t>(uint16_t v) {
   return bswap16(v);
 }
@@ -312,6 +322,40 @@ public:
   using converted_endian<ExposedT, StoredT, ident_st<ExposedT, StoredT>, ident_st<StoredT, ExposedT>>::converted_endian;
 } __attribute__((packed));
 
+#ifdef PHOSG_LITTLE_ENDIAN
+
+template <typename ExposedT, typename StoredT = ExposedT>
+class big_endian : public reverse_endian<ExposedT, StoredT> {
+public:
+  using reverse_endian<ExposedT, StoredT>::reverse_endian;
+} __attribute__((packed));
+
+template <typename ExposedT, typename StoredT = ExposedT>
+class little_endian : public same_endian<ExposedT, StoredT> {
+public:
+  using same_endian<ExposedT, StoredT>::same_endian;
+} __attribute__((packed));
+
+#elif defined(PHOSG_BIG_ENDIAN)
+
+template <typename ExposedT, typename StoredT = ExposedT>
+class little_endian : public reverse_endian<ExposedT, StoredT> {
+public:
+  using reverse_endian<ExposedT, StoredT>::reverse_endian;
+} __attribute__((packed));
+
+template <typename ExposedT, typename StoredT = ExposedT>
+class big_endian : public same_endian<ExposedT, StoredT> {
+public:
+  using same_endian<ExposedT, StoredT>::same_endian;
+} __attribute__((packed));
+
+#else
+
+#error "No endianness define exists"
+
+#endif
+
 
 
 using re_uint16_t = reverse_endian<uint16_t>;
@@ -322,45 +366,6 @@ using re_uint64_t = reverse_endian<uint64_t>;
 using re_int64_t = reverse_endian<int64_t>;
 using re_float = reverse_endian<float, uint32_t>;
 using re_double = reverse_endian<double, uint64_t>;
-
-#ifdef PHOSG_LITTLE_ENDIAN
-
-template <typename ExposedT, typename StoredT = ExposedT>
-class big_endian
-  : public converted_endian<ExposedT, StoredT, bswap_st<ExposedT, StoredT>, bswap_st<StoredT, ExposedT>> {
-public:
-  using converted_endian<ExposedT, StoredT, bswap_st<ExposedT, StoredT>, bswap_st<StoredT, ExposedT>>::converted_endian;
-} __attribute__((packed));
-
-template <typename ExposedT, typename StoredT = ExposedT>
-class little_endian
-  : public converted_endian<ExposedT, StoredT, ident_st<ExposedT, StoredT>, ident_st<StoredT, ExposedT>> {
-public:
-  using converted_endian<ExposedT, StoredT, ident_st<ExposedT, StoredT>, ident_st<StoredT, ExposedT>>::converted_endian;
-} __attribute__((packed));
-
-#elif defined(PHOSG_BIG_ENDIAN)
-
-template <typename ExposedT, typename StoredT = ExposedT>
-class little_endian
-  : public converted_endian<ExposedT, StoredT, bswap_st<ExposedT, StoredT>, bswap_st<StoredT, ExposedT>> {
-public:
-  using converted_endian<ExposedT, StoredT, bswap_st<ExposedT, StoredT>, bswap_st<StoredT, ExposedT>>::converted_endian;
-} __attribute__((packed));
-
-template <typename ExposedT, typename StoredT = ExposedT>
-class big_endian
-  : public converted_endian<ExposedT, StoredT, ident_st<ExposedT, StoredT>, ident_st<StoredT, ExposedT>> {
-public:
-  using converted_endian<ExposedT, StoredT, ident_st<ExposedT, StoredT>, ident_st<StoredT, ExposedT>>::converted_endian;
-} __attribute__((packed));
-
-#else
-
-#error "No endianness define exists"
-
-#endif
-
 using le_uint16_t = little_endian<uint16_t>;
 using le_int16_t = little_endian<int16_t>;
 using le_uint32_t = little_endian<uint32_t>;
