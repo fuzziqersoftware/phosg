@@ -269,7 +269,8 @@ Subprocess::Subprocess(const vector<string>& cmd, int stdin_fd, int stdout_fd,
   if (this->child_pid == -1) {
     throw runtime_error("fork failed: " + string_for_error(errno));
   }
-  if (!this->child_pid) {
+  if (this->child_pid == 0) {
+    // in child process
     replace_fd(stdin_fd, 0);
     replace_fd(stdout_fd, 1);
     replace_fd(stderr_fd, 2);
@@ -301,6 +302,8 @@ Subprocess::Subprocess(const vector<string>& cmd, int stdin_fd, int stdout_fd,
     } else {
       execvp(cmd[0].c_str(), (char* const *)argv.data());
     }
+    // if we get here, fork() worked, but execv_() failed: exit child process without even doing cleanup
+    _exit(errno);
   }
 
   for (int fd : parent_fds_to_close) {
