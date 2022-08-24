@@ -303,7 +303,7 @@ Subprocess::Subprocess(const vector<string>& cmd, int stdin_fd, int stdout_fd,
       execvp(cmd[0].c_str(), (char* const *)argv.data());
     }
     // if we get here, fork() worked, but execv_() failed: exit child process without even doing cleanup
-    _exit(errno);
+    _exit(1);
   }
 
   for (int fd : parent_fds_to_close) {
