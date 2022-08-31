@@ -84,6 +84,10 @@ public:
     return this->width * this->height * (3 + this->has_alpha) * (this->channel_width / 8);
   }
 
+  inline bool empty() const {
+    return (this->data.raw == nullptr);
+  }
+
   enum class Format {
     GRAYSCALE_PPM = 0,
     COLOR_PPM = 1,
