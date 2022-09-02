@@ -240,14 +240,20 @@ void print_color_escape(FILE* stream, TerminalFormat color, ...);
 void print_indent(FILE* stream, int indent_level);
 
 enum PrintDataFlags {
-  USE_COLOR           = 0x01, // Force color output (for diffs and non-ASCII)
-  PRINT_ASCII         = 0x02, // Print ASCII view on the right
-  PRINT_FLOAT         = 0x04, // Print float view on the right
-  PRINT_DOUBLE        = 0x08, // Print double view on the right
-  REVERSE_ENDIAN      = 0x10, // Floats/doubles should be byteswapped
-  COLLAPSE_ZERO_LINES = 0x20, // Skip lines of all zeroes
-  SKIP_SEPARATOR      = 0x40, // Instead of " | ", print just " "
-  DISABLE_COLOR       = 0x80, // Never use color output
+  USE_COLOR             = 0x0001, // Force color output (for diffs and non-ASCII)
+  PRINT_ASCII           = 0x0002, // Print ASCII view on the right
+  PRINT_FLOAT           = 0x0004, // Print float view on the right
+  PRINT_DOUBLE          = 0x0008, // Print double view on the right
+  REVERSE_ENDIAN_FLOATS = 0x0010, // Floats/doubles should be byteswapped
+  COLLAPSE_ZERO_LINES   = 0x0020, // Skip lines of all zeroes
+  SKIP_SEPARATOR        = 0x0040, // Instead of " | ", print just " "
+  DISABLE_COLOR         = 0x0080, // Never use color output
+  OFFSET_8_BITS         = 0x0100, // Always use 2 hex digits in offset column
+  OFFSET_16_BITS        = 0x0200, // Always use 4 hex digits in offset column
+  OFFSET_32_BITS        = 0x0400, // Always use 8 hex digits in offset column
+  OFFSET_64_BITS        = 0x0800, // Always use 16 hex digits in offset column
+  BIG_ENDIAN_FLOATS     = 0x1000, // Floats/doubles are explicitly big-endian
+  LITTLE_ENDIAN_FLOATS  = 0x2000, // Floats/doubles are explicitly little-endian
 
   DEFAULT             = PRINT_ASCII,
 };

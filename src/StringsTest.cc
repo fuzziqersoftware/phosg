@@ -35,15 +35,38 @@ void print_data_test_case(const string& expected_output, ArgTs... args) {
 void print_data_test() {
 
   // basic
+  string first_bytes("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 0x10);
   fprintf(stderr, "-- [print_data] one line\n");
   print_data_test_case("\
-0000000000000000 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
-string("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 0x10));
+00 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n", first_bytes);
   fprintf(stderr, "-- [print_data] multiple lines, last line partial\n");
   print_data_test_case("\
-0000000000000000 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n\
-0000000000000010 | 61 62 63 64 65 66 67 68 69                      | abcdefghi       \n",
+00 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n\
+10 | 61 62 63 64 65 66 67 68 69                      | abcdefghi       \n",
 string("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x61\x62\x63\x64\x65\x66\x67\x68\x69", 0x19));
+
+  // with offset width flags
+  fprintf(stderr, "-- [print_data] with offset width flags\n");
+  print_data_test_case("\
+00 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n", first_bytes, 0, "", PrintDataFlags::OFFSET_8_BITS | PrintDataFlags::PRINT_ASCII);
+  print_data_test_case("\
+200 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n", first_bytes, 0x200, "", PrintDataFlags::OFFSET_8_BITS | PrintDataFlags::PRINT_ASCII);
+  print_data_test_case("\
+0000 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n", first_bytes, 0, "", PrintDataFlags::OFFSET_16_BITS | PrintDataFlags::PRINT_ASCII);
+  print_data_test_case("\
+00000000 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n", first_bytes, 0, "", PrintDataFlags::OFFSET_32_BITS | PrintDataFlags::PRINT_ASCII);
+  print_data_test_case("\
+0000000000000000 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n", first_bytes, 0, "", PrintDataFlags::OFFSET_64_BITS | PrintDataFlags::PRINT_ASCII);
+  fprintf(stderr, "-- [print_data] automatic offset width\n");
+  print_data_test_case("\
+F0 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n", first_bytes, 0xF0);
+  print_data_test_case("\
+0200 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n", first_bytes, 0x200);
+  print_data_test_case("\
+00055550 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n", first_bytes, 0x55550);
+  print_data_test_case("\
+00000007F0000000 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n", first_bytes, 0x7F0000000);
+
 
   // with address
   fprintf(stderr, "-- [print_data] with address\n");
@@ -105,12 +128,33 @@ float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_FLOAT);
 float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_ASCII | PrintDataFlags::PRINT_FLOAT);
 
   // reverse-endian floats
+#ifdef PHOSG_LITTLE_ENDIAN
   fprintf(stderr, "-- [print_data] with reverse-endian floats\n");
   print_data_test_case("\
 0000000107B50FE0 |                                     00 00 00 00 |                                                   0\n\
 0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 |   6.5814e+13            0  -1.9063e-16            0\n\
 0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |            0   1.4207e+28      0.20434             \n",
-float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_FLOAT | PrintDataFlags::REVERSE_ENDIAN);
+float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_FLOAT | PrintDataFlags::REVERSE_ENDIAN_FLOATS);
+#else
+  fprintf(stderr, "-- [print_data] with reverse-endian floats\n");
+  print_data_test_case("\
+0000000107B50FE0 |                                     00 00 00 00 |                                                   0\n\
+0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 |      -237.43            0       6.2612            0\n\
+0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |            0       318.43       2.9893             \n",
+float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_FLOAT | PrintDataFlags::REVERSE_ENDIAN_FLOATS);
+#endif
+  fprintf(stderr, "-- [print_data] with big-endian floats\n");
+  print_data_test_case("\
+0000000107B50FE0 |                                     00 00 00 00 |                                                   0\n\
+0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 |   6.5814e+13            0  -1.9063e-16            0\n\
+0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |            0   1.4207e+28      0.20434             \n",
+float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_FLOAT | PrintDataFlags::BIG_ENDIAN_FLOATS);
+  fprintf(stderr, "-- [print_data] with little-endian floats\n");
+  print_data_test_case("\
+0000000107B50FE0 |                                     00 00 00 00 |                                                   0\n\
+0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 |      -237.43            0       6.2612            0\n\
+0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |            0       318.43       2.9893             \n",
+float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_FLOAT | PrintDataFlags::LITTLE_ENDIAN_FLOATS);
 
   // float alignment
   fprintf(stderr, "-- [print_data] with floats and non-aligned addresses\n");
@@ -119,35 +163,35 @@ float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_FLOAT | PrintDataFlags
 0000000107B50FF0 | 00 00 00 40 00                                  |            2                                       \n",
 string("\0\0\0\0\x40\0", 6), 0x0000000107B50FEF, "", PrintDataFlags::PRINT_FLOAT);
   print_data_test_case("\
-0000000000000000 |    00 00 00 00 00 00 00 00                      |                         0                          \n",
+00 |    00 00 00 00 00 00 00 00                      |                         0                          \n",
 string("\0\0\0\0\0\0\0\0", 8), 1, "", PrintDataFlags::PRINT_FLOAT);
 
   // doubles
   fprintf(stderr, "-- [print_data] with doubles\n");
   print_data_test_case("\
-0000000000000000 | 3F F0 00 00 00 00 00 00 41 FC 80 AC EA 2C AA 40 |  3.0387e-319       3350.5\n\
-0000000000000010 | 40 00 00 00 00 00 00 00                         |   3.162e-322             \n",
+00 | 3F F0 00 00 00 00 00 00 41 FC 80 AC EA 2C AA 40 |  3.0387e-319       3350.5\n\
+10 | 40 00 00 00 00 00 00 00                         |   3.162e-322             \n",
 string("\x3F\xF0\0\0\0\0\0\0\x41\xFC\x80\xAC\xEA\x2C\xAA\x40\x40\0\0\0\0\0\0\0", 0x18),
-0, "", PrintDataFlags::PRINT_DOUBLE | PrintDataFlags::PRINT_DOUBLE);
+0, "", PrintDataFlags::PRINT_DOUBLE | PrintDataFlags::PRINT_DOUBLE | PrintDataFlags::LITTLE_ENDIAN_FLOATS);
   print_data_test_case("\
-0000000000000000 | 3F F0 00 00 00 00 00 00 41 FC 80 AC EA 2C AA 40 |            1   7.6511e+09\n\
-0000000000000010 | 40 00 00 00 00 00 00 00                         |            2             \n",
+00 | 3F F0 00 00 00 00 00 00 41 FC 80 AC EA 2C AA 40 |            1   7.6511e+09\n\
+10 | 40 00 00 00 00 00 00 00                         |            2             \n",
 string("\x3F\xF0\0\0\0\0\0\0\x41\xFC\x80\xAC\xEA\x2C\xAA\x40\x40\0\0\0\0\0\0\0", 0x18),
-0, "", PrintDataFlags::PRINT_DOUBLE | PrintDataFlags::REVERSE_ENDIAN);
+0, "", PrintDataFlags::PRINT_DOUBLE | PrintDataFlags::BIG_ENDIAN_FLOATS);
 
   // reverse-endian doubles
   fprintf(stderr, "-- [print_data] with reverse-endian doubles\n");
   print_data_test_case("\
-0000000000000000 | 3F F0 00 00 00 00 00 00 41 FC 80 AC EA 2C AA 40 | ?       A    , @ |            1   7.6511e+09\n\
-0000000000000010 | 40 00 00 00 00 00 00 00                         | @                |            2             \n",
+00 | 3F F0 00 00 00 00 00 00 41 FC 80 AC EA 2C AA 40 | ?       A    , @ |            1   7.6511e+09\n\
+10 | 40 00 00 00 00 00 00 00                         | @                |            2             \n",
 string("\x3F\xF0\0\0\0\0\0\0\x41\xFC\x80\xAC\xEA\x2C\xAA\x40\x40\0\0\0\0\0\0\0", 0x18),
-0, "", PrintDataFlags::PRINT_DOUBLE | PrintDataFlags::PRINT_ASCII | PrintDataFlags::REVERSE_ENDIAN);
+0, "", PrintDataFlags::PRINT_DOUBLE | PrintDataFlags::PRINT_ASCII | PrintDataFlags::BIG_ENDIAN_FLOATS);
 
   // double alignment
   fprintf(stderr, "-- [print_data] with doubles and non-aligned addresses\n");
   print_data_test_case("\
-0000000000000000 |    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |                         0\n\
-0000000000000010 | 00                                              |                          \n",
+00 |    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |                         0\n\
+10 | 00                                              |                          \n",
 string("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 16), 1, "", PrintDataFlags::PRINT_DOUBLE);
 
   // iovecs
@@ -161,10 +205,10 @@ string("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 16), 1, "", PrintDataFlags::PRINT_DOU
   iovs.emplace_back(iovec{.iov_base = nullptr, .iov_len = 0});
   iovs.emplace_back(iovec{.iov_base = data3.data(), .iov_len = data3.size()});
   print_data_test_case("\
-0000000000000000 | 00 00 00 40 00 00 80 3F 00 00 00                |    @   ?         |            2            1                          \n",
+00 | 00 00 00 40 00 00 80 3F 00 00 00                |    @   ?         |            2            1                          \n",
 iovs.data(), iovs.size(), 0, nullptr, 0, PrintDataFlags::PRINT_ASCII | PrintDataFlags::PRINT_FLOAT);
   print_data_test_case("\
-0000000000000000 |             00 00 00 40 00 00 80 3F 00 00 00    |        @   ?     |                         2            1             \n",
+00 |             00 00 00 40 00 00 80 3F 00 00 00    |        @   ?     |                         2            1             \n",
 iovs.data(), iovs.size(), 4, nullptr, 0, PrintDataFlags::PRINT_ASCII | PrintDataFlags::PRINT_FLOAT);
 
   // TODO: test diffing

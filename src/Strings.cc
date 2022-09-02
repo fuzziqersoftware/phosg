@@ -440,6 +440,25 @@ void print_data(
 
   uint64_t end_address = start_address + total_size;
 
+  int width_digits;
+  if (flags & PrintDataFlags::OFFSET_8_BITS) {
+    width_digits = 2;
+  } else if (flags & PrintDataFlags::OFFSET_16_BITS) {
+    width_digits = 4;
+  } else if (flags & PrintDataFlags::OFFSET_32_BITS) {
+    width_digits = 8;
+  } else if (flags & PrintDataFlags::OFFSET_64_BITS) {
+    width_digits = 16;
+  } else if (end_address > 0x100000000) {
+    width_digits = 16;
+  } else if (end_address > 0x10000) {
+    width_digits = 8;
+  } else if (end_address > 0x100) {
+    width_digits = 4;
+  } else {
+    width_digits = 2;
+  }
+
   bool use_color;
   if (flags & PrintDataFlags::USE_COLOR) {
     use_color = true;
@@ -451,7 +470,9 @@ void print_data(
   bool print_ascii = flags & PrintDataFlags::PRINT_ASCII;
   bool print_float = flags & PrintDataFlags::PRINT_FLOAT;
   bool print_double = flags & PrintDataFlags::PRINT_DOUBLE;
-  bool reverse_endian = flags & PrintDataFlags::REVERSE_ENDIAN;
+  bool reverse_endian = flags & PrintDataFlags::REVERSE_ENDIAN_FLOATS;
+  bool big_endian = flags & PrintDataFlags::BIG_ENDIAN_FLOATS;
+  bool little_endian = flags & PrintDataFlags::LITTLE_ENDIAN_FLOATS;
   bool collapse_zero_lines = flags & PrintDataFlags::COLLAPSE_ZERO_LINES;
   bool skip_separator = flags & PrintDataFlags::SKIP_SEPARATOR;
 
@@ -480,6 +501,33 @@ void print_data(
     uint8_t line_invalid_start_bytes = max<int64_t>(start_address - line_start_address, 0);
     uint8_t line_invalid_end_bytes = max<int64_t>(line_end_address - end_address, 0);
     uint8_t line_bytes = 0x10 - line_invalid_end_bytes - line_invalid_start_bytes;
+
+    auto print_fields_column = [&]<typename LoadedDataT, typename StoredDataT>(
+        const char* field_format,
+        const char* blank_format) -> void {
+      fputs(skip_separator ? " " : " |", stream);
+
+      const auto* line_fields = reinterpret_cast<const StoredDataT*>(line_buf);
+      const auto* prev_line_fields = reinterpret_cast<const StoredDataT*>(prev_line_data);
+      uint8_t line_invalid_start_fields = (line_invalid_start_bytes + sizeof(StoredDataT) - 1) / sizeof(StoredDataT);
+      uint8_t line_invalid_end_fields = (line_invalid_end_bytes + sizeof(StoredDataT) - 1) / sizeof(StoredDataT);
+
+      constexpr size_t field_count = 0x10 / sizeof(StoredDataT);
+      size_t x = 0;
+      for (; x < line_invalid_start_fields; x++) {
+        fputs(blank_format, stream);
+      }
+      for (; x < static_cast<size_t>(field_count - line_invalid_end_fields); x++) {
+        LoadedDataT current_value = line_fields[x];
+        LoadedDataT previous_value = prev_line_fields[x];
+
+        RedBoldTerminalGuard g1(stream, use_color && (previous_value != current_value));
+        fprintf(stream, field_format, current_value);
+      }
+      for (; x < field_count; x++) {
+        fputs(blank_format, stream);
+      }
+    };
 
     // Read the current and previous data for this line
     for (size_t x = 0; x < line_bytes; x++) {
@@ -515,7 +563,8 @@ void print_data(
       continue;
     }
 
-    fprintf(stream, skip_separator ? "%016" PRIX64 : "%016" PRIX64 " |", line_start_address);
+    fprintf(stream, skip_separator ? "%0*" PRIX64 : "%0*" PRIX64 " |",
+        width_digits, line_start_address);
 
     {
       size_t x = 0;
@@ -559,58 +608,25 @@ void print_data(
     }
 
     if (print_float) {
-      fputs(skip_separator ? " " : " |", stream);
-
-      const auto* line_floats = reinterpret_cast<const float*>(line_buf);
-      const auto* line_re_floats = reinterpret_cast<const re_float*>(line_buf);
-      const auto* prev_line_floats = reinterpret_cast<const float*>(prev_line_data);
-      const auto* prev_line_re_floats = reinterpret_cast<const re_float*>(prev_line_data);
-      uint8_t line_invalid_start_floats = (line_invalid_start_bytes + 3) >> 2;
-      uint8_t line_invalid_end_floats = (line_invalid_end_bytes + 3) >> 2;
-
-      size_t x = 0;
-      for (; x < line_invalid_start_floats; x++) {
-        fputs("             ", stream);
-      }
-      for (; x < static_cast<size_t>(4 - line_invalid_end_floats); x++) {
-        float current_value = reverse_endian
-            ? line_re_floats[x].load() : line_floats[x];
-        float previous_value = reverse_endian
-            ? prev_line_re_floats[x].load() : prev_line_floats[x];
-
-        RedBoldTerminalGuard g1(stream, use_color && (previous_value != current_value));
-        fprintf(stream, " %12.5g", current_value);
-      }
-      for (; x < 4; x++) {
-        fputs("             ", stream);
+      if (reverse_endian) {
+        print_fields_column.operator()<float, re_float>(" %12.5g", "             ");
+      } else if (big_endian) {
+        print_fields_column.operator()<float, be_float>(" %12.5g", "             ");
+      } else if (little_endian) {
+        print_fields_column.operator()<float, le_float>(" %12.5g", "             ");
+      } else {
+        print_fields_column.operator()<float, float>(" %12.5g", "             ");
       }
     }
-
     if (print_double) {
-      fputs(skip_separator ? " " : " |", stream);
-
-      const auto* line_doubles = reinterpret_cast<const double*>(line_buf);
-      const auto* line_re_doubles = reinterpret_cast<const re_double*>(line_buf);
-      const auto* prev_line_doubles = reinterpret_cast<const double*>(prev_line_data);
-      const auto* prev_line_re_doubles = reinterpret_cast<const re_double*>(prev_line_data);
-      uint8_t line_invalid_start_doubles = (line_invalid_start_bytes + 7) >> 3;
-      uint8_t line_invalid_end_doubles = (line_invalid_end_bytes + 7) >> 3;
-
-      size_t x = 0;
-      for (; x < line_invalid_start_doubles; x++) {
-        fputs("             ", stream);
-      }
-      for (; x < static_cast<size_t>(2 - line_invalid_end_doubles); x++) {
-        double current_value = reverse_endian
-            ? line_re_doubles[x].load() : line_doubles[x];
-        double previous_value = reverse_endian
-            ? prev_line_re_doubles[x].load() : prev_line_doubles[x];
-
-        RedBoldTerminalGuard g1(stream, use_color && (previous_value != current_value));
-        fprintf(stream, " %12.5lg", current_value);
-      }
-      for (; x < 2; x++) {
-        fputs("             ", stream);
+      if (reverse_endian) {
+        print_fields_column.operator()<double, re_double>(" %12.5lg", "             ");
+      } else if (big_endian) {
+        print_fields_column.operator()<double, be_double>(" %12.5lg", "             ");
+      } else if (little_endian) {
+        print_fields_column.operator()<double, le_double>(" %12.5lg", "             ");
+      } else {
+        print_fields_column.operator()<double, double>(" %12.5lg", "             ");
       }
     }
 
