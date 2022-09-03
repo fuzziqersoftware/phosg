@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <inttypes.h>
 
 #include "Hash.hh"
 #include "Strings.hh"
@@ -61,6 +62,16 @@ int main(int, char** argv) {
       result[x] = password_sha256[x] ^ hash_with_nonce[x];
     }
     expect_eq(result, "\x1A\xE1\x80\xD5\xE5\xDB\x7F\xDF\x59\xEA\x73\x91\xB6\x5E\x25\x16\x73\xE1\xB0\x01\xC1\x50\xAA\x3A\x48\xDC\x78\x48\x8B\x4B\x70\xC4");
+  }
+
+  {
+    printf("-- crc32\n");
+    expect_eq(0x00000000, crc32(nullptr, 0));
+    expect_eq(0x00000000, crc32("", 0));
+    expect_eq(0xD3D99E8B, crc32("A", 1));
+    expect_eq(0xBF4FB41E, crc32("omg", 3));
+    expect_eq(0xBB24C2E5, crc32("omg hax", 7));
+    expect_eq(0x414FA339, crc32("The quick brown fox jumps over the lazy dog", 43));
   }
 
   printf("%s: all tests passed\n", argv[0]);
