@@ -1,10 +1,76 @@
 #pragma once
 
 #include <stdint.h>
+#include <inttypes.h>
 
 #include <string>
 
 #include "Platform.hh"
+
+
+
+template <typename...>
+struct always_false {
+  static constexpr bool v = false;
+};
+
+
+
+template <typename T>
+constexpr uint8_t bits_for_type = sizeof(T) << 3;
+
+template <typename T>
+constexpr T msb_for_type = (1 << (bits_for_type<T> - 1));
+
+
+
+template <typename T>
+constexpr const char* printf_format_for_type() {
+  static_assert(always_false<T>::v,
+      "unspecialized printf_format_for_type should never be called");
+  return nullptr;
+}
+
+template <typename T>
+constexpr const char* printf_hex_format_for_type() {
+  static_assert(always_false<T>::v,
+      "unspecialized printf_hex_format_for_type should never be called");
+  return nullptr;
+}
+
+template <>
+constexpr const char* printf_format_for_type<uint8_t>() { return PRIu8; }
+template <>
+constexpr const char* printf_format_for_type<int8_t>() { return PRId8; }
+template <>
+constexpr const char* printf_format_for_type<uint16_t>() { return PRIu16; }
+template <>
+constexpr const char* printf_format_for_type<int16_t>() { return PRId16; }
+template <>
+constexpr const char* printf_format_for_type<uint32_t>() { return PRIu32; }
+template <>
+constexpr const char* printf_format_for_type<int32_t>() { return PRId32; }
+template <>
+constexpr const char* printf_format_for_type<uint64_t>() { return PRIu64; }
+template <>
+constexpr const char* printf_format_for_type<int64_t>() { return PRId64; }
+
+template <>
+constexpr const char* printf_hex_format_for_type<uint8_t>() { return PRIX8; }
+template <>
+constexpr const char* printf_hex_format_for_type<int8_t>() { return PRIX8; }
+template <>
+constexpr const char* printf_hex_format_for_type<uint16_t>() { return PRIX16; }
+template <>
+constexpr const char* printf_hex_format_for_type<int16_t>() { return PRIX16; }
+template <>
+constexpr const char* printf_hex_format_for_type<uint32_t>() { return PRIX32; }
+template <>
+constexpr const char* printf_hex_format_for_type<int32_t>() { return PRIX32; }
+template <>
+constexpr const char* printf_hex_format_for_type<uint64_t>() { return PRIX64; }
+template <>
+constexpr const char* printf_hex_format_for_type<int64_t>() { return PRIX64; }
 
 
 
@@ -109,11 +175,6 @@ static inline uint64_t bswap64f(double a) {
 }
 
 
-
-template <typename...>
-struct always_false {
-  static constexpr bool v = false;
-};
 
 template <typename ArgT, typename ResultT = ArgT>
 ResultT bswap(ArgT) {
