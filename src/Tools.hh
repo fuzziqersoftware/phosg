@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 
+#include <atomic>
 #include <functional>
 #include <vector>
 #include <thread>
@@ -66,9 +67,9 @@ IntT parallel_range(
   while (threads.size() < num_threads) {
     threads.emplace_back(
         parallel_range_thread_fn<IntT>,
-        ref(fn),
-        ref(current_value),
-        ref(result_value),
+        std::ref(fn),
+        std::ref(current_value),
+        std::ref(result_value),
         end_value,
         threads.size());
   }
