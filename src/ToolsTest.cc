@@ -19,7 +19,7 @@ int main(int, char** argv) {
   expect(called);
 
   printf("-- parallel_range\n");
-  constexpr size_t num_threads = 1;
+  const size_t num_threads = thread::hardware_concurrency();
   vector<size_t> thread_counts(num_threads, 0);
   auto handle_value = [&](uint64_t, size_t thread_num) -> bool {
     thread_counts[thread_num]++;
