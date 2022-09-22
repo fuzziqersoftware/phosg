@@ -1368,16 +1368,20 @@ void Image::mask_blit_dst(const Image& source, ssize_t x, ssize_t y, ssize_t w,
 
 void Image::mask_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
     ssize_t h, ssize_t sx, ssize_t sy, const Image& mask) {
-
-  if ((source.get_width() != mask.get_width()) || (source.get_height() != mask.get_height())) {
-    throw runtime_error("mask dimensions don\'t match image dimensions");
-  }
-
   if (w < 0) {
     w = source.get_width();
   }
   if (h < 0) {
     h = source.get_height();
+  }
+
+  // The mask image must cover the entire area to be blitted, but it does NOT
+  // have to cover the entire destination or source image. The mask is indexed
+  // in source-space, though, so its upper-left corner must be aligned with the
+  // source image's upper-left corner.
+  if ((mask.get_width() < static_cast<size_t>(w)) ||
+      (mask.get_height() < static_cast<size_t>(h))) {
+    throw runtime_error("mask is too small to cover copied area");
   }
 
   clamp_blit_dimensions(*this, source, &x, &y, &w, &h, &sx, &sy);
