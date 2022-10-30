@@ -351,7 +351,7 @@ Image::Image(Image&& im) {
   im.data.raw = nullptr;
 }
 
-const Image& Image::operator=(Image&& im) {
+Image& Image::operator=(Image&& im) {
   this->width = im.width;
   this->height = im.height;
   this->has_alpha = im.has_alpha;

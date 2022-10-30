@@ -60,7 +60,7 @@ public:
   ~Image();
 
   const Image& operator=(const Image& other);
-  const Image& operator=(Image&& other);
+  Image& operator=(Image&& other);
 
   bool operator==(const Image& other) const;
   bool operator!=(const Image& other) const;
