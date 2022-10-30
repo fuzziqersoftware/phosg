@@ -366,6 +366,10 @@ public:
   StringReader sub(size_t offset, size_t size) const;
   StringReader subx(size_t offset) const;
   StringReader subx(size_t offset, size_t size) const;
+  BitReader sub_bits(size_t offset) const;
+  BitReader sub_bits(size_t offset, size_t size) const;
+  BitReader subx_bits(size_t offset) const;
+  BitReader subx_bits(size_t offset, size_t size) const;
 
   const char* peek(size_t size);
 

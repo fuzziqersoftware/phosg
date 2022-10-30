@@ -1305,6 +1305,43 @@ StringReader StringReader::subx(size_t offset, size_t size) const {
   return StringReader(reinterpret_cast<const char*>(this->data) + offset, size);
 }
 
+BitReader StringReader::sub_bits(size_t offset) const {
+  if (offset > this->length) {
+    return BitReader();
+  }
+  return BitReader(
+      reinterpret_cast<const char*>(this->data) + offset,
+      (this->length - offset) * 8);
+}
+
+BitReader StringReader::sub_bits(size_t offset, size_t size) const {
+  if (offset >= this->length) {
+    return BitReader();
+  }
+  if (offset + size > this->length) {
+    return BitReader(
+        reinterpret_cast<const char*>(this->data) + offset,
+        (this->length - offset) * 8);
+  }
+  return BitReader(reinterpret_cast<const char*>(this->data) + offset, size * 8);
+}
+
+BitReader StringReader::subx_bits(size_t offset) const {
+  if (offset > this->length) {
+    throw out_of_range("sub-reader begins beyond end of data");
+  }
+  return BitReader(
+      reinterpret_cast<const char*>(this->data) + offset,
+      (this->length - offset) * 8);
+}
+
+BitReader StringReader::subx_bits(size_t offset, size_t size) const {
+  if (offset + size > this->length) {
+    throw out_of_range("sub-reader begins or extends beyond end of data");
+  }
+  return BitReader(reinterpret_cast<const char*>(this->data) + offset, size * 8);
+}
+
 const char* StringReader::peek(size_t size) {
   if (this->offset + size <= this->length) {
     return reinterpret_cast<const char*>(this->data + this->offset);
