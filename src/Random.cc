@@ -12,6 +12,12 @@
 using namespace std;
 
 
+string random_data(size_t bytes) {
+  string ret(bytes, '\0');
+  random_data(ret.data(), ret.size());
+  return ret;
+}
+
 void random_data(void* data, size_t bytes) {
   static scoped_fd fd("/dev/urandom", O_RDONLY);
   static thread_local string buffer;

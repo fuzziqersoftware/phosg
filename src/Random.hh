@@ -3,7 +3,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include <string>
 
+
+std::string random_data(size_t bytes);
 void random_data(void* data, size_t bytes);
 
 template <typename T>
