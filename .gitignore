@@ -5,6 +5,7 @@
 *Test
 libphosg.a
 jsonformat
+parse-data
 
 # CMake files
 CMakeCache.txt
