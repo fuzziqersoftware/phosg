@@ -23,16 +23,19 @@ set(CTEST_OUTPUT_ON_FAILURE ON)
 include_directories("/usr/local/include")
 link_directories("/usr/local/lib")
 
-find_library(ATOMIC_LIBRARY atomic)
-
 
 
 # Library and executable definitions
 
 add_library(phosg src/Encoding.cc src/Filesystem.cc src/Hash.cc src/Image.cc src/JSON.cc src/Network.cc src/Process.cc src/Random.cc src/Strings.cc src/Time.cc src/Tools.cc src/UnitTest.cc)
 target_link_libraries(phosg pthread)
-if(ATOMIC_LIBRARY)
-  target_link_libraries(phosg ${ATOMIC_LIBRARY})
+
+# It seems that on some Linux variants (e.g. Raspbian) we also need -latomic,
+# but this library does not exist on others (e.g. Ubuntu) nor on macOS
+message(STATUS "Target architecture is ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+string(FIND ${CMAKE_HOST_SYSTEM_PROCESSOR} "armv" IS_LINUX_ARMV)
+if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "aarch64" OR ${IS_LINUX_ARMV} GREATER_EQUAL 0)
+  target_link_libraries(phosg atomic)
 endif()
 
 add_executable(jsonformat src/JSONFormat.cc)
