@@ -23,12 +23,17 @@ set(CTEST_OUTPUT_ON_FAILURE ON)
 include_directories("/usr/local/include")
 link_directories("/usr/local/lib")
 
+find_library(ATOMIC_LIBRARY atomic)
+
 
 
 # Library and executable definitions
 
 add_library(phosg src/Encoding.cc src/Filesystem.cc src/Hash.cc src/Image.cc src/JSON.cc src/Network.cc src/Process.cc src/Random.cc src/Strings.cc src/Time.cc src/Tools.cc src/UnitTest.cc)
 target_link_libraries(phosg pthread)
+if(ATOMIC_LIBRARY)
+  target_link_libraries(phosg ${ATOMIC_LIBRARY})
+endif()
 
 add_executable(jsonformat src/JSONFormat.cc)
 target_link_libraries(jsonformat phosg)
@@ -59,7 +64,9 @@ endforeach()
 # Installation configuration
 
 file(GLOB Headers ${CMAKE_SOURCE_DIR}/src/*.hh)
-install(TARGETS phosg DESTINATION lib)
+install(TARGETS phosg EXPORT phosg DESTINATION lib)
 install(TARGETS jsonformat DESTINATION bin)
 install(TARGETS parse-data DESTINATION bin)
 install(FILES ${Headers} DESTINATION include/phosg)
+install(FILES phosg-config.cmake DESTINATION lib)
+install(EXPORT phosg DESTINATION lib)
