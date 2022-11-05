@@ -47,25 +47,38 @@ struct WindowsBitmapFileHeader {
   uint32_t data_offset;
 } __attribute__((packed));
 
+// https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmapv5header
 struct WindowsBitmapInfoHeader {
-  uint32_t header_size;
-  int32_t width;
-  int32_t height;
-  uint16_t num_planes;
-  uint16_t bit_depth;
-  uint32_t compression; // only BI_RGB (0) and BI_BITFIELDS (3) are supported
-  uint32_t image_size;
-  int32_t x_pixels_per_meter;
-  int32_t y_pixels_per_meter;
-  uint32_t num_used_colors;
-  uint32_t num_important_colors;
+  uint32_t  header_size;
+  int32_t   width;
+  int32_t   height;
+  uint16_t  num_planes;
+  uint16_t  bit_depth;
+  uint32_t  compression; // only BI_RGB (0) and BI_BITFIELDS (3) are supported
+  uint32_t  image_size;
+  int32_t   x_pixels_per_meter;
+  int32_t   y_pixels_per_meter;
+  uint32_t  num_used_colors;
+  uint32_t  num_important_colors;
 
-  // the following are only present for 32-bit bitmaps apparently
-  uint32_t bitmask_r;
-  uint32_t bitmask_g;
-  uint32_t bitmask_b;
-  uint32_t bitmask_a;
+  // V4 header starts here
+  uint32_t  bitmask_r;
+  uint32_t  bitmask_g;
+  uint32_t  bitmask_b;
+  uint32_t  bitmask_a;
+  uint32_t  colorSpaceType;
+  uint32_t  chromacityEndpoints[9];
+  uint32_t  gammaRed;
+  uint32_t  gammaGreen;
+  uint32_t  gammaBlue;
+  
+  // V5 header starts here
+  uint32_t  renderIntent;
+  uint32_t  colorProfileData;
+  uint32_t  colorProfileSize;
+  uint32_t  reserved;
 
+  // Size of basic BMP header (before V4)
   static const size_t SIZE24 = 0x28;
 } __attribute__((packed));
 
@@ -73,6 +86,44 @@ struct WindowsBitmapHeader {
   WindowsBitmapFileHeader file_header;
   WindowsBitmapInfoHeader info_header;
 } __attribute__((packed));
+
+
+
+static size_t init_bmp_header(WindowsBitmapHeader& header,
+    ssize_t width, ssize_t height, bool has_alpha,
+    size_t pixel_bytes, size_t row_padding_bytes) {
+  size_t header_size = sizeof(WindowsBitmapFileHeader) + (has_alpha ? sizeof(WindowsBitmapInfoHeader) : WindowsBitmapInfoHeader::SIZE24);
+
+  // Clear header so we don't have initialize fields that are 0
+  header = {};
+  header.file_header.magic = 0x4D42; // 'BM'
+  header.file_header.file_size = header_size + (width * height * pixel_bytes) + (row_padding_bytes * height);
+  header.file_header.reserved[0] = 0;
+  header.file_header.reserved[1] = 0;
+  header.file_header.data_offset = header_size;
+  header.info_header.header_size = header_size - sizeof(WindowsBitmapFileHeader);
+  header.info_header.width = width;
+  header.info_header.height = height;
+  header.info_header.num_planes = 1;
+  header.info_header.bit_depth = has_alpha ? 32 : 24;
+  header.info_header.compression = has_alpha ? 3 : 0; // BI_BITFIELDS or BI_RGB
+  header.info_header.image_size = has_alpha ? (width * height * 4) : 0; // 0 acceptable for BI_RGB
+  header.info_header.x_pixels_per_meter = 0x00000B12;
+  header.info_header.y_pixels_per_meter = 0x00000B12;
+  header.info_header.num_used_colors = 0;
+  header.info_header.num_important_colors = 0;
+  if (has_alpha) {
+    // Write V5 header
+    header.info_header.bitmask_r = 0x000000FF;
+    header.info_header.bitmask_g = 0x0000FF00;
+    header.info_header.bitmask_b = 0x00FF0000;
+    header.info_header.bitmask_a = 0xFF000000;
+    header.info_header.colorSpaceType = 0x73524742; // LCS_sRGB / 'sRGB'
+    header.info_header.renderIntent = 8;            // LCS_GM_ABS_COLORIMETRIC
+  }
+  
+  return header_size;
+}
 
 
 void Image::load(FILE* f) {
@@ -183,13 +234,24 @@ void Image::load(FILE* f) {
     }
 
   } else if (format == Format::WINDOWS_BITMAP) {
-    WindowsBitmapHeader header;
+    WindowsBitmapHeader header = {};
+    
+    // Read BMP file header
     memcpy(&header.file_header.magic, sig, 2);
-    freadx(f, reinterpret_cast<uint8_t*>(&header) + 2, sizeof(header) - 2);
+    freadx(f, reinterpret_cast<uint8_t*>(&header.file_header) + 2, sizeof(header.file_header) - 2);
     if (header.file_header.magic != 0x4D42) {
       throw runtime_error(string_printf("bad signature in bitmap file (%04hX)",
           header.file_header.magic));
     }
+    
+    // Read variable-sized BMP info header
+    freadx(f, &header.info_header.header_size, 4);
+    if (header.info_header.header_size > sizeof(header.info_header)) {
+      throw runtime_error(string_printf("unsupported bitmap header: size is %u, maximum supported size is %zu",
+          header.info_header.header_size, sizeof(header.info_header)));
+    }
+    
+    freadx(f, reinterpret_cast<uint8_t*>(&header.info_header) + 4, header.info_header.header_size - 4);
     if ((header.info_header.bit_depth != 24) && (header.info_header.bit_depth != 32)) {
       throw runtime_error(string_printf(
           "can only load 24-bit or 32-bit bitmaps (this is a %hu-bit bitmap)",
@@ -476,31 +538,9 @@ void Image::save(FILE* f, Format format) const {
       size_t row_padding_bytes = (4 - ((this->width * pixel_bytes) % 4)) % 4;
       uint8_t row_padding_data[4] = {0, 0, 0, 0};
 
-      size_t header_size = sizeof(WindowsBitmapFileHeader) + (this->has_alpha ? sizeof(WindowsBitmapInfoHeader) : WindowsBitmapInfoHeader::SIZE24);
-
       WindowsBitmapHeader header;
-      header.file_header.magic = 0x4D42; // 'BM'
-      header.file_header.file_size = header_size + (this->width * this->height * pixel_bytes) + (row_padding_bytes * this->height);
-      header.file_header.reserved[0] = 0;
-      header.file_header.reserved[1] = 0;
-      header.file_header.data_offset = header_size;
-      header.info_header.header_size = header_size - sizeof(WindowsBitmapFileHeader);
-      header.info_header.width = this->width;
-      header.info_header.height = this->height;
-      header.info_header.num_planes = 1;
-      header.info_header.bit_depth = this->has_alpha ? 32 : 24;
-      header.info_header.compression = this->has_alpha ? 3 : 0; // BI_BITFIELDS or BI_RGB
-      header.info_header.image_size = this->has_alpha ? (this->width * this->height * 4) : 0; // 0 acceptable for BI_RGB
-      header.info_header.x_pixels_per_meter = 0x00000B12;
-      header.info_header.y_pixels_per_meter = 0x00000B12;
-      header.info_header.num_used_colors = 0;
-      header.info_header.num_important_colors = 0;
-      if (this->has_alpha) {
-        header.info_header.bitmask_r = 0x000000FF;
-        header.info_header.bitmask_g = 0x0000FF00;
-        header.info_header.bitmask_b = 0x00FF0000;
-        header.info_header.bitmask_a = 0xFF000000;
-      }
+      size_t              header_size = init_bmp_header(header, this->width, this->height, this->has_alpha, pixel_bytes, row_padding_bytes);
+
       fwrite(&header, header_size, 1, f);
 
       if (this->has_alpha) {
@@ -562,31 +602,8 @@ string Image::save(Format format) const {
       size_t row_padding_bytes = (4 - ((this->width * pixel_bytes) % 4)) % 4;
       char row_padding_data[4] = {0, 0, 0, 0};
 
-      size_t header_size = sizeof(WindowsBitmapFileHeader) + (this->has_alpha ? sizeof(WindowsBitmapInfoHeader) : WindowsBitmapInfoHeader::SIZE24);
-
       WindowsBitmapHeader header;
-      header.file_header.magic = 0x4D42; // 'BM'
-      header.file_header.file_size = header_size + (this->width * this->height * pixel_bytes) + (row_padding_bytes * this->height);
-      header.file_header.reserved[0] = 0;
-      header.file_header.reserved[1] = 0;
-      header.file_header.data_offset = header_size;
-      header.info_header.header_size = header_size - sizeof(WindowsBitmapFileHeader);
-      header.info_header.width = this->width;
-      header.info_header.height = this->height;
-      header.info_header.num_planes = 1;
-      header.info_header.bit_depth = this->has_alpha ? 32 : 24;
-      header.info_header.compression = this->has_alpha ? 3 : 0; // BI_BITFIELDS or BI_RGB
-      header.info_header.image_size = this->has_alpha ? (this->width * this->height * 4) : 0; // 0 acceptable for BI_RGB
-      header.info_header.x_pixels_per_meter = 0x00000B12;
-      header.info_header.y_pixels_per_meter = 0x00000B12;
-      header.info_header.num_used_colors = 0;
-      header.info_header.num_important_colors = 0;
-      if (this->has_alpha) {
-        header.info_header.bitmask_r = 0x000000FF;
-        header.info_header.bitmask_g = 0x0000FF00;
-        header.info_header.bitmask_b = 0x00FF0000;
-        header.info_header.bitmask_a = 0xFF000000;
-      }
+      size_t              header_size = init_bmp_header(header, this->width, this->height, this->has_alpha, pixel_bytes, row_padding_bytes);
 
       string s;
       s.append((const char*)&header, header_size);
