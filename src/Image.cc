@@ -291,22 +291,19 @@ void Image::load(FILE* f) {
 
 
 
-static const unordered_map<uint8_t, uint64_t> max_value_for_channel_width({
-  {8, 0xFF},
-  {16, 0xFFFF},
-  {32, 0xFFFFFFFF},
-  {64, 0xFFFFFFFFFFFFFFFF},
-});
+static constexpr uint64_t mask_for_width(uint8_t channel_width) {
+  return 0xFFFFFFFFFFFFFFFFULL >> (64 - channel_width);
+}
 
 Image::Image() :
     width(0), height(0), has_alpha(false), channel_width(8),
-    max_value(max_value_for_channel_width.at(this->channel_width)) {
+    max_value(mask_for_width(this->channel_width)) {
   this->data.raw = nullptr;
 }
 
 Image::Image(size_t x, size_t y, bool has_alpha, uint8_t channel_width) :
     width(x), height(y), has_alpha(has_alpha), channel_width(channel_width),
-    max_value(max_value_for_channel_width.at(this->channel_width)) {
+    max_value(mask_for_width(this->channel_width)) {
   size_t num_bytes = this->get_data_size();
   this->data.raw = malloc(num_bytes);
   memset(this->data.raw, 0, num_bytes * sizeof(uint8_t));
@@ -389,7 +386,7 @@ Image::Image(const string& filename) : Image(filename.c_str()) { }
 Image::Image(FILE* f, ssize_t width, ssize_t height, bool has_alpha,
     uint8_t channel_width, uint64_t max_value) : width(width), height(height),
     has_alpha(has_alpha), channel_width(channel_width),
-    max_value(max_value ? max_value : max_value_for_channel_width.at(this->channel_width)) {
+    max_value(max_value ? max_value : mask_for_width(this->channel_width)) {
   size_t num_bytes = this->get_data_size();
   this->data.raw = malloc(num_bytes);
   freadx(f, this->data.raw, num_bytes);
@@ -398,7 +395,7 @@ Image::Image(FILE* f, ssize_t width, ssize_t height, bool has_alpha,
 Image::Image(const char* filename, ssize_t width, ssize_t height,
     bool has_alpha, uint8_t channel_width, uint64_t max_value) : width(width),
     height(height), has_alpha(has_alpha), channel_width(channel_width),
-    max_value(max_value ? max_value : max_value_for_channel_width.at(this->channel_width)) {
+    max_value(max_value ? max_value : mask_for_width(this->channel_width)) {
   auto f = fopen_unique(filename, "rb");
   size_t num_bytes = this->get_data_size();
   this->data.raw = malloc(num_bytes);
@@ -861,7 +858,7 @@ void Image::set_channel_width(uint8_t new_width) {
   free(this->data.raw);
   this->data.raw = new_data.raw;
   this->channel_width = new_width;
-  this->max_value = max_value_for_channel_width.at(this->channel_width);
+  this->max_value = mask_for_width(this->channel_width);
 }
 
 void Image::set_has_alpha(bool new_has_alpha) {

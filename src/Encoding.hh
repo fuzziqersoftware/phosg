@@ -22,6 +22,9 @@ constexpr uint8_t bits_for_type = sizeof(T) << 3;
 template <typename T>
 constexpr T msb_for_type = (1 << (bits_for_type<T> - 1));
 
+template <typename T>
+constexpr uint64_t mask_for_type = 0xFFFFFFFFFFFFFFFF >> (64 - bits_for_type<T>);
+
 
 
 template <typename T>
