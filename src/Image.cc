@@ -66,16 +66,16 @@ struct WindowsBitmapInfoHeader {
   uint32_t  bitmask_g;
   uint32_t  bitmask_b;
   uint32_t  bitmask_a;
-  uint32_t  colorSpaceType;
-  uint32_t  chromacityEndpoints[9];
-  uint32_t  gammaRed;
-  uint32_t  gammaGreen;
-  uint32_t  gammaBlue;
+  uint32_t  color_space_type;
+  uint32_t  chromacity_endpoints[9];
+  uint32_t  gamma_r;
+  uint32_t  gamma_g;
+  uint32_t  gamma_b;
   
   // V5 header starts here
-  uint32_t  renderIntent;
-  uint32_t  colorProfileData;
-  uint32_t  colorProfileSize;
+  uint32_t  render_intent;
+  uint32_t  color_profile_data;
+  uint32_t  color_profile_size;
   uint32_t  reserved;
 
   // Size of basic BMP header (before V4)
@@ -118,8 +118,8 @@ static size_t init_bmp_header(WindowsBitmapHeader& header,
     header.info_header.bitmask_g = 0x0000FF00;
     header.info_header.bitmask_b = 0x00FF0000;
     header.info_header.bitmask_a = 0xFF000000;
-    header.info_header.colorSpaceType = 0x73524742; // LCS_sRGB / 'sRGB'
-    header.info_header.renderIntent = 8;            // LCS_GM_ABS_COLORIMETRIC
+    header.info_header.color_space_type = 0x73524742; // LCS_sRGB / 'sRGB'
+    header.info_header.render_intent = 8;             // LCS_GM_ABS_COLORIMETRIC
   }
   
   return header_size;
