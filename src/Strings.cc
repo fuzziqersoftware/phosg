@@ -1098,12 +1098,14 @@ size_t parse_size(const char* str) {
     unit_scale = MB_SIZE;
   } else if (*str == 'G' || *str == 'g') {
     unit_scale = GB_SIZE;
+#if SIZE_WIDTH > 32
   } else if (*str == 'T' || *str == 't') {
     unit_scale = TB_SIZE;
   } else if (*str == 'P' || *str == 'p') {
     unit_scale = PB_SIZE;
   } else if (*str == 'E' || *str == 'e') {
     unit_scale = EB_SIZE;
+#endif
   }
 
   return integer_part * unit_scale + static_cast<size_t>(fractional_part * unit_scale);
