@@ -128,16 +128,17 @@ static size_t init_bmp_header(WindowsBitmapHeader& header,
 
 void Image::load(FILE* f) {
   char sig[2];
-
-  // read signature. this will tell us what kind of file it is
   freadx(f, sig, 2);
 
-  // find out what kind of image it is
   Format format;
+  bool is_extended_ppm = false;
   if (sig[0] == 'P' && sig[1] == '5') {
     format = Format::GRAYSCALE_PPM;
   } else if (sig[0] == 'P' && sig[1] == '6') {
     format = Format::COLOR_PPM;
+  } else if (sig[0] == 'P' && sig[1] == '7') {
+    format = Format::COLOR_PPM;
+    is_extended_ppm = true;
   } else if (sig[0] == 'B' && sig[1] == 'M') {
     format = Format::WINDOWS_BITMAP;
   } else {
@@ -146,27 +147,90 @@ void Image::load(FILE* f) {
   }
 
   if (format == Format::GRAYSCALE_PPM || format == Format::COLOR_PPM) {
-    size_t new_width, new_height;
-    uint64_t new_max_value;
-    if (fscanf(f, "%zu", &new_width) != 1) {
-      throw runtime_error("cannot read width field in PPM header");
-    }
-    if (fscanf(f, "%zu", &new_height) != 1) {
-      throw runtime_error("cannot read height field in PPM header");
-    }
-    if (fscanf(f, "%" PRIu64, &new_max_value) != 1) {
-      throw runtime_error("cannot read max value field in PPM header");
+    size_t new_width = 0;
+    size_t new_height = 0;
+    uint64_t new_max_value = 0;
+    size_t new_depth = 0;
+
+    if (is_extended_ppm) {
+      if (fgetc(f) != '\n') {
+        throw runtime_error("invalid extended PPM header");
+      }
+      for (;;) {
+        string line = fgets(f);
+        strip_trailing_whitespace(line);
+        if (starts_with(line, "WIDTH ")) {
+          new_width = stoull(line.substr(6));
+        } else if (starts_with(line, "HEIGHT ")) {
+          new_height = stoull(line.substr(7));
+        } else if (starts_with(line, "DEPTH ")) {
+          // We ignore this and use TUPLTYPE instead
+        } else if (starts_with(line, "MAXVAL ")) {
+          new_max_value = stoull(line.substr(7));
+        } else if (starts_with(line, "TUPLTYPE ")) {
+          string tuple_type = line.substr(9);
+          if (tuple_type == "GRAYSCALE") {
+            format = Format::GRAYSCALE_PPM;
+            new_depth = 3;
+          } else if (tuple_type == "GRAYSCALE_ALPHA") {
+            format = Format::GRAYSCALE_PPM;
+            new_depth = 4;
+          } else if (tuple_type == "RGB") {
+            format = Format::COLOR_PPM;
+            new_depth = 3;
+          } else if (tuple_type == "RGB_ALPHA") {
+            format = Format::COLOR_PPM;
+            new_depth = 4;
+          } else {
+            throw runtime_error("unsupported tuple type in extended PPM image");
+          }
+        } else if (line == "ENDHDR") {
+          break;
+        } else {
+          throw runtime_error("unknown header command in extended PPM image");
+        }
+      }
+
+    } else {
+      new_depth = 3;
+      if (fscanf(f, "%zu", &new_width) != 1) {
+        throw runtime_error("cannot read width field in PPM header");
+      }
+      if (fscanf(f, "%zu", &new_height) != 1) {
+        throw runtime_error("cannot read height field in PPM header");
+      }
+      if (fscanf(f, "%" PRIu64, &new_max_value) != 1) {
+        throw runtime_error("cannot read max value field in PPM header");
+      }
+
+      // According to the docs, this is "usually" a newline but can be any
+      // whitespace character, so we don't make that assumption here
+      char header_end_char = fgetc(f);
+      if ((header_end_char != ' ') &&
+          (header_end_char != '\t') &&
+          (header_end_char != '\n')) {
+        throw runtime_error("whitespace character not present after PPM header");
+      }
     }
 
-    // according to the docs, this can be any whitespace character but is
-    // "usually" a newline. guess we shouldn't make assumptions here
-    char header_end_char = fgetc(f);
-    if ((header_end_char != ' ') && ((header_end_char != '\t') &&
-        (header_end_char != '\n'))) {
-      throw runtime_error("whitespace character not present after PPM header");
+    if (new_width == 0) {
+      throw runtime_error("width field in PPM header is zero or missing");
     }
+    if (new_height == 0) {
+      throw runtime_error("height field in PPM header is zero or missing");
+    }
+    if (new_max_value == 0) {
+      throw runtime_error("max value field in PPM header is zero or missing");
+    }
+    if (new_depth == 0) {
+      throw runtime_error("depth or format field in PPM header is zero or missing");
+    }
+    if (new_depth < 3 || new_depth > 4) {
+      throw runtime_error("depth or format field in PPM header has unsupported value");
+    }
+    bool new_has_alpha = (new_depth == 4);
 
-    // the format docs say this is limited to 0xFFFF, but we'll support up to
+    // The format docs say this is limited to 0xFFFF, but we'll support up to
     // 64-bit channels anyway
     uint8_t new_channel_width;
     if (new_max_value > 0xFFFFFFFF) {
@@ -180,54 +244,70 @@ void Image::load(FILE* f) {
     }
 
     DataPtrs new_data;
-    new_data.raw = malloc(new_width * new_height * 3 * (new_channel_width / 8));
+    size_t channels_factor = (format == Format::COLOR_PPM ? 3 : 1) + (new_has_alpha ? 1 : 0);
+    new_data.raw = malloc(new_width * new_height * channels_factor * (new_channel_width / 8));
     if (!new_data.raw) {
       throw bad_alloc();
     }
-    freadx(f, new_data.raw, new_width * new_height * (format == Format::COLOR_PPM ? 3 : 1) * (new_channel_width / 8));
+    try {
+      freadx(f, new_data.raw,
+          new_width * new_height * channels_factor * (new_channel_width / 8));
+    } catch (const exception&) {
+      free(new_data.raw);
+      throw;
+    }
 
-    // if the read succeeded, we can commit the changes - nothing after here can
-    // throw an exception
+    // If the read succeeded, we can commit the changes; nothing after here can
+    // throw an exception.
 
     this->width = new_width;
     this->height = new_height;
-    this->has_alpha = false;
+    this->has_alpha = new_has_alpha;
     this->channel_width = new_channel_width;
     this->max_value = new_max_value;
     this->data.raw = new_data.raw;
 
-    // expand grayscale data into color data if necessary
+    // Color PPM data is already in the necessary format for Image's internal
+    // storage. Grayscale data is not - we have to expand it into color data. To
+    // do so, we copy the gray channel to all color channels starting from the
+    // end of the image (so we won't incorrectly overwrite unexpanded data).
     if (format == Format::GRAYSCALE_PPM) {
-      if (this->channel_width == 8) {
-        for (ssize_t y = this->height - 1; y >= 0; y--) {
-          for (ssize_t x = this->width - 1; x >= 0; x--) {
-            this->data.as8[(y * this->width + x) * 3 + 0] = this->data.as8[y * this->width + x];
-            this->data.as8[(y * this->width + x) * 3 + 1] = this->data.as8[y * this->width + x];
-            this->data.as8[(y * this->width + x) * 3 + 2] = this->data.as8[y * this->width + x];
-          }
-        }
-      } else if (this->channel_width == 16) {
-        for (ssize_t y = this->height - 1; y >= 0; y--) {
-          for (ssize_t x = this->width - 1; x >= 0; x--) {
-            this->data.as16[(y * this->width + x) * 3 + 0] = this->data.as16[y * this->width + x];
-            this->data.as16[(y * this->width + x) * 3 + 1] = this->data.as16[y * this->width + x];
-            this->data.as16[(y * this->width + x) * 3 + 2] = this->data.as16[y * this->width + x];
-          }
-        }
-      } else if (this->channel_width == 32) {
-        for (ssize_t y = this->height - 1; y >= 0; y--) {
-          for (ssize_t x = this->width - 1; x >= 0; x--) {
-            this->data.as32[(y * this->width + x) * 3 + 0] = this->data.as32[y * this->width + x];
-            this->data.as32[(y * this->width + x) * 3 + 1] = this->data.as32[y * this->width + x];
-            this->data.as32[(y * this->width + x) * 3 + 2] = this->data.as32[y * this->width + x];
-          }
-        }
-      } else if (this->channel_width == 64) {
-        for (ssize_t y = this->height - 1; y >= 0; y--) {
-          for (ssize_t x = this->width - 1; x >= 0; x--) {
-            this->data.as64[(y * this->width + x) * 3 + 0] = this->data.as64[y * this->width + x];
-            this->data.as64[(y * this->width + x) * 3 + 1] = this->data.as64[y * this->width + x];
-            this->data.as64[(y * this->width + x) * 3 + 2] = this->data.as64[y * this->width + x];
+      size_t dest_stride = this->has_alpha ? 4 : 3;
+      size_t src_stride = this->has_alpha ? 2 : 1;
+      for (ssize_t y = this->height - 1; y >= 0; y--) {
+        for (ssize_t x = this->width - 1; x >= 0; x--) {
+          if (this->channel_width == 8) {
+            uint8_t v = this->data.as8[y * this->width * src_stride + x];
+            this->data.as8[(y * this->width + x) * dest_stride + 0] = v;
+            this->data.as8[(y * this->width + x) * dest_stride + 1] = v;
+            this->data.as8[(y * this->width + x) * dest_stride + 2] = v;
+            if (this->has_alpha) {
+              this->data.as8[(y * this->width + x) * dest_stride + 3] = this->data.as8[y * this->width * src_stride + x + 1];
+            }
+          } else if (this->channel_width == 16) {
+            uint8_t v = this->data.as16[y * this->width * src_stride + x];
+            this->data.as16[(y * this->width + x) * dest_stride + 0] = v;
+            this->data.as16[(y * this->width + x) * dest_stride + 1] = v;
+            this->data.as16[(y * this->width + x) * dest_stride + 2] = v;
+            if (this->has_alpha) {
+              this->data.as16[(y * this->width + x) * dest_stride + 3] = this->data.as16[y * this->width * src_stride + x + 1];
+            }
+          } else if (this->channel_width == 32) {
+            uint8_t v = this->data.as32[y * this->width * src_stride + x];
+            this->data.as32[(y * this->width + x) * dest_stride + 0] = v;
+            this->data.as32[(y * this->width + x) * dest_stride + 1] = v;
+            this->data.as32[(y * this->width + x) * dest_stride + 2] = v;
+            if (this->has_alpha) {
+              this->data.as32[(y * this->width + x) * dest_stride + 3] = this->data.as32[y * this->width * src_stride + x + 1];
+            }
+          } else if (this->channel_width == 64) {
+            uint8_t v = this->data.as64[y * this->width * src_stride + x];
+            this->data.as64[(y * this->width + x) * dest_stride + 0] = v;
+            this->data.as64[(y * this->width + x) * dest_stride + 1] = v;
+            this->data.as64[(y * this->width + x) * dest_stride + 2] = v;
+            if (this->has_alpha) {
+              this->data.as64[(y * this->width + x) * dest_stride + 3] = this->data.as64[y * this->width * src_stride + x + 1];
+            }
           }
         }
       }
@@ -519,11 +599,13 @@ void Image::save(FILE* f, Format format) const {
 
     case Format::COLOR_PPM:
       if (this->has_alpha) {
-        throw runtime_error("can\'t save color ppm with alpha");
+        fprintf(f, "P7\nWIDTH %zu\nHEIGHT %zu\nDEPTH 4\nMAXVAL %" PRIu64 "\nTUPLTYPE RGB_ALPHA\nENDHDR\n",
+            this->width, this->height, this->max_value);
+        fwritex(f, this->data.raw, this->get_data_size());
+      } else {
+        fprintf(f, "P6 %zu %zu %" PRIu64 "\n", this->width, this->height, this->max_value);
+        fwritex(f, this->data.raw, this->get_data_size());
       }
-      fprintf(f, "P6 %zu %zu %" PRIu64 "\n", this->width, this->height,
-          this->max_value);
-      fwritex(f, this->data.raw, this->get_data_size());
       break;
 
     case Format::WINDOWS_BITMAP: {
@@ -581,12 +663,16 @@ string Image::save(Format format) const {
       throw runtime_error("can\'t save grayscale ppm files");
 
     case Format::COLOR_PPM: {
+      string s;
       if (this->has_alpha) {
-        throw runtime_error("can\'t save color ppm with alpha");
+        s = string_printf("P7\nWIDTH %zu\nHEIGHT %zu\nDEPTH 4\nMAXVAL %" PRIu64 "\nTUPLTYPE RGB_ALPHA\nENDHDR\n",
+            this->width, this->height, this->max_value);
+        s.append(reinterpret_cast<const char*>(this->data.raw), this->get_data_size());
+      } else {
+        s = string_printf("P6 %zd %zd %" PRIu64 "\n", this->width, this->height,
+            this->max_value);
+        s.append(reinterpret_cast<const char*>(this->data.raw), this->get_data_size());
       }
-      string s = string_printf("P6 %zd %zd %" PRIu64 "\n", this->width,
-          this->height, this->max_value);
-      s.append(reinterpret_cast<const char*>(this->data.raw), this->get_data_size());
       return s;
     }
 
