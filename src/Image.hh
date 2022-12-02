@@ -14,24 +14,6 @@
 // supports reading/writing individual pixels, drawing lines, and saving the
 // image as a PPM or Windows BMP file.
 class Image {
-private:
-  union DataPtrs {
-    void* raw;
-    uint8_t* as8;
-    uint16_t* as16;
-    uint32_t* as32;
-    uint64_t* as64;
-  };
-
-  ssize_t width;
-  ssize_t height;
-  bool has_alpha;
-  uint8_t channel_width;
-  uint64_t max_value;
-  DataPtrs data;
-
-  void load(FILE* f);
-
 public:
   Image();
 
@@ -191,4 +173,25 @@ public:
       ssize_t sx, ssize_t sy);
   void blend_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w, ssize_t h,
       ssize_t sx, ssize_t sy, uint64_t source_alpha);
+
+private:
+  union DataPtrs {
+    void* raw;
+    uint8_t* as8;
+    uint16_t* as16;
+    uint32_t* as32;
+    uint64_t* as64;
+  };
+
+  ssize_t width;
+  ssize_t height;
+  bool has_alpha;
+  uint8_t channel_width;
+  uint64_t max_value;
+  DataPtrs data;
+
+  void load(FILE* f);
+  
+  template <typename Writer>
+  void save_helper(Format format, Writer&& writer) const;
 };

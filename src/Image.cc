@@ -590,23 +590,24 @@ const char* Image::file_extension_for_format(Format format) {
   }
 }
 
-// save the image to an already-open file
-void Image::save(FILE* f, Format format) const {
-
+template <typename Writer>
+void Image::save_helper(Format format, Writer&& writer) const {
   switch (format) {
     case Format::GRAYSCALE_PPM:
       throw runtime_error("can\'t save grayscale ppm files");
 
-    case Format::COLOR_PPM:
+    case Format::COLOR_PPM: {
+      char  header[256];
       if (this->has_alpha) {
-        fprintf(f, "P7\nWIDTH %zu\nHEIGHT %zu\nDEPTH 4\nMAXVAL %" PRIu64 "\nTUPLTYPE RGB_ALPHA\nENDHDR\n",
+        snprintf(header, sizeof(header), "P7\nWIDTH %zu\nHEIGHT %zu\nDEPTH 4\nMAXVAL %" PRIu64 "\nTUPLTYPE RGB_ALPHA\nENDHDR\n",
             this->width, this->height, this->max_value);
-        fwritex(f, this->data.raw, this->get_data_size());
       } else {
-        fprintf(f, "P6 %zu %zu %" PRIu64 "\n", this->width, this->height, this->max_value);
-        fwritex(f, this->data.raw, this->get_data_size());
+        snprintf(header, sizeof(header), "P6 %zu %zu %" PRIu64 "\n", this->width, this->height, this->max_value);
       }
+      writer(header, strlen(header));
+      writer(this->data.raw, this->get_data_size());
       break;
+    }
 
     case Format::WINDOWS_BITMAP: {
       if (this->channel_width != 8) {
@@ -620,13 +621,13 @@ void Image::save(FILE* f, Format format) const {
       WindowsBitmapHeader header;
       size_t              header_size = init_bmp_header(header, this->width, this->height, this->has_alpha, pixel_bytes, row_padding_bytes);
 
-      fwrite(&header, header_size, 1, f);
+      writer(&header, header_size);
 
       if (this->has_alpha) {
         // there's no padding and the bitmasks already specify how to read each
         // pixel; just write each row
         for (ssize_t y = this->height - 1; y >= 0; y--) {
-          fwrite(&this->data.as8[y * this->width * 4], this->width * 4, 1, f);
+          writer(&this->data.as8[y * this->width * 4], this->width * 4);
         }
 
       } else {
@@ -638,9 +639,9 @@ void Image::save(FILE* f, Format format) const {
             row_data[x + 1] = this->data.as8[y * this->width * 3 + x + 1];
             row_data[x + 2] = this->data.as8[y * this->width * 3 + x];
           }
-          fwrite(row_data, this->width * 3, 1, f);
+          writer(row_data, this->width * 3);
           if (row_padding_bytes) {
-            fwrite(row_padding_data, row_padding_bytes, 1, f);
+            writer(row_padding_data, row_padding_bytes);
           }
         }
       }
@@ -653,73 +654,22 @@ void Image::save(FILE* f, Format format) const {
   }
 }
 
+// save the image to an already-open file
+void Image::save(FILE* f, Format format) const {
+
+  save_helper(format, [f](const void* data, size_t size) {
+    fwritex(f, data, size);
+  });
+}
+
 // save the image to a string in memory
 string Image::save(Format format) const {
 
-  // TODO: deduplicate this implementation with Image::save(FILE*)
-
-  switch (format) {
-    case Format::GRAYSCALE_PPM:
-      throw runtime_error("can\'t save grayscale ppm files");
-
-    case Format::COLOR_PPM: {
-      string s;
-      if (this->has_alpha) {
-        s = string_printf("P7\nWIDTH %zu\nHEIGHT %zu\nDEPTH 4\nMAXVAL %" PRIu64 "\nTUPLTYPE RGB_ALPHA\nENDHDR\n",
-            this->width, this->height, this->max_value);
-        s.append(reinterpret_cast<const char*>(this->data.raw), this->get_data_size());
-      } else {
-        s = string_printf("P6 %zd %zd %" PRIu64 "\n", this->width, this->height,
-            this->max_value);
-        s.append(reinterpret_cast<const char*>(this->data.raw), this->get_data_size());
-      }
-      return s;
-    }
-
-    case Format::WINDOWS_BITMAP: {
-      if (this->channel_width != 8) {
-        throw runtime_error("can\'t save bmp with more than 8-bit channels");
-      }
-
-      size_t pixel_bytes = 3 + this->has_alpha;
-      size_t row_padding_bytes = (4 - ((this->width * pixel_bytes) % 4)) % 4;
-      char row_padding_data[4] = {0, 0, 0, 0};
-
-      WindowsBitmapHeader header;
-      size_t              header_size = init_bmp_header(header, this->width, this->height, this->has_alpha, pixel_bytes, row_padding_bytes);
-
-      string s;
-      s.append((const char*)&header, header_size);
-
-      if (this->has_alpha) {
-        // there's no padding and the bitmasks already specify how to read each
-        // pixel; just write each row
-        for (ssize_t y = this->height - 1; y >= 0; y--) {
-          s.append((const char*)&this->data.as8[y * this->width * 4], this->width * 4);
-        }
-
-      } else {
-        auto row_data_unique = malloc_unique(this->width * 3);
-        uint8_t* row_data = reinterpret_cast<uint8_t*>(row_data_unique.get());
-        for (ssize_t y = this->height - 1; y >= 0; y--) {
-          for (ssize_t x = 0; x < this->width * 3; x += 3) {
-            row_data[x] = this->data.as8[y * this->width * 3 + x + 2];
-            row_data[x + 1] = this->data.as8[y * this->width * 3 + x + 1];
-            row_data[x + 2] = this->data.as8[y * this->width * 3 + x];
-          }
-          s.append((const char*)row_data, this->width * 3);
-          if (row_padding_bytes) {
-            s.append(row_padding_data, row_padding_bytes);
-          }
-        }
-      }
-
-      return s;
-    }
-
-    default:
-      throw runtime_error("unknown file format in Image::save()");
-  }
+  string  result;
+  save_helper(format, [&result](const void* data, size_t size) {
+    result.append(reinterpret_cast<const char*>(data), size);
+  });
+  return result;
 }
 
 // saves the Image. if nullptr is given for filename, writes to stdout
