@@ -72,8 +72,9 @@ public:
 
   enum class Format {
     GRAYSCALE_PPM = 0,
-    COLOR_PPM = 1,
-    WINDOWS_BITMAP = 2,
+    COLOR_PPM,
+    WINDOWS_BITMAP,
+    PNG,
   };
 
   class unknown_format : virtual public std::runtime_error {
