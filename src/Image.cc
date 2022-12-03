@@ -12,6 +12,8 @@
 #include <map>
 #include <stdexcept>
 
+#include <zlib.h>
+
 #include "Filesystem.hh"
 #include "Strings.hh"
 
@@ -573,6 +575,8 @@ const char* Image::mime_type_for_format(Format format) {
       return "image/x-portable-pixmap";
     case Format::WINDOWS_BITMAP:
       return "image/bmp";
+    case Format::PNG:
+      return "image/png";
     default:
       return "text/plain";
   }
@@ -585,9 +589,31 @@ const char* Image::file_extension_for_format(Format format) {
       return "ppm";
     case Format::WINDOWS_BITMAP:
       return "bmp";
+    case Format::PNG:
+      return "png";
     default:
       return "raw";
   }
+}
+
+template <typename Writer>
+static void write_png_chunk(const char (&type)[5],
+    const void* data, be_uint32_t size,
+    Writer&& writer) {
+  
+  writer(&size, 4);
+  writer(type, 4);
+  if (size > 0) {
+    writer(data, size);
+  }
+  
+  // The CRC includes the chunk type, but not the length
+  // The CRC of the (empty) IEND chunk is big-endian 0xAE426082
+  be_uint32_t crc = crc32(0u, reinterpret_cast<const Bytef*>(type), 4);
+  if (size > 0) {
+    crc = crc32(crc, static_cast<const Bytef*>(data), size);
+  }
+  writer(&crc, 4);
 }
 
 template <typename Writer>
@@ -645,7 +671,64 @@ void Image::save_helper(Format format, Writer&& writer) const {
           }
         }
       }
-
+      break;
+    }
+    
+    case Format::PNG: {
+      if (this->channel_width != 8) {
+        throw runtime_error("can\'t save png with more than 8-bit channels");
+      }
+      
+      constexpr uint8_t SIG[8] = { 137, 80, 78, 71, 13, 10, 26, 10 };
+      
+      writer(SIG, sizeof(SIG));
+      
+      // Write IDHR chunk
+      const struct {
+        be_uint32_t width;
+        be_uint32_t height;
+        uint8_t     bit_depth;
+        uint8_t     color_type;
+        uint8_t     compression;
+        uint8_t     filter;
+        uint8_t     interlace;
+      } IHDR {
+        this->width,
+        this->height,
+        8,
+        uint8_t(this->has_alpha ? 6 : 2),
+        0, // default compression
+        0, // default filter
+        0  // non-interlaced
+      };
+      write_png_chunk("IHDR", &IHDR, 13, writer);
+      
+      // Write gAMA chunk
+      const be_uint32_t gAMA = 45455; // 1/2.2
+      write_png_chunk("gAMA", &gAMA, sizeof(gAMA), writer);
+      
+      // Write IDAT chunk
+      size_t  pixel_size = 3 + this->has_alpha;
+      size_t  image_size = this->height * (1 + this->width * pixel_size);
+      auto    image_data = malloc_unique(image_size);
+      
+      for (unsigned int y = 0; y < this->height; ++y) {
+        const uint8_t*  s = this->data.as8 + y * this->width * pixel_size;
+        uint8_t*        d = static_cast<uint8_t*>(image_data.get()) + y * (1 + this->width * pixel_size);
+        *d = 0; // no filter
+        memcpy(d + 1, s, this->width * pixel_size);
+      }
+      
+      uLongf  idat_size = compressBound(image_size);
+      auto    idat_data = malloc_unique(idat_size);
+      if (int result = compress2(static_cast<Bytef*>(idat_data.get()), &idat_size, static_cast<const Bytef*>(image_data.get()), image_size, 9)) {
+        throw runtime_error(string_printf("zlib error compressing png data: %d", result));
+      }
+      
+      write_png_chunk("IDAT", idat_data.get(), idat_size, writer);
+      
+      // Write IEND chunk
+      write_png_chunk("IEND", nullptr, 0, writer);
       break;
     }
 
