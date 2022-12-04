@@ -20,22 +20,22 @@ public:
   // thrown if the JSON contains an unterminated string, list, or dict)
   class parse_error : public std::runtime_error {
   public:
-    parse_error(const std::string& what);
+    explicit parse_error(const std::string& what);
   };
   // Thrown when a JSONObject is accessed as the wrong type
   class type_error : public std::runtime_error {
   public:
-    type_error(const std::string& what);
+    explicit type_error(const std::string& what);
   };
   // Thrown when a key doesn't exist in a dictionary
   class key_error : public std::runtime_error {
   public:
-    key_error(const std::string& what);
+    explicit key_error(const std::string& what);
   };
   // Thrown when an element doesn't exist in a list
   class index_error : public std::runtime_error {
   public:
-    index_error(const std::string& what);
+    explicit index_error(const std::string& what);
   };
 
   using list_type = std::vector<std::shared_ptr<JSONObject>>;
@@ -47,21 +47,21 @@ public:
 
   // Direct constructors. Use these when generating JSON to be sent/written/etc.
   JSONObject(); // null
-  JSONObject(bool x); // true/false
-  JSONObject(const char* x); // string
+  explicit JSONObject(bool x); // true/false
+  explicit JSONObject(const char* x); // string
   JSONObject(const char* x, size_t size); // string
-  JSONObject(const std::string& x); // string
-  JSONObject(std::string&& x); // string
-  JSONObject(int64_t x); // integer
-  JSONObject(double x); // float
-  JSONObject(const std::vector<JSONObject>& x); // list
-  JSONObject(std::vector<JSONObject>&& x); // list
-  JSONObject(const list_type& x); // list
-  JSONObject(list_type&& x); // list
-  JSONObject(const std::unordered_map<std::string, JSONObject>& x); // dict
-  JSONObject(std::unordered_map<std::string, JSONObject>&& x); // dict
-  JSONObject(const dict_type& x); // dict
-  JSONObject(dict_type&& x); // dict
+  explicit JSONObject(const std::string& x); // string
+  explicit JSONObject(std::string&& x); // string
+  explicit JSONObject(int64_t x); // integer
+  explicit JSONObject(double x); // float
+  explicit JSONObject(const std::vector<JSONObject>& x); // list
+  explicit JSONObject(std::vector<JSONObject>&& x); // list
+  explicit JSONObject(const list_type& x); // list
+  explicit JSONObject(list_type&& x); // list
+  explicit JSONObject(const std::unordered_map<std::string, JSONObject>& x); // dict
+  explicit JSONObject(std::unordered_map<std::string, JSONObject>&& x); // dict
+  explicit JSONObject(const dict_type& x); // dict
+  explicit JSONObject(dict_type&& x); // dict
 
   // Copy/move constructors
   JSONObject(const JSONObject& rhs) = default;
