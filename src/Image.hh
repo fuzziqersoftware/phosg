@@ -25,9 +25,9 @@ public:
   Image(Image&&);
 
   // load a file (autodetect format)
-  Image(FILE* f);
-  Image(const char* filename);
-  Image(const std::string& filename);
+  explicit Image(FILE* f);
+  explicit Image(const char* filename);
+  explicit Image(const std::string& filename);
 
   // load from a file (raw data)
   Image(FILE* f, ssize_t width, ssize_t height, bool has_alpha = false,
