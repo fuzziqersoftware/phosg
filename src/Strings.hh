@@ -130,9 +130,13 @@ struct PrefixedLogger {
     return this->min_level == LogLevel::USE_DEFAULT ? log_level() : this->min_level;
   }
 
+  inline bool should_log(LogLevel incoming_level) {
+    return (static_cast<int>(incoming_level) >= static_cast<int>(this->effective_level()));
+  }
+
   template <LogLevel LEVEL>
   bool v(const char* fmt, va_list va) {
-    if (!should_log(LEVEL, this->effective_level())) {
+    if (!this->should_log(LEVEL)) {
       return false;
     }
     print_log_prefix(stderr, LEVEL);
@@ -148,7 +152,7 @@ struct PrefixedLogger {
   bool error_v(const char* fmt, va_list va)   { return this->v<LogLevel::ERROR>(fmt, va); }
 
 #define LOG_HELPER_BODY(LEVEL) \
-  if (!should_log(LEVEL, this->effective_level())) { \
+  if (!this->should_log(LEVEL)) { \
     return false; \
   } \
   va_list va; \
