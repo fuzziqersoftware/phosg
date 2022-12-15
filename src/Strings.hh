@@ -131,43 +131,42 @@ struct PrefixedLogger {
   }
 
   template <LogLevel LEVEL>
-  void v(const char* fmt, va_list va) {
-    if (should_log(LEVEL, this->effective_level())) {
-      print_log_prefix(stderr, LEVEL);
-      fwritex(stderr, this->prefix);
-      vfprintf(stderr, fmt, va);
-      putc('\n', stderr);
+  bool v(const char* fmt, va_list va) {
+    if (!should_log(LEVEL, this->effective_level())) {
+      return false;
     }
+    print_log_prefix(stderr, LEVEL);
+    fwritex(stderr, this->prefix);
+    vfprintf(stderr, fmt, va);
+    putc('\n', stderr);
+    return true;
   }
 
-  void debug_v(const char* fmt, va_list va)   { this->v<LogLevel::DEBUG>(fmt, va); }
-  void info_v(const char* fmt, va_list va)    { this->v<LogLevel::INFO>(fmt, va); }
-  void warning_v(const char* fmt, va_list va) { this->v<LogLevel::WARNING>(fmt, va); }
-  void error_v(const char* fmt, va_list va)   { this->v<LogLevel::ERROR>(fmt, va); }
+  bool debug_v(const char* fmt, va_list va)   { return this->v<LogLevel::DEBUG>(fmt, va); }
+  bool info_v(const char* fmt, va_list va)    { return this->v<LogLevel::INFO>(fmt, va); }
+  bool warning_v(const char* fmt, va_list va) { return this->v<LogLevel::WARNING>(fmt, va); }
+  bool error_v(const char* fmt, va_list va)   { return this->v<LogLevel::ERROR>(fmt, va); }
+
+#define LOG_HELPER_BODY(LEVEL) \
+  if (!should_log(LEVEL, this->effective_level())) { \
+    return false; \
+  } \
+  va_list va; \
+  va_start(va, fmt); \
+  this->v<LEVEL>(fmt, va); \
+  va_end(va); \
+  return true;
 
   template <LogLevel LEVEL>
   __attribute__((format(printf, 2, 3)))
-  void operator()(const char* fmt, ...) {
-    if (should_log(LEVEL, this->effective_level())) {
-      va_list va;
-      va_start(va, fmt);
-      log_v<LEVEL>(fmt, va);
-      va_end(va);
-    }
+  bool operator()(const char* fmt, ...) {
+    LOG_HELPER_BODY(LEVEL);
   }
 
-#define LOG_HELPER_BODY(LEVEL) \
-  if (should_log(LEVEL, this->effective_level())) { \
-    va_list va; \
-    va_start(va, fmt); \
-    this->v<LEVEL>(fmt, va); \
-    va_end(va); \
-  }
-
-  void debug(const char* fmt, ...) __attribute__((format(printf, 2, 3)))   { LOG_HELPER_BODY(LogLevel::DEBUG); }
-  void info(const char* fmt, ...) __attribute__((format(printf, 2, 3)))    { LOG_HELPER_BODY(LogLevel::INFO); }
-  void warning(const char* fmt, ...) __attribute__((format(printf, 2, 3))) { LOG_HELPER_BODY(LogLevel::WARNING); }
-  void error(const char* fmt, ...) __attribute__((format(printf, 2, 3)))   { LOG_HELPER_BODY(LogLevel::ERROR); }
+  bool debug(const char* fmt, ...) __attribute__((format(printf, 2, 3)))   { LOG_HELPER_BODY(LogLevel::DEBUG); }
+  bool info(const char* fmt, ...) __attribute__((format(printf, 2, 3)))    { LOG_HELPER_BODY(LogLevel::INFO); }
+  bool warning(const char* fmt, ...) __attribute__((format(printf, 2, 3))) { LOG_HELPER_BODY(LogLevel::WARNING); }
+  bool error(const char* fmt, ...) __attribute__((format(printf, 2, 3)))   { LOG_HELPER_BODY(LogLevel::ERROR); }
 
 #undef LOG_HELPER_BODY
 };
