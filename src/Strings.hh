@@ -662,6 +662,9 @@ public:
   inline std::string& str() {
     return this->data;
   }
+  inline const std::string& str() const {
+    return this->data;
+  }
 
 private:
   std::string data;
