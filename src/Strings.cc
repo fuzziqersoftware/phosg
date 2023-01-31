@@ -992,7 +992,7 @@ string format_duration(uint64_t usecs, int8_t subsecond_precision) {
     string seconds_str = string_printf("%.*lf", subsecond_precision,
         static_cast<double>(usecs_part) / 1000000ULL);
     return string_printf("%" PRIu64 ":%02" PRIu64 ":%s", hours, minutes,
-        ((seconds_str.size() > 1 && seconds_str.at(1) == '.') ? "0" : "")) + seconds_str;
+        ((seconds_str.size() == 1 || seconds_str.at(1) == '.') ? "0" : "")) + seconds_str;
 
   } else {
     if (subsecond_precision < 0) {
@@ -1008,7 +1008,7 @@ string format_duration(uint64_t usecs, int8_t subsecond_precision) {
     string seconds_str = string_printf("%.*lf", subsecond_precision,
         static_cast<double>(usecs_part) / 1000000ULL);
     return string_printf("%" PRIu64 ":%02" PRIu64 ":%02" PRIu64 ":%s", days,
-        hours, minutes, ((seconds_str.size() > 1 && seconds_str.at(1) == '.') ? "0" : "")) + seconds_str;
+        hours, minutes, ((seconds_str.size() == 1 || seconds_str.at(1) == '.') ? "0" : "")) + seconds_str;
   }
 }
 
