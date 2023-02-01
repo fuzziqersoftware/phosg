@@ -88,7 +88,7 @@ IntT parallel_range(
 
       std::string remaining_str;
       if (displayed_current_value) {
-        uint64_t total_time = (elapsed_time << 32) / displayed_current_value;
+        uint64_t total_time = (elapsed_time * (end_value - start_value)) / (displayed_current_value - start_value);
         uint64_t remaining_time = total_time - elapsed_time;
         remaining_str = format_duration(remaining_time);
       } else {
