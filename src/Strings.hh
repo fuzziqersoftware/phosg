@@ -289,7 +289,11 @@ void print_data(
     const void* prev = nullptr,
     uint64_t flags = PrintDataFlags::DEFAULT);
 
-std::string parse_data_string(const std::string& s, std::string* mask = nullptr);
+enum ParseDataFlags {
+  ALLOW_FILES = 1,
+};
+
+std::string parse_data_string(const std::string& s, std::string* mask = nullptr, uint64_t flags = 0);
 std::string format_data_string(const std::string& data, const std::string* mask = nullptr);
 std::string format_data_string(const void* data, size_t size, const void* mask = nullptr);
 

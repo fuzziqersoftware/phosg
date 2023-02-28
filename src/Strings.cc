@@ -678,7 +678,8 @@ static inline void add_mask_bits(string* mask, bool mask_enabled, size_t num_byt
   mask->append(num_bytes, mask_enabled ? '\xFF' : '\x00');
 }
 
-string parse_data_string(const string& s, string* mask) {
+string parse_data_string(const string& s, string* mask, uint64_t flags) {
+  bool allow_files = flags & ParseDataFlags::ALLOW_FILES;
 
   const char* in = s.c_str();
 
@@ -888,7 +889,7 @@ string parse_data_string(const string& s, string* mask) {
       } else if ((in[0] == '/') && (in[1] == '*')) {
         reading_multiline_comment = 1;
 
-      } else if (in[0] == '<') {
+      } else if (in[0] == '<' && allow_files) {
         reading_filename = 1;
         filename.clear();
       }
