@@ -41,3 +41,8 @@
     #error "Unrecognized host system endianness"
   #endif
 #endif
+
+
+
+// Define some useful shortcuts
+#define ATTR_PRINTF(x, y) __attribute__((format(printf, x, y)))

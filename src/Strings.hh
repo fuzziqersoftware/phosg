@@ -58,8 +58,7 @@ void strip_leading_whitespace(StrT& s) {
 std::string escape_quotes(const std::string& s);
 std::string escape_url(const std::string& s, bool escape_slash = false);
 
-std::string string_printf(const char* fmt, ...)
-__attribute__((format(printf, 1, 2)));
+std::string string_printf(const char* fmt, ...) ATTR_PRINTF(1, 2);
 std::wstring wstring_printf(const wchar_t* fmt, ...);
 std::string string_vprintf(const char* fmt, va_list va);
 std::wstring wstring_vprintf(const wchar_t* fmt, va_list va);
@@ -104,8 +103,7 @@ void log_error_v(const char* fmt, va_list va);
 
 
 template <LogLevel LEVEL>
-__attribute__((format(printf, 1, 2)))
-void log(const char* fmt, ...) {
+ATTR_PRINTF(1, 2) void log(const char* fmt, ...) {
   if (should_log(LEVEL)) {
     va_list va;
     va_start(va, fmt);
@@ -114,10 +112,10 @@ void log(const char* fmt, ...) {
   }
 }
 
-__attribute__((format(printf, 1, 2))) void log_debug(const char* fmt, ...);
-__attribute__((format(printf, 1, 2))) void log_info(const char* fmt, ...);
-__attribute__((format(printf, 1, 2))) void log_warning(const char* fmt, ...);
-__attribute__((format(printf, 1, 2))) void log_error(const char* fmt, ...);
+ATTR_PRINTF(1, 2) void log_debug(const char* fmt, ...);
+ATTR_PRINTF(1, 2) void log_info(const char* fmt, ...);
+ATTR_PRINTF(1, 2) void log_warning(const char* fmt, ...);
+ATTR_PRINTF(1, 2) void log_error(const char* fmt, ...);
 
 struct PrefixedLogger {
   std::string prefix;
@@ -162,15 +160,14 @@ struct PrefixedLogger {
     return true;
 
   template <LogLevel LEVEL>
-  __attribute__((format(printf, 2, 3)))
-  bool operator()(const char* fmt, ...) const {
+  ATTR_PRINTF(2, 3) bool operator()(const char* fmt, ...) const {
     LOG_HELPER_BODY(LEVEL);
   }
 
-  bool debug(const char* fmt, ...) const __attribute__((format(printf, 2, 3)))   { LOG_HELPER_BODY(LogLevel::DEBUG); }
-  bool info(const char* fmt, ...) const __attribute__((format(printf, 2, 3)))    { LOG_HELPER_BODY(LogLevel::INFO); }
-  bool warning(const char* fmt, ...) const __attribute__((format(printf, 2, 3))) { LOG_HELPER_BODY(LogLevel::WARNING); }
-  bool error(const char* fmt, ...) const __attribute__((format(printf, 2, 3)))   { LOG_HELPER_BODY(LogLevel::ERROR); }
+  bool debug(const char* fmt, ...) const ATTR_PRINTF(2, 3)   { LOG_HELPER_BODY(LogLevel::DEBUG); }
+  bool info(const char* fmt, ...) const ATTR_PRINTF(2, 3)    { LOG_HELPER_BODY(LogLevel::INFO); }
+  bool warning(const char* fmt, ...) const ATTR_PRINTF(2, 3) { LOG_HELPER_BODY(LogLevel::WARNING); }
+  bool error(const char* fmt, ...) const ATTR_PRINTF(2, 3)   { LOG_HELPER_BODY(LogLevel::ERROR); }
 
 #undef LOG_HELPER_BODY
 };
