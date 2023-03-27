@@ -9,6 +9,9 @@
 
 #include "Platform.hh"
 
+#ifdef __APPLE__
+typedef __darwin_ssize_t ssize_t;
+#endif
 
 // an Image represents a drawing canvas. this class is fairly simple; it
 // supports reading/writing individual pixels, drawing lines, and saving the
