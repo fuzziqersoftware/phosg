@@ -21,6 +21,7 @@
 
 #include "Filesystem.hh"
 #include "Strings.hh"
+#include <cstring>
 
 using namespace std;
 
