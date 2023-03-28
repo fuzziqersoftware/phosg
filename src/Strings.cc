@@ -688,11 +688,21 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
     mask->clear();
   }
 
+#ifdef PHOSG_BIG_ENDIAN
+  constexpr bool host_big_endian = true;
+#else
+  constexpr bool host_big_endian = false;
+#endif
+
   uint8_t chr = 0;
-  bool reading_string = false, reading_unicode_string = false,
-       reading_comment = false, reading_multiline_comment = false,
-       reading_high_nybble = true, reading_filename = false,
-       inverse_endian = false, mask_enabled = true;
+  bool reading_string = false;
+  bool reading_unicode_string = false;
+  bool reading_comment = false;
+  bool reading_multiline_comment = false;
+  bool reading_high_nybble = true;
+  bool reading_filename = false;
+  bool big_endian = false;
+  bool mask_enabled = true;
   string filename;
   while (in[0]) {
     bool read_nybble = 0;
@@ -759,7 +769,7 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
         } else {
           value = in[1];
         }
-        if (inverse_endian) {
+        if (big_endian != host_big_endian) {
           value = bswap16(value);
         }
         data.append((const char*)&value, 2);
@@ -768,8 +778,8 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
 
       } else {
         int16_t value = in[0];
-        if (inverse_endian) {
-          bswap16(value);
+        if (big_endian != host_big_endian) {
+          value = bswap16(value);
         }
         data.append((const char*)&value, 2);
         add_mask_bits(mask, mask_enabled, 2);
@@ -797,7 +807,7 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
 
     // $ changes the endianness
     } else if (in[0] == '$') {
-      inverse_endian = !inverse_endian;
+      big_endian = !big_endian;
       in++;
 
     // # signifies a decimal number
@@ -810,7 +820,7 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
           if (in[0] == '#') { // 64-bit
             in++;
             uint64_t value = strtoull(in, const_cast<char**>(&in), 0);
-            if (inverse_endian) {
+            if (big_endian != host_big_endian) {
               value = bswap64(value);
             }
             data.append((const char*)&value, 8);
@@ -818,7 +828,7 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
 
           } else {
             uint32_t value = strtoull(in, const_cast<char**>(&in), 0);
-            if (inverse_endian) {
+            if (big_endian != host_big_endian) {
               value = bswap32(value);
             }
             data.append((const char*)&value, 4);
@@ -827,7 +837,7 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
 
         } else {
           uint16_t value = strtoull(in, const_cast<char**>(&in), 0);
-          if (inverse_endian) {
+          if (big_endian != host_big_endian) {
             value = bswap16(value);
           }
           data.append((const char*)&value, 2);
@@ -847,7 +857,7 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
 
         uint64_t value;
         *(double*)&value = strtod(in, const_cast<char**>(&in));
-        if (inverse_endian) {
+        if (big_endian != host_big_endian) {
           value = bswap64(value);
         }
         data.append((const char*)&value, 8);
@@ -856,7 +866,7 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
       } else {
         uint32_t value;
         *(float*)&value = strtof(in, const_cast<char**>(&in));
-        if (inverse_endian) {
+        if (big_endian != host_big_endian) {
           value = bswap32(value);
         }
         data.append((const char*)&value, 4);

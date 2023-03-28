@@ -47,7 +47,7 @@ uint64_t fnv1a64(const string& data, uint64_t hash) {
 
 static void sha1_process_block(const void* block, uint32_t& h0, uint32_t& h1,
     uint32_t& h2, uint32_t& h3, uint32_t& h4) {
-  const uint32_t* fields = reinterpret_cast<const uint32_t*>(block);
+  const le_uint32_t* fields = reinterpret_cast<const le_uint32_t*>(block);
 
   uint32_t extended_fields[80];
   for (size_t x = 0; x < 16; x++) {
@@ -118,18 +118,18 @@ string sha1(const void* data, size_t size) {
       remaining_bytes++) {
     last_blocks[remaining_bytes] = 0;
   }
-  *reinterpret_cast<uint64_t*>(&last_blocks[0x40 * blocks_remaining - 8]) = bswap64(size * 8);
+  *reinterpret_cast<be_uint64_t*>(&last_blocks[0x40 * blocks_remaining - 8]) = size * 8;
   sha1_process_block(&last_blocks[0], h0, h1, h2, h3, h4);
   if (blocks_remaining > 1) {
     sha1_process_block(&last_blocks[0x40], h0, h1, h2, h3, h4);
   }
 
   string ret(20, 0);
-  *reinterpret_cast<uint32_t*>(ret.data() + 0) = bswap32(h0);
-  *reinterpret_cast<uint32_t*>(ret.data() + 4) = bswap32(h1);
-  *reinterpret_cast<uint32_t*>(ret.data() + 8) = bswap32(h2);
-  *reinterpret_cast<uint32_t*>(ret.data() + 12) = bswap32(h3);
-  *reinterpret_cast<uint32_t*>(ret.data() + 16) = bswap32(h4);
+  *reinterpret_cast<be_uint32_t*>(ret.data() + 0) = h0;
+  *reinterpret_cast<be_uint32_t*>(ret.data() + 4) = h1;
+  *reinterpret_cast<be_uint32_t*>(ret.data() + 8) = h2;
+  *reinterpret_cast<be_uint32_t*>(ret.data() + 12) = h3;
+  *reinterpret_cast<be_uint32_t*>(ret.data() + 16) = h4;
   return ret;
 }
 
@@ -180,7 +180,7 @@ string sha256(const void* data, size_t orig_size) {
   for (size_t offset = 0; offset < input.size(); offset += 0x40) {
     uint32_t w[64];
     for (size_t x = 0; x < 16; x++) {
-      w[x] = bswap32(*reinterpret_cast<const uint32_t*>(&input[offset + (x * 4)]));
+      w[x] = *reinterpret_cast<const be_uint32_t*>(&input[offset + (x * 4)]);
     }
 
     for (size_t x = 16; x < 64; x++) {
@@ -250,7 +250,7 @@ static void md5_process_block(const void* block, uint32_t& a0, uint32_t& b0,
       0x655B59C3, 0x8F0CCC92, 0xFFEFF47D, 0x85845DD1,
       0x6FA87E4F, 0xFE2CE6E0, 0xA3014314, 0x4E0811A1,
       0xF7537E82, 0xBD3AF235, 0x2AD7D2BB, 0xEB86D391};
-  const uint32_t* fields = reinterpret_cast<const uint32_t*>(block);
+  const le_uint32_t* fields = reinterpret_cast<const le_uint32_t*>(block);
 
   uint32_t a = a0, b = b0, c = c0, d = d0;
   for (size_t x = 0; x < 64; x++) {
@@ -307,17 +307,17 @@ string md5(const void* data, size_t size) {
       remaining_bytes++) {
     last_blocks[remaining_bytes] = 0;
   }
-  *reinterpret_cast<uint64_t*>(&last_blocks[0x40 * blocks_remaining - 8]) = size * 8;
+  *reinterpret_cast<le_uint64_t*>(&last_blocks[0x40 * blocks_remaining - 8]) = size * 8;
   md5_process_block(&last_blocks[0], a0, b0, c0, d0);
   if (blocks_remaining > 1) {
     md5_process_block(&last_blocks[0x40], a0, b0, c0, d0);
   }
 
   string ret(16, 0);
-  *reinterpret_cast<uint32_t*>(ret.data() + 0) = a0;
-  *reinterpret_cast<uint32_t*>(ret.data() + 4) = b0;
-  *reinterpret_cast<uint32_t*>(ret.data() + 8) = c0;
-  *reinterpret_cast<uint32_t*>(ret.data() + 12) = d0;
+  *reinterpret_cast<le_uint32_t*>(ret.data() + 0) = a0;
+  *reinterpret_cast<le_uint32_t*>(ret.data() + 4) = b0;
+  *reinterpret_cast<le_uint32_t*>(ret.data() + 8) = c0;
+  *reinterpret_cast<le_uint32_t*>(ret.data() + 12) = d0;
   return ret;
 }
 

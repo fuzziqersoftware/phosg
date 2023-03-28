@@ -43,42 +43,42 @@ static uint32_t compress_color(uint64_t r, uint64_t g, uint64_t b, uint64_t a) {
 }
 
 struct WindowsBitmapFileHeader {
-  uint16_t magic;
-  uint32_t file_size;
-  uint16_t reserved[2];
-  uint32_t data_offset;
+  le_uint16_t magic;
+  le_uint32_t file_size;
+  le_uint16_t reserved[2];
+  le_uint32_t data_offset;
 } __attribute__((packed));
 
 // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmapv5header
 struct WindowsBitmapInfoHeader {
-  uint32_t  header_size;
-  int32_t   width;
-  int32_t   height;
-  uint16_t  num_planes;
-  uint16_t  bit_depth;
-  uint32_t  compression; // only BI_RGB (0) and BI_BITFIELDS (3) are supported
-  uint32_t  image_size;
-  int32_t   x_pixels_per_meter;
-  int32_t   y_pixels_per_meter;
-  uint32_t  num_used_colors;
-  uint32_t  num_important_colors;
+  le_uint32_t  header_size;
+  le_int32_t   width;
+  le_int32_t   height;
+  le_uint16_t  num_planes;
+  le_uint16_t  bit_depth;
+  le_uint32_t  compression; // only BI_RGB (0) and BI_BITFIELDS (3) are supported
+  le_uint32_t  image_size;
+  le_int32_t   x_pixels_per_meter;
+  le_int32_t   y_pixels_per_meter;
+  le_uint32_t  num_used_colors;
+  le_uint32_t  num_important_colors;
 
   // V4 header starts here
-  uint32_t  bitmask_r;
-  uint32_t  bitmask_g;
-  uint32_t  bitmask_b;
-  uint32_t  bitmask_a;
-  uint32_t  color_space_type;
-  uint32_t  chromacity_endpoints[9];
-  uint32_t  gamma_r;
-  uint32_t  gamma_g;
-  uint32_t  gamma_b;
+  le_uint32_t  bitmask_r;
+  le_uint32_t  bitmask_g;
+  le_uint32_t  bitmask_b;
+  le_uint32_t  bitmask_a;
+  le_uint32_t  color_space_type;
+  le_uint32_t  chromacity_endpoints[9];
+  le_uint32_t  gamma_r;
+  le_uint32_t  gamma_g;
+  le_uint32_t  gamma_b;
   
   // V5 header starts here
-  uint32_t  render_intent;
-  uint32_t  color_profile_data;
-  uint32_t  color_profile_size;
-  uint32_t  reserved;
+  le_uint32_t  render_intent;
+  le_uint32_t  color_profile_data;
+  le_uint32_t  color_profile_size;
+  le_uint32_t  reserved;
 
   // Size of basic BMP header (before V4)
   static const size_t SIZE24 = 0x28;
@@ -323,21 +323,21 @@ void Image::load(FILE* f) {
     freadx(f, reinterpret_cast<uint8_t*>(&header.file_header) + 2, sizeof(header.file_header) - 2);
     if (header.file_header.magic != 0x4D42) {
       throw runtime_error(string_printf("bad signature in bitmap file (%04hX)",
-          header.file_header.magic));
+          header.file_header.magic.load()));
     }
     
     // Read variable-sized BMP info header
     freadx(f, &header.info_header.header_size, 4);
     if (header.info_header.header_size > sizeof(header.info_header)) {
       throw runtime_error(string_printf("unsupported bitmap header: size is %u, maximum supported size is %zu",
-          header.info_header.header_size, sizeof(header.info_header)));
+          header.info_header.header_size.load(), sizeof(header.info_header)));
     }
     
     freadx(f, reinterpret_cast<uint8_t*>(&header.info_header) + 4, header.info_header.header_size - 4);
     if ((header.info_header.bit_depth != 24) && (header.info_header.bit_depth != 32)) {
       throw runtime_error(string_printf(
           "can only load 24-bit or 32-bit bitmaps (this is a %hu-bit bitmap)",
-          header.info_header.bit_depth));
+          header.info_header.bit_depth.load()));
     }
     if (header.info_header.num_planes != 1) {
       throw runtime_error("can only load 1-plane bitmaps");
