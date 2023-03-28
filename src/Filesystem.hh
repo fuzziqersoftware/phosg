@@ -20,6 +20,19 @@
 #include <utility>
 #include <vector>
 
+#ifdef __APPLE__
+  #include <AvailabilityMacros.h>
+  #if MAC_OS_X_VERSION_MAX_ALLOWED < 101300
+  // https://github.com/NimbusKit/memorymapping/blob/master/src/fmemopen.h
+    #if defined __cplusplus
+      extern "C" {
+    #endif
+    FILE *fmemopen(void *buf, size_t size, const char *mode);
+    #ifdef __cplusplus
+      }
+    #endif
+  #endif
+#endif
 
 
 std::string basename(const std::string& filename);

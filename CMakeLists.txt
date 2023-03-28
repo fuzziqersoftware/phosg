@@ -8,10 +8,12 @@ project(phosg)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-if (MSVC)
+if(MSVC)
     # Disabled warnings:
     # 4458 = declaration of '%s' hides class member (I use this->x for members)
     add_compile_options(/W4 /WX /wd4458)
+elseif(APPLE AND CMAKE_OSX_ARCHITECTURES MATCHES "ppc|ppc64")
+    add_compile_options(-fpermissive -Wall -Wextra -Wno-strict-aliasing -Wno-unused-result -Wno-overflow)
 else()
     add_compile_options(-Wall -Wextra -Werror -Wno-strict-aliasing -Wno-unused-result -Wno-overflow)
 endif()
@@ -31,10 +33,11 @@ add_library(phosg src/Encoding.cc src/Filesystem.cc src/Hash.cc src/Image.cc src
 target_link_libraries(phosg pthread z)
 
 # It seems that on some Linux variants (e.g. Raspbian) we also need -latomic,
-# but this library does not exist on others (e.g. Ubuntu) nor on macOS
+# but this library does not exist on others (e.g. Ubuntu).
+# Linking to libatomic is also needed on macOS ppc32. Use CMAKE_OSX_ARCHITECTURES to take care of Rosetta case.
 message(STATUS "Target architecture is ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 string(FIND ${CMAKE_HOST_SYSTEM_PROCESSOR} "armv" IS_LINUX_ARMV)
-if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "aarch64" OR ${IS_LINUX_ARMV} GREATER_EQUAL 0)
+if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "aarch64" OR ${IS_LINUX_ARMV} GREATER_EQUAL 0 OR ${CMAKE_OSX_ARCHITECTURES} STREQUAL "ppc")
   target_link_libraries(phosg atomic)
 endif()
 
