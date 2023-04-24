@@ -712,7 +712,7 @@ void Image::save_helper(Format format, Writer&& writer) const {
       size_t  image_size = this->height * (1 + this->width * pixel_size);
       auto    image_data = malloc_unique(image_size);
       
-      for (unsigned int y = 0; y < this->height; ++y) {
+      for (unsigned int y = 0; y < static_cast<size_t>(this->height); ++y) {
         const uint8_t*  s = this->data.as8 + y * this->width * pixel_size;
         uint8_t*        d = static_cast<uint8_t*>(image_data.get()) + y * (1 + this->width * pixel_size);
         *d = 0; // no filter
