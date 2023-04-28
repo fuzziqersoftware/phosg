@@ -5,8 +5,6 @@
 
 using namespace std;
 
-
-
 int main(int, char** argv) {
   printf("-- on_close_scope\n");
   bool called = false;

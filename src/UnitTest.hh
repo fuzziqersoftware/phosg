@@ -15,9 +15,9 @@ public:
 
 #define expect_eq(a, b) expect_msg((a) == (b), #a " != " #b)
 #define expect_ne(a, b) expect_msg((a) != (b), #a " == " #b)
-#define expect_gt(a, b) expect_msg((a) >  (b), #a " <= " #b)
+#define expect_gt(a, b) expect_msg((a) > (b), #a " <= " #b)
 #define expect_ge(a, b) expect_msg((a) >= (b), #a " < " #b)
-#define expect_lt(a, b) expect_msg((a) <  (b), #a " >= " #b)
+#define expect_lt(a, b) expect_msg((a) < (b), #a " >= " #b)
 #define expect_le(a, b) expect_msg((a) <= (b), #a " > " #b)
 #define expect(pred) expect_msg((pred), "!(" #pred ")")
 

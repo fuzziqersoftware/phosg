@@ -7,7 +7,6 @@
 
 using namespace std;
 
-
 int main(int, char** argv) {
   LRUSet<string> c;
 

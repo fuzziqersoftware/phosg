@@ -4,16 +4,15 @@
 
 #include <map>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
-#include <stdexcept>
-
-
 
 template <typename CoordType, typename ValueType>
 KDTree<CoordType, ValueType>::KDTree()
-  : root(nullptr), node_count(0) { }
+    : root(nullptr),
+      node_count(0) {}
 
 template <typename CoordType, typename ValueType>
 KDTree<CoordType, ValueType>::~KDTree() {
@@ -249,20 +248,25 @@ size_t KDTree<CoordType, ValueType>::depth_recursive(Node* n,
   return (before_depth > after_or_equal_depth) ? before_depth : after_or_equal_depth;
 }
 
-
-
 template <typename CoordType, typename ValueType>
 KDTree<CoordType, ValueType>::Node::Node(
-    Node* parent, const CoordType& pt, size_t dim, const ValueType& v) : pt(pt),
-      dim(dim), before(nullptr), after_or_equal(nullptr), parent(parent), value(v) { }
+    Node* parent, const CoordType& pt, size_t dim, const ValueType& v)
+    : pt(pt),
+      dim(dim),
+      before(nullptr),
+      after_or_equal(nullptr),
+      parent(parent),
+      value(v) {}
 
 template <typename CoordType, typename ValueType>
 template <typename... Args>
-KDTree<CoordType, ValueType>::Node::Node(
-    const CoordType& pt, Args&&... args) : pt(pt), dim(0), before(nullptr),
-    after_or_equal(nullptr), parent(nullptr), value(std::forward<Args>(args)...) { }
-
-
+KDTree<CoordType, ValueType>::Node::Node(const CoordType& pt, Args&&... args)
+    : pt(pt),
+      dim(0),
+      before(nullptr),
+      after_or_equal(nullptr),
+      parent(nullptr),
+      value(std::forward<Args>(args)...) {}
 
 template <typename CoordType, typename ValueType>
 size_t KDTree<CoordType, ValueType>::count_subtree(const Node* n) {
@@ -374,8 +378,6 @@ KDTree<CoordType, ValueType>::find_subtree_min_max(Node* n,
   return ret;
 }
 
-
-
 /* this implementation doesn't work; keeping it for reference just in case I
  * feel like fixing it. the problem is that used nodes need to be eliminated
  * from all nodes_by_dim vectors, not only the current one. maybe could fix this
@@ -447,8 +449,6 @@ KDTree<CoordType, ValueType>::generate_balanced_subtree(
 
   return new_root;
 } */
-
-
 
 template <typename CoordType, typename ValueType>
 KDTree<CoordType, ValueType>::Iterator::Iterator(Node* n) {

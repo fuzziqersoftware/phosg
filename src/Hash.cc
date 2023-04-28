@@ -1,7 +1,7 @@
 #include "Hash.hh"
 
-#include <stdio.h>
 #include <inttypes.h>
+#include <stdio.h>
 #include <string.h>
 
 #include <string>
@@ -10,8 +10,6 @@
 #include "Filesystem.hh"
 
 using namespace std;
-
-
 
 uint32_t fnv1a32(const void* data, size_t size, uint32_t hash) {
   const uint8_t* data_ptr = reinterpret_cast<const uint8_t*>(data);
@@ -27,8 +25,6 @@ uint32_t fnv1a32(const std::string& data, uint32_t hash) {
   return fnv1a32(data.data(), data.size(), hash);
 }
 
-
-
 uint64_t fnv1a64(const void* data, size_t size, uint64_t hash) {
   const uint8_t* data_ptr = reinterpret_cast<const uint8_t*>(data);
   const uint8_t* end_ptr = data_ptr + size;
@@ -43,8 +39,6 @@ uint64_t fnv1a64(const string& data, uint64_t hash) {
   return fnv1a64(data.data(), data.size(), hash);
 }
 
-
-
 static void sha1_process_block(const void* block, uint32_t& h0, uint32_t& h1,
     uint32_t& h2, uint32_t& h3, uint32_t& h4) {
   const le_uint32_t* fields = reinterpret_cast<const le_uint32_t*>(block);
@@ -55,7 +49,7 @@ static void sha1_process_block(const void* block, uint32_t& h0, uint32_t& h1,
   }
   for (size_t x = 16; x < 80; x++) {
     uint32_t z = bswap32(extended_fields[x - 3] ^ extended_fields[x - 8] ^
-                         extended_fields[x - 14] ^ extended_fields[x - 16]);
+        extended_fields[x - 14] ^ extended_fields[x - 16]);
     extended_fields[x] = bswap32((z << 1) | ((z >> 31) & 1));
   }
 
@@ -85,7 +79,7 @@ static void sha1_process_block(const void* block, uint32_t& h0, uint32_t& h1,
   }
 
   h0 += a;
-  h1 += b; 
+  h1 += b;
   h2 += c;
   h3 += d;
   h4 += e;
@@ -100,7 +94,7 @@ string sha1(const void* data, size_t size) {
 
   // process blocks from the message exactly as they are
   size_t block_offset = 0;
-  for (; block_offset + 0x40 < size; block_offset += 0x40){
+  for (; block_offset + 0x40 < size; block_offset += 0x40) {
     sha1_process_block(reinterpret_cast<const uint8_t*>(data) + block_offset,
         h0, h1, h2, h3, h4);
   }
@@ -115,7 +109,7 @@ string sha1(const void* data, size_t size) {
 
   size_t blocks_remaining = 1 + (remaining_bytes > (0x40 - 9));
   for (remaining_bytes++; remaining_bytes < (0x40 * blocks_remaining - 8);
-      remaining_bytes++) {
+       remaining_bytes++) {
     last_blocks[remaining_bytes] = 0;
   }
   *reinterpret_cast<be_uint64_t*>(&last_blocks[0x40 * blocks_remaining - 8]) = size * 8;
@@ -137,8 +131,6 @@ string sha1(const string& data) {
   return sha1(data.data(), data.size());
 }
 
-
-
 static inline uint32_t rotate_right(uint32_t x, uint8_t bits) {
   return (x >> bits) | (x << (32 - bits));
 }
@@ -147,6 +139,7 @@ string sha256(const void* data, size_t orig_size) {
   // This is mostly copied from the pseudocode on the SHA-256 Wikipedia article.
   // It is not optimized.
 
+  // clang-format off
   uint32_t h[8] = {
     0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19,
   };
@@ -161,6 +154,7 @@ string sha256(const void* data, size_t orig_size) {
     0x19A4C116, 0x1E376C08, 0x2748774C, 0x34B0BCB5, 0x391C0CB3, 0x4ED8AA4A, 0x5B9CCA4F, 0x682E6FF3,
     0x748F82EE, 0x78A5636F, 0x84C87814, 0x8CC70208, 0x90BEFFFA, 0xA4506CEB, 0xBEF9A3F7, 0xC67178F2,
   };
+  // clang-format on
 
   // TODO: Even though this is explicitly not optimized, copying the entire
   // input is really bad. We should ideally not do this at all, and at least not
@@ -224,10 +218,9 @@ string sha256(const string& data) {
   return sha256(data.data(), data.size());
 }
 
-
-
 static void md5_process_block(const void* block, uint32_t& a0, uint32_t& b0,
     uint32_t& c0, uint32_t& d0) {
+  // clang-format off
   static const uint32_t shifts[64] = {
       7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
       5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,
@@ -250,6 +243,7 @@ static void md5_process_block(const void* block, uint32_t& a0, uint32_t& b0,
       0x655B59C3, 0x8F0CCC92, 0xFFEFF47D, 0x85845DD1,
       0x6FA87E4F, 0xFE2CE6E0, 0xA3014314, 0x4E0811A1,
       0xF7537E82, 0xBD3AF235, 0x2AD7D2BB, 0xEB86D391};
+  // clang-format on
   const le_uint32_t* fields = reinterpret_cast<const le_uint32_t*>(block);
 
   uint32_t a = a0, b = b0, c = c0, d = d0;
@@ -289,7 +283,7 @@ string md5(const void* data, size_t size) {
 
   // process blocks from the message exactly as they are
   size_t block_offset = 0;
-  for (; block_offset + 0x40 < size; block_offset += 0x40){
+  for (; block_offset + 0x40 < size; block_offset += 0x40) {
     md5_process_block(reinterpret_cast<const uint8_t*>(data) + block_offset,
         a0, b0, c0, d0);
   }
@@ -304,7 +298,7 @@ string md5(const void* data, size_t size) {
 
   size_t blocks_remaining = 1 + (remaining_bytes > (0x40 - 9));
   for (remaining_bytes++; remaining_bytes < (0x40 * blocks_remaining - 8);
-      remaining_bytes++) {
+       remaining_bytes++) {
     last_blocks[remaining_bytes] = 0;
   }
   *reinterpret_cast<le_uint64_t*>(&last_blocks[0x40 * blocks_remaining - 8]) = size * 8;
@@ -325,8 +319,7 @@ string md5(const std::string& data) {
   return md5(data.data(), data.size());
 }
 
-
-
+// clang-format off
 static const uint32_t crc32_table[0x100] = {
   0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA, 0x076DC419, 0x706AF48F, 0xE963A535, 0x9E6495A3,
   0x0EDB8832, 0x79DCB8A4, 0xE0D5E91E, 0x97D2D988, 0x09B64C2B, 0x7EB17CBD, 0xE7B82D07, 0x90BF1D91,
@@ -361,6 +354,7 @@ static const uint32_t crc32_table[0x100] = {
   0xBDBDF21C, 0xCABAC28A, 0x53B39330, 0x24B4A3A6, 0xBAD03605, 0xCDD70693, 0x54DE5729, 0x23D967BF,
   0xB3667A2E, 0xC4614AB8, 0x5D681B02, 0x2A6F2B94, 0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D,
 };
+// clang-format on
 
 uint32_t crc32(const void* vdata, size_t size, uint32_t cs) {
   const uint8_t* data = reinterpret_cast<const uint8_t*>(vdata);

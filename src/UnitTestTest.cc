@@ -4,16 +4,15 @@
 
 using namespace std;
 
-
-#define expect_fails(x) \
-  do { \
-    try { \
-      x; \
-      expect_msg(false, #x " did not throw"); \
-    } catch (const expectation_failed& e) { \
-    } catch (...) { \
+#define expect_fails(x)                                                       \
+  do {                                                                        \
+    try {                                                                     \
+      x;                                                                      \
+      expect_msg(false, #x " did not throw");                                 \
+    } catch (const expectation_failed& e) {                                   \
+    } catch (...) {                                                           \
       expect_msg(false, #x " threw something that isn't expectation_failed"); \
-    } \
+    }                                                                         \
   } while (false);
 
 int main(int, char** argv) {
@@ -23,7 +22,8 @@ int main(int, char** argv) {
   try {
     expect_msg(false, "omg wut");
     throw logic_error("expect_msg(false, ...) didn\'t throw");
-  } catch (const expectation_failed& e) { }
+  } catch (const expectation_failed& e) {
+  }
 
   expect_eq(0, 0);
   expect_ne(1, 0);

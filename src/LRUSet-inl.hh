@@ -4,14 +4,19 @@
 #include <unordered_map>
 #include <utility>
 
+template <typename K>
+LRUSet<K>::Item::Item(size_t size)
+    : prev(nullptr),
+      next(nullptr),
+      key(nullptr),
+      size(size) {}
 
 template <typename K>
-LRUSet<K>::Item::Item(size_t size) :
-    prev(nullptr), next(nullptr), key(nullptr), size(size) { }
-
-template <typename K>
-LRUSet<K>::LRUSet() :
-    head(nullptr), tail(nullptr), items(), total_size(0) { }
+LRUSet<K>::LRUSet()
+    : head(nullptr),
+      tail(nullptr),
+      items(),
+      total_size(0) {}
 
 template <typename K>
 LRUSet<K>::~LRUSet() {

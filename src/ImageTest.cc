@@ -1,6 +1,6 @@
 #define _STDC_FORMAT_MACROS
-#include <inttypes.h>
 #include <assert.h>
+#include <inttypes.h>
 #include <sys/time.h>
 
 #include <vector>
@@ -12,25 +12,27 @@
 
 using namespace std;
 
-
-
 struct Color {
   uint8_t r;
   uint8_t g;
   uint8_t b;
   uint8_t a;
-  Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a) : r(r), g(g), b(b), a(a) { }
+  Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+      : r(r),
+        g(g),
+        b(b),
+        a(a) {}
 };
 
 static const vector<Color> colors({
-  Color(0xFF, 0x00, 0x00, 0xC0),
-  Color(0xFF, 0x80, 0x00, 0xC0),
-  Color(0xFF, 0xFF, 0x00, 0xC0),
-  Color(0x00, 0xFF, 0x00, 0xC0),
-  Color(0x00, 0xFF, 0xFF, 0xC0),
-  Color(0x00, 0x00, 0xFF, 0xC0),
-  Color(0xFF, 0x00, 0xFF, 0xC0),
-  Color(0xFF, 0xFF, 0xFF, 0xC0),
+    Color(0xFF, 0x00, 0x00, 0xC0),
+    Color(0xFF, 0x80, 0x00, 0xC0),
+    Color(0xFF, 0xFF, 0x00, 0xC0),
+    Color(0x00, 0xFF, 0x00, 0xC0),
+    Color(0x00, 0xFF, 0xFF, 0xC0),
+    Color(0x00, 0x00, 0xFF, 0xC0),
+    Color(0xFF, 0x00, 0xFF, 0xC0),
+    Color(0xFF, 0xFF, 0xFF, 0xC0),
 });
 
 int main(int, char** argv) {
@@ -70,22 +72,22 @@ int main(int, char** argv) {
       {
         fprintf(stderr, "-- [%hhu-bit/%s] non-axis-aligned lines\n", channel_width, has_alpha_tag);
         const vector<pair<ssize_t, ssize_t>> points({
-          pair<ssize_t, ssize_t>(0, 0),
-          pair<ssize_t, ssize_t>(0, 20),
-          pair<ssize_t, ssize_t>(0, 40),
-          pair<ssize_t, ssize_t>(0, 60),
-          pair<ssize_t, ssize_t>(0, 80),
-          pair<ssize_t, ssize_t>(20, 80),
-          pair<ssize_t, ssize_t>(40, 80),
-          pair<ssize_t, ssize_t>(60, 80),
-          pair<ssize_t, ssize_t>(80, 80),
-          pair<ssize_t, ssize_t>(80, 60),
-          pair<ssize_t, ssize_t>(80, 40),
-          pair<ssize_t, ssize_t>(80, 20),
-          pair<ssize_t, ssize_t>(80, 0),
-          pair<ssize_t, ssize_t>(60, 0),
-          pair<ssize_t, ssize_t>(40, 0),
-          pair<ssize_t, ssize_t>(20, 0),
+            pair<ssize_t, ssize_t>(0, 0),
+            pair<ssize_t, ssize_t>(0, 20),
+            pair<ssize_t, ssize_t>(0, 40),
+            pair<ssize_t, ssize_t>(0, 60),
+            pair<ssize_t, ssize_t>(0, 80),
+            pair<ssize_t, ssize_t>(20, 80),
+            pair<ssize_t, ssize_t>(40, 80),
+            pair<ssize_t, ssize_t>(60, 80),
+            pair<ssize_t, ssize_t>(80, 80),
+            pair<ssize_t, ssize_t>(80, 60),
+            pair<ssize_t, ssize_t>(80, 40),
+            pair<ssize_t, ssize_t>(80, 20),
+            pair<ssize_t, ssize_t>(80, 0),
+            pair<ssize_t, ssize_t>(60, 0),
+            pair<ssize_t, ssize_t>(40, 0),
+            pair<ssize_t, ssize_t>(20, 0),
         });
         for (size_t x = 0; x < 8; x++) {
           const auto& c = colors[x];

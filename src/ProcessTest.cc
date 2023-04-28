@@ -17,7 +17,6 @@
 
 using namespace std;
 
-
 #ifndef PHOSG_WINDOWS
 
 int main(int, char** argv) {
@@ -227,7 +226,7 @@ int main(int, char** argv) {
   return 0;
 }
 
-#else  // PHOSG_WINDOWS
+#else // PHOSG_WINDOWS
 
 int main(int, char** argv) {
   printf("%s: tests do not run on Windows\n", argv[0]);

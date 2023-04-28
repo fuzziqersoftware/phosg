@@ -23,9 +23,7 @@
 
 using namespace std;
 
-
-Image::unknown_format::unknown_format(const std::string& what) : runtime_error(what) { }
-
+Image::unknown_format::unknown_format(const std::string& what) : runtime_error(what) {}
 
 struct ExpandedColor {
   uint64_t r;
@@ -51,34 +49,34 @@ struct WindowsBitmapFileHeader {
 
 // https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmapv5header
 struct WindowsBitmapInfoHeader {
-  le_uint32_t  header_size;
-  le_int32_t   width;
-  le_int32_t   height;
-  le_uint16_t  num_planes;
-  le_uint16_t  bit_depth;
-  le_uint32_t  compression; // only BI_RGB (0) and BI_BITFIELDS (3) are supported
-  le_uint32_t  image_size;
-  le_int32_t   x_pixels_per_meter;
-  le_int32_t   y_pixels_per_meter;
-  le_uint32_t  num_used_colors;
-  le_uint32_t  num_important_colors;
+  le_uint32_t header_size;
+  le_int32_t width;
+  le_int32_t height;
+  le_uint16_t num_planes;
+  le_uint16_t bit_depth;
+  le_uint32_t compression; // only BI_RGB (0) and BI_BITFIELDS (3) are supported
+  le_uint32_t image_size;
+  le_int32_t x_pixels_per_meter;
+  le_int32_t y_pixels_per_meter;
+  le_uint32_t num_used_colors;
+  le_uint32_t num_important_colors;
 
   // V4 header starts here
-  le_uint32_t  bitmask_r;
-  le_uint32_t  bitmask_g;
-  le_uint32_t  bitmask_b;
-  le_uint32_t  bitmask_a;
-  le_uint32_t  color_space_type;
-  le_uint32_t  chromacity_endpoints[9];
-  le_uint32_t  gamma_r;
-  le_uint32_t  gamma_g;
-  le_uint32_t  gamma_b;
-  
+  le_uint32_t bitmask_r;
+  le_uint32_t bitmask_g;
+  le_uint32_t bitmask_b;
+  le_uint32_t bitmask_a;
+  le_uint32_t color_space_type;
+  le_uint32_t chromacity_endpoints[9];
+  le_uint32_t gamma_r;
+  le_uint32_t gamma_g;
+  le_uint32_t gamma_b;
+
   // V5 header starts here
-  le_uint32_t  render_intent;
-  le_uint32_t  color_profile_data;
-  le_uint32_t  color_profile_size;
-  le_uint32_t  reserved;
+  le_uint32_t render_intent;
+  le_uint32_t color_profile_data;
+  le_uint32_t color_profile_size;
+  le_uint32_t reserved;
 
   // Size of basic BMP header (before V4)
   static const size_t SIZE24 = 0x28;
@@ -88,8 +86,6 @@ struct WindowsBitmapHeader {
   WindowsBitmapFileHeader file_header;
   WindowsBitmapInfoHeader info_header;
 } __attribute__((packed));
-
-
 
 static size_t init_bmp_header(WindowsBitmapHeader& header,
     ssize_t width, ssize_t height, bool has_alpha,
@@ -121,12 +117,11 @@ static size_t init_bmp_header(WindowsBitmapHeader& header,
     header.info_header.bitmask_b = 0x00FF0000;
     header.info_header.bitmask_a = 0xFF000000;
     header.info_header.color_space_type = 0x73524742; // LCS_sRGB / 'sRGB'
-    header.info_header.render_intent = 8;             // LCS_GM_ABS_COLORIMETRIC
+    header.info_header.render_intent = 8; // LCS_GM_ABS_COLORIMETRIC
   }
-  
+
   return header_size;
 }
-
 
 void Image::load(FILE* f) {
   char sig[2];
@@ -317,7 +312,7 @@ void Image::load(FILE* f) {
 
   } else if (format == Format::WINDOWS_BITMAP) {
     WindowsBitmapHeader header = {};
-    
+
     // Read BMP file header
     memcpy(&header.file_header.magic, sig, 2);
     freadx(f, reinterpret_cast<uint8_t*>(&header.file_header) + 2, sizeof(header.file_header) - 2);
@@ -325,14 +320,14 @@ void Image::load(FILE* f) {
       throw runtime_error(string_printf("bad signature in bitmap file (%04hX)",
           header.file_header.magic.load()));
     }
-    
+
     // Read variable-sized BMP info header
     freadx(f, &header.info_header.header_size, 4);
     if (header.info_header.header_size > sizeof(header.info_header)) {
       throw runtime_error(string_printf("unsupported bitmap header: size is %u, maximum supported size is %zu",
           header.info_header.header_size.load(), sizeof(header.info_header)));
     }
-    
+
     freadx(f, reinterpret_cast<uint8_t*>(&header.info_header) + 4, header.info_header.header_size - 4);
     if ((header.info_header.bit_depth != 24) && (header.info_header.bit_depth != 32)) {
       throw runtime_error(string_printf(
@@ -348,7 +343,7 @@ void Image::load(FILE* f) {
     bool has_alpha;
     int32_t w = header.info_header.width;
     int32_t h = header.info_header.height * (reverse_row_order ? -1 : 1);
-    unique_ptr<void, void(*)(void*)> new_data_unique(nullptr, free);
+    unique_ptr<void, void (*)(void*)> new_data_unique(nullptr, free);
 
     if (header.info_header.compression == 0) { // BI_RGB
       if ((header.info_header.bit_depth != 24) && (header.info_header.bit_depth != 32)) {
@@ -390,8 +385,7 @@ void Image::load(FILE* f) {
       // we only support bitmaps where channels are entire bytes
       // note the offsets are reversed because little-endian
       size_t r_offset, g_offset, b_offset, a_offset;
-      unordered_map<uint32_t, size_t> offset_for_bitmask({
-          {0xFF000000, 3}, {0x00FF0000, 2}, {0x0000FF00, 1}, {0x000000FF, 0}});
+      unordered_map<uint32_t, size_t> offset_for_bitmask({{0xFF000000, 3}, {0x00FF0000, 2}, {0x0000FF00, 1}, {0x000000FF, 0}});
       try {
         r_offset = offset_for_bitmask.at(header.info_header.bitmask_r);
         g_offset = offset_for_bitmask.at(header.info_header.bitmask_g);
@@ -433,29 +427,36 @@ void Image::load(FILE* f) {
   }
 }
 
-
-
 static constexpr uint64_t mask_for_width(uint8_t channel_width) {
   return 0xFFFFFFFFFFFFFFFFULL >> (64 - channel_width);
 }
 
-Image::Image() :
-    width(0), height(0), has_alpha(false), channel_width(8),
-    max_value(mask_for_width(this->channel_width)) {
+Image::Image()
+    : width(0),
+      height(0),
+      has_alpha(false),
+      channel_width(8),
+      max_value(mask_for_width(this->channel_width)) {
   this->data.raw = nullptr;
 }
 
-Image::Image(size_t x, size_t y, bool has_alpha, uint8_t channel_width) :
-    width(x), height(y), has_alpha(has_alpha), channel_width(channel_width),
-    max_value(mask_for_width(this->channel_width)) {
+Image::Image(size_t x, size_t y, bool has_alpha, uint8_t channel_width)
+    : width(x),
+      height(y),
+      has_alpha(has_alpha),
+      channel_width(channel_width),
+      max_value(mask_for_width(this->channel_width)) {
   size_t num_bytes = this->get_data_size();
   this->data.raw = malloc(num_bytes);
   memset(this->data.raw, 0, num_bytes * sizeof(uint8_t));
 }
 
-Image::Image(const Image& im) : width(im.width), height(im.height),
-    has_alpha(im.has_alpha), channel_width(im.channel_width),
-    max_value(im.max_value) {
+Image::Image(const Image& im)
+    : width(im.width),
+      height(im.height),
+      has_alpha(im.has_alpha),
+      channel_width(im.channel_width),
+      max_value(im.max_value) {
   size_t num_bytes = this->get_data_size();
   this->data.raw = malloc(num_bytes);
   memcpy(this->data.raw, im.data.raw, num_bytes * sizeof(uint8_t));
@@ -525,21 +526,27 @@ Image::Image(const char* filename) {
   }
 }
 
-Image::Image(const string& filename) : Image(filename.c_str()) { }
+Image::Image(const string& filename) : Image(filename.c_str()) {}
 
 Image::Image(FILE* f, ssize_t width, ssize_t height, bool has_alpha,
-    uint8_t channel_width, uint64_t max_value) : width(width), height(height),
-    has_alpha(has_alpha), channel_width(channel_width),
-    max_value(max_value ? max_value : mask_for_width(this->channel_width)) {
+    uint8_t channel_width, uint64_t max_value)
+    : width(width),
+      height(height),
+      has_alpha(has_alpha),
+      channel_width(channel_width),
+      max_value(max_value ? max_value : mask_for_width(this->channel_width)) {
   size_t num_bytes = this->get_data_size();
   this->data.raw = malloc(num_bytes);
   freadx(f, this->data.raw, num_bytes);
 }
 
 Image::Image(const char* filename, ssize_t width, ssize_t height,
-    bool has_alpha, uint8_t channel_width, uint64_t max_value) : width(width),
-    height(height), has_alpha(has_alpha), channel_width(channel_width),
-    max_value(max_value ? max_value : mask_for_width(this->channel_width)) {
+    bool has_alpha, uint8_t channel_width, uint64_t max_value)
+    : width(width),
+      height(height),
+      has_alpha(has_alpha),
+      channel_width(channel_width),
+      max_value(max_value ? max_value : mask_for_width(this->channel_width)) {
   auto f = fopen_unique(filename, "rb");
   size_t num_bytes = this->get_data_size();
   this->data.raw = malloc(num_bytes);
@@ -547,8 +554,7 @@ Image::Image(const char* filename, ssize_t width, ssize_t height,
 }
 
 Image::Image(const std::string& filename, ssize_t width, ssize_t height,
-    bool has_alpha, uint8_t channel_width, uint64_t max_value) :
-    Image(filename.c_str(), width, height, has_alpha, channel_width, max_value) { }
+    bool has_alpha, uint8_t channel_width, uint64_t max_value) : Image(filename.c_str(), width, height, has_alpha, channel_width, max_value) {}
 
 Image::~Image() {
   free(this->data.raw);
@@ -600,13 +606,13 @@ template <typename Writer>
 static void write_png_chunk(const char (&type)[5],
     const void* data, be_uint32_t size,
     Writer&& writer) {
-  
+
   writer(&size, 4);
   writer(type, 4);
   if (size > 0) {
     writer(data, size);
   }
-  
+
   // The CRC includes the chunk type, but not the length
   // The CRC of the (empty) IEND chunk is big-endian 0xAE426082
   be_uint32_t crc = crc32(0u, reinterpret_cast<const Bytef*>(type), 4);
@@ -623,7 +629,7 @@ void Image::save_helper(Format format, Writer&& writer) const {
       throw runtime_error("can\'t save grayscale ppm files");
 
     case Format::COLOR_PPM: {
-      char  header[256];
+      char header[256];
       if (this->has_alpha) {
         snprintf(header, sizeof(header), "P7\nWIDTH %zu\nHEIGHT %zu\nDEPTH 4\nMAXVAL %" PRIu64 "\nTUPLTYPE RGB_ALPHA\nENDHDR\n",
             this->width, this->height, this->max_value);
@@ -645,7 +651,7 @@ void Image::save_helper(Format format, Writer&& writer) const {
       uint8_t row_padding_data[4] = {0, 0, 0, 0};
 
       WindowsBitmapHeader header;
-      size_t              header_size = init_bmp_header(header, this->width, this->height, this->has_alpha, pixel_bytes, row_padding_bytes);
+      size_t header_size = init_bmp_header(header, this->width, this->height, this->has_alpha, pixel_bytes, row_padding_bytes);
 
       writer(&header, header_size);
 
@@ -673,60 +679,60 @@ void Image::save_helper(Format format, Writer&& writer) const {
       }
       break;
     }
-    
+
     case Format::PNG: {
       if (this->channel_width != 8) {
         throw runtime_error("can\'t save png with more than 8-bit channels");
       }
-      
-      constexpr uint8_t SIG[8] = { 137, 80, 78, 71, 13, 10, 26, 10 };
-      
+
+      constexpr uint8_t SIG[8] = {137, 80, 78, 71, 13, 10, 26, 10};
+
       writer(SIG, sizeof(SIG));
-      
+
       // Write IDHR chunk
       const struct {
         be_uint32_t width;
         be_uint32_t height;
-        uint8_t     bit_depth;
-        uint8_t     color_type;
-        uint8_t     compression;
-        uint8_t     filter;
-        uint8_t     interlace;
-      } IHDR {
-        this->width,
-        this->height,
-        8,
-        uint8_t(this->has_alpha ? 6 : 2),
-        0, // default compression
-        0, // default filter
-        0  // non-interlaced
+        uint8_t bit_depth;
+        uint8_t color_type;
+        uint8_t compression;
+        uint8_t filter;
+        uint8_t interlace;
+      } IHDR{
+          this->width,
+          this->height,
+          8,
+          uint8_t(this->has_alpha ? 6 : 2),
+          0, // default compression
+          0, // default filter
+          0 // non-interlaced
       };
       write_png_chunk("IHDR", &IHDR, 13, writer);
-      
+
       // Write gAMA chunk
       const be_uint32_t gAMA = 45455; // 1/2.2
       write_png_chunk("gAMA", &gAMA, sizeof(gAMA), writer);
-      
+
       // Write IDAT chunk
-      size_t  pixel_size = 3 + this->has_alpha;
-      size_t  image_size = this->height * (1 + this->width * pixel_size);
-      auto    image_data = malloc_unique(image_size);
-      
+      size_t pixel_size = 3 + this->has_alpha;
+      size_t image_size = this->height * (1 + this->width * pixel_size);
+      auto image_data = malloc_unique(image_size);
+
       for (unsigned int y = 0; y < static_cast<size_t>(this->height); ++y) {
-        const uint8_t*  s = this->data.as8 + y * this->width * pixel_size;
-        uint8_t*        d = static_cast<uint8_t*>(image_data.get()) + y * (1 + this->width * pixel_size);
+        const uint8_t* s = this->data.as8 + y * this->width * pixel_size;
+        uint8_t* d = static_cast<uint8_t*>(image_data.get()) + y * (1 + this->width * pixel_size);
         *d = 0; // no filter
         memcpy(d + 1, s, this->width * pixel_size);
       }
-      
-      uLongf  idat_size = compressBound(image_size);
-      auto    idat_data = malloc_unique(idat_size);
+
+      uLongf idat_size = compressBound(image_size);
+      auto idat_data = malloc_unique(idat_size);
       if (int result = compress2(static_cast<Bytef*>(idat_data.get()), &idat_size, static_cast<const Bytef*>(image_data.get()), image_size, 9)) {
         throw runtime_error(string_printf("zlib error compressing png data: %d", result));
       }
-      
+
       write_png_chunk("IDAT", idat_data.get(), idat_size, writer);
-      
+
       // Write IEND chunk
       write_png_chunk("IEND", nullptr, 0, writer);
       break;
@@ -748,7 +754,7 @@ void Image::save(FILE* f, Format format) const {
 // save the image to a string in memory
 string Image::save(Format format) const {
 
-  string  result;
+  string result;
   save_helper(format, [&result](const void* data, size_t size) {
     result.append(reinterpret_cast<const char*>(data), size);
   });
@@ -857,7 +863,6 @@ uint32_t Image::read_pixel(ssize_t x, ssize_t y) const {
   this->read_pixel(x, y, &r, &g, &b, &a);
   return compress_color(r, g, b, a);
 }
-
 
 // write the specified pixel's rgb values
 void Image::write_pixel(ssize_t x, ssize_t y, uint64_t r, uint64_t g,
@@ -1212,7 +1217,8 @@ void Image::draw_text_v(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
         }
         try {
           this->write_pixel(x_pos + xx, y_pos + yy, r, g, b, a);
-        } catch (const runtime_error& e) { }
+        } catch (const runtime_error& e) {
+        }
       }
     }
 
@@ -1326,7 +1332,8 @@ void Image::fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint64_t r,
       for (ssize_t xx = 0; xx < w; xx++) {
         try {
           this->write_pixel(x + xx, y + yy, r, g, b, a);
-        } catch (const runtime_error& e) { }
+        } catch (const runtime_error& e) {
+        }
       }
     }
   } else {
@@ -1340,7 +1347,8 @@ void Image::fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint64_t r,
           _b = (a * (uint32_t)b + (0xFF - a) * (uint32_t)_b) / 0xFF;
           _a = (a * (uint32_t)a + (0xFF - a) * (uint32_t)_a) / 0xFF;
           this->write_pixel(x + xx, y + yy, _r, _g, _b, _a);
-        } catch (const runtime_error& e) { }
+        } catch (const runtime_error& e) {
+        }
       }
     }
   }
@@ -1594,7 +1602,6 @@ void Image::blend_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
   }
 }
 
-
 void Image::custom_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
     ssize_t h, ssize_t sx, ssize_t sy,
     function<void(uint32_t&, uint32_t)> per_pixel_fn) {
@@ -1686,21 +1693,21 @@ void Image::resize_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
       }
 
       uint64_t dr = sr11 * (source_x1_factor * source_y1_factor) +
-                    sr12 * (source_x1_factor * source_y2_factor) +
-                    sr21 * (source_x2_factor * source_y1_factor) +
-                    sr22 * (source_x2_factor * source_y2_factor);
+          sr12 * (source_x1_factor * source_y2_factor) +
+          sr21 * (source_x2_factor * source_y1_factor) +
+          sr22 * (source_x2_factor * source_y2_factor);
       uint64_t dg = sg11 * (source_x1_factor * source_y1_factor) +
-                    sg12 * (source_x1_factor * source_y2_factor) +
-                    sg21 * (source_x2_factor * source_y1_factor) +
-                    sg22 * (source_x2_factor * source_y2_factor);
+          sg12 * (source_x1_factor * source_y2_factor) +
+          sg21 * (source_x2_factor * source_y1_factor) +
+          sg22 * (source_x2_factor * source_y2_factor);
       uint64_t db = sb11 * (source_x1_factor * source_y1_factor) +
-                    sb12 * (source_x1_factor * source_y2_factor) +
-                    sb21 * (source_x2_factor * source_y1_factor) +
-                    sb22 * (source_x2_factor * source_y2_factor);
+          sb12 * (source_x1_factor * source_y2_factor) +
+          sb21 * (source_x2_factor * source_y1_factor) +
+          sb22 * (source_x2_factor * source_y2_factor);
       uint64_t da = sa11 * (source_x1_factor * source_y1_factor) +
-                    sa12 * (source_x1_factor * source_y2_factor) +
-                    sa21 * (source_x2_factor * source_y1_factor) +
-                    sa22 * (source_x2_factor * source_y2_factor);
+          sa12 * (source_x1_factor * source_y2_factor) +
+          sa21 * (source_x2_factor * source_y1_factor) +
+          sa22 * (source_x2_factor * source_y2_factor);
 
       this->write_pixel(x + xx, y + yy, dr, dg, db, da);
     }

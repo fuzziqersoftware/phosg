@@ -1,12 +1,11 @@
-#include <unistd.h>
 #include <inttypes.h>
+#include <unistd.h>
 
 #include "Hash.hh"
 #include "Strings.hh"
 #include "UnitTest.hh"
 
 using namespace std;
-
 
 int main(int, char** argv) {
   {

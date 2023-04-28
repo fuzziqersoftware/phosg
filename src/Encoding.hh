@@ -1,20 +1,16 @@
 #pragma once
 
-#include <stdint.h>
 #include <inttypes.h>
+#include <stdint.h>
 
 #include <string>
 
 #include "Platform.hh"
 
-
-
 template <typename...>
 struct always_false {
   static constexpr bool v = false;
 };
-
-
 
 template <typename T>
 constexpr uint8_t bits_for_type = sizeof(T) << 3;
@@ -24,8 +20,6 @@ constexpr T msb_for_type = (1 << (bits_for_type<T> - 1));
 
 template <typename T>
 constexpr uint64_t mask_for_type = 0xFFFFFFFFFFFFFFFF >> (64 - bits_for_type<T>);
-
-
 
 template <typename T>
 constexpr const char* printf_format_for_type() {
@@ -75,8 +69,6 @@ constexpr const char* printf_hex_format_for_type<uint64_t>() { return PRIX64; }
 template <>
 constexpr const char* printf_hex_format_for_type<int64_t>() { return PRIX64; }
 
-
-
 template <typename ResultT, typename SrcT>
 ResultT sign_extend(SrcT src) {
   using UResultT = std::make_unsigned_t<ResultT>;
@@ -86,8 +78,6 @@ ResultT sign_extend(SrcT src) {
     return static_cast<ResultT>(src);
   }
 }
-
-
 
 static inline int32_t ext24(uint32_t a) {
   return (a & 0x00800000) ? (a | 0xFF000000) : a;
@@ -103,13 +93,13 @@ static inline uint8_t bswap8(uint8_t a) {
 
 static inline uint16_t bswap16(uint16_t a) {
   return ((a >> 8) & 0x00FF) |
-         ((a << 8) & 0xFF00);
+      ((a << 8) & 0xFF00);
 }
 
 static inline uint32_t bswap24(uint32_t a) {
   return ((a >> 16) & 0x000000FF) |
-         ( a        & 0x0000FF00) |
-         ((a << 16) & 0x00FF0000);
+      (a & 0x0000FF00) |
+      ((a << 16) & 0x00FF0000);
 }
 
 static inline int32_t bswap24s(int32_t a) {
@@ -122,18 +112,18 @@ static inline int32_t bswap24s(int32_t a) {
 
 static inline uint32_t bswap32(uint32_t a) {
   return ((a >> 24) & 0x000000FF) |
-         ((a >> 8)  & 0x0000FF00) |
-         ((a << 8)  & 0x00FF0000) |
-         ((a << 24) & 0xFF000000);
+      ((a >> 8) & 0x0000FF00) |
+      ((a << 8) & 0x00FF0000) |
+      ((a << 24) & 0xFF000000);
 }
 
 static inline uint64_t bswap48(uint64_t a) {
   return ((a >> 40) & 0x00000000000000FF) |
-         ((a >> 24) & 0x000000000000FF00) |
-         ((a >> 8)  & 0x0000000000FF0000) |
-         ((a << 8)  & 0x00000000FF000000) |
-         ((a << 24) & 0x000000FF00000000) |
-         ((a << 40) & 0x0000FF0000000000);
+      ((a >> 24) & 0x000000000000FF00) |
+      ((a >> 8) & 0x0000000000FF0000) |
+      ((a << 8) & 0x00000000FF000000) |
+      ((a << 24) & 0x000000FF00000000) |
+      ((a << 40) & 0x0000FF0000000000);
 }
 
 static inline int64_t bswap48s(int64_t a) {
@@ -146,13 +136,13 @@ static inline int64_t bswap48s(int64_t a) {
 
 static inline uint64_t bswap64(uint64_t a) {
   return ((a >> 56) & 0x00000000000000FF) |
-         ((a >> 40) & 0x000000000000FF00) |
-         ((a >> 24) & 0x0000000000FF0000) |
-         ((a >> 8)  & 0x00000000FF000000) |
-         ((a << 8)  & 0x000000FF00000000) |
-         ((a << 24) & 0x0000FF0000000000) |
-         ((a << 40) & 0x00FF000000000000) |
-         ((a << 56) & 0xFF00000000000000);
+      ((a >> 40) & 0x000000000000FF00) |
+      ((a >> 24) & 0x0000000000FF0000) |
+      ((a >> 8) & 0x00000000FF000000) |
+      ((a << 8) & 0x000000FF00000000) |
+      ((a << 24) & 0x0000FF0000000000) |
+      ((a << 40) & 0x00FF000000000000) |
+      ((a << 56) & 0xFF00000000000000);
 }
 
 static inline float bswap32f(uint32_t a) {
@@ -176,8 +166,6 @@ static inline uint64_t bswap64f(double a) {
   uint64_t i = *(uint64_t*)(&a);
   return bswap64(i);
 }
-
-
 
 template <typename ArgT, typename ResultT = ArgT>
 ResultT bswap(ArgT) {
@@ -245,8 +233,6 @@ inline double bswap<uint64_t, double>(uint64_t v) {
   return bswap64f(v);
 }
 
-
-
 template <typename ArgT, typename ResultT = ArgT>
 struct bswap_st {
   static inline ResultT fn(ArgT v) {
@@ -261,8 +247,6 @@ struct ident_st {
   }
 };
 
-
-
 template <typename ExposedT, typename StoredT, typename OnStoreSt, typename OnLoadSt>
 class converted_endian {
 private:
@@ -270,7 +254,7 @@ private:
 
 public:
   converted_endian() = default;
-  converted_endian(ExposedT v) : value(OnStoreSt::fn(v)) { }
+  converted_endian(ExposedT v) : value(OnStoreSt::fn(v)) {}
   converted_endian(const converted_endian& other) = default;
   converted_endian(converted_endian&& other) = default;
   converted_endian& operator=(const converted_endian& other) = default;
@@ -370,18 +354,16 @@ public:
   }
 } __attribute__((packed));
 
-
-
 template <typename ExposedT, typename StoredT = ExposedT>
 class reverse_endian
-  : public converted_endian<ExposedT, StoredT, bswap_st<ExposedT, StoredT>, bswap_st<StoredT, ExposedT>> {
+    : public converted_endian<ExposedT, StoredT, bswap_st<ExposedT, StoredT>, bswap_st<StoredT, ExposedT>> {
 public:
   using converted_endian<ExposedT, StoredT, bswap_st<ExposedT, StoredT>, bswap_st<StoredT, ExposedT>>::converted_endian;
 } __attribute__((packed));
 
 template <typename ExposedT, typename StoredT = ExposedT>
 class same_endian
-  : public converted_endian<ExposedT, StoredT, ident_st<ExposedT, StoredT>, ident_st<StoredT, ExposedT>> {
+    : public converted_endian<ExposedT, StoredT, ident_st<ExposedT, StoredT>, ident_st<StoredT, ExposedT>> {
 public:
   using converted_endian<ExposedT, StoredT, ident_st<ExposedT, StoredT>, ident_st<StoredT, ExposedT>>::converted_endian;
 } __attribute__((packed));
@@ -420,8 +402,6 @@ public:
 
 #endif
 
-
-
 using re_uint16_t = reverse_endian<uint16_t>;
 using re_int16_t = reverse_endian<int16_t>;
 using re_uint32_t = reverse_endian<uint32_t>;
@@ -446,8 +426,6 @@ using be_uint64_t = big_endian<uint64_t>;
 using be_int64_t = big_endian<int64_t>;
 using be_float = big_endian<float, uint32_t>;
 using be_double = big_endian<double, uint64_t>;
-
-
 
 extern const char* DEFAULT_ALPHABET;
 extern const char* URLSAFE_ALPHABET;

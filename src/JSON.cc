@@ -9,11 +9,10 @@
 
 using namespace std;
 
-
-JSONObject::parse_error::parse_error(const string& what) : runtime_error(what) { }
-JSONObject::type_error::type_error(const string& what) : runtime_error(what) { }
-JSONObject::key_error::key_error(const string& what) : runtime_error(what) { }
-JSONObject::index_error::index_error(const string& what) : runtime_error(what) { }
+JSONObject::parse_error::parse_error(const string& what) : runtime_error(what) {}
+JSONObject::type_error::type_error(const string& what) : runtime_error(what) {}
+JSONObject::key_error::key_error(const string& what) : runtime_error(what) {}
+JSONObject::index_error::index_error(const string& what) : runtime_error(what) {}
 
 static void skip_whitespace_and_comments(StringReader& r) {
   bool reading_comment = false;
@@ -249,8 +248,8 @@ shared_ptr<JSONObject> JSONObject::parse(const string& s) {
   return JSONObject::parse(r);
 }
 
-JSONObject::JSONObject() : value(nullptr) { }
-JSONObject::JSONObject(bool x) : value(x) { }
+JSONObject::JSONObject() : value(nullptr) {}
+JSONObject::JSONObject(bool x) : value(x) {}
 JSONObject::JSONObject(const char* x) {
   string s(x);
   this->value = move(s);
@@ -259,14 +258,14 @@ JSONObject::JSONObject(const char* x, size_t size) {
   string s(x, size);
   this->value = move(s);
 }
-JSONObject::JSONObject(const string& x) : value(x) { }
-JSONObject::JSONObject(string&& x) : value(move(x)) { }
-JSONObject::JSONObject(int64_t x) : value(x) { }
-JSONObject::JSONObject(double x) : value(x) { }
-JSONObject::JSONObject(const list_type& x) : value(x) { }
-JSONObject::JSONObject(list_type&& x) : value(move(x)) { }
-JSONObject::JSONObject(const dict_type& x) : value(x) { }
-JSONObject::JSONObject(dict_type&& x) : value(move(x)) { }
+JSONObject::JSONObject(const string& x) : value(x) {}
+JSONObject::JSONObject(string&& x) : value(move(x)) {}
+JSONObject::JSONObject(int64_t x) : value(x) {}
+JSONObject::JSONObject(double x) : value(x) {}
+JSONObject::JSONObject(const list_type& x) : value(x) {}
+JSONObject::JSONObject(list_type&& x) : value(move(x)) {}
+JSONObject::JSONObject(const dict_type& x) : value(x) {}
+JSONObject::JSONObject(dict_type&& x) : value(move(x)) {}
 
 // non-shared_ptr constructors
 JSONObject::JSONObject(const vector<JSONObject>& x) {
@@ -325,10 +324,10 @@ bool JSONObject::operator==(const JSONObject& other) const {
     case 4: // string
       return this->value == other.value;
 
-    // Unlike the above types, we can't just compare the variant objects
-    // directly for list_type and dict_type because the default equality
-    // function compares the shared_ptrs, but we want to compare the values
-    // pointed to by them.
+      // Unlike the above types, we can't just compare the variant objects
+      // directly for list_type and dict_type because the default equality
+      // function compares the shared_ptrs, but we want to compare the values
+      // pointed to by them.
 
     case 5: { // list_type
       const auto& this_list = this->as_list();
@@ -618,7 +617,6 @@ string JSONObject::format(size_t indent) const {
 
   throw JSONObject::parse_error("unknown object type");
 }
-
 
 shared_ptr<JSONObject> make_json_null() {
   return shared_ptr<JSONObject>(new JSONObject());

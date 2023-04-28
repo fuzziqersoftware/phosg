@@ -11,8 +11,7 @@
 #include <unordered_set>
 #include <vector>
 
-
-std::unique_ptr<FILE, void(*)(FILE*)> popen_unique(const std::string& command,
+std::unique_ptr<FILE, void (*)(FILE*)> popen_unique(const std::string& command,
     const std::string& mode);
 
 std::string name_for_pid(pid_t pid);

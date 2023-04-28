@@ -1,13 +1,12 @@
 #include "Time.hh"
 
-#include <time.h>
 #include <sys/time.h>
+#include <time.h>
 
 #include <stdexcept>
 #include <string>
 
 using namespace std;
-
 
 uint64_t now() {
   timeval t;

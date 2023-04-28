@@ -1,12 +1,11 @@
 #include <unistd.h>
 
 #include "Filesystem.hh"
+#include "Platform.hh"
 #include "Strings.hh"
 #include "UnitTest.hh"
-#include "Platform.hh"
 
 using namespace std;
-
 
 int main(int, char* argv[]) {
   {

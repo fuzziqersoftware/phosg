@@ -24,16 +24,15 @@
 
 using namespace std;
 
-
 uint32_t resolve_ipv4(const string& addr) {
-  struct addrinfo *res0;
+  struct addrinfo* res0;
   if (getaddrinfo(addr.c_str(), nullptr, nullptr, &res0)) {
     throw runtime_error("can\'t resolve hostname " + addr + ": " + string_for_error(errno));
   }
 
-  std::unique_ptr<struct addrinfo, void(*)(struct addrinfo*)> res0_unique(
+  std::unique_ptr<struct addrinfo, void (*)(struct addrinfo*)> res0_unique(
       res0, freeaddrinfo);
-  struct addrinfo *res4 = nullptr;
+  struct addrinfo* res4 = nullptr;
   for (struct addrinfo* res = res0; res; res = res->ai_next) {
     if (!res4 && (res->ai_family == AF_INET)) {
       res4 = res;
@@ -46,8 +45,6 @@ uint32_t resolve_ipv4(const string& addr) {
   struct sockaddr_in* res_sin = (struct sockaddr_in*)res4->ai_addr;
   return ntohl(res_sin->sin_addr.s_addr);
 }
-
-
 
 pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const string& addr,
     uint16_t port) {
@@ -76,12 +73,12 @@ pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const string& addr,
     sin->sin_addr.s_addr = htonl(INADDR_ANY);
 
   } else {
-    struct addrinfo *res0;
+    struct addrinfo* res0;
     if (getaddrinfo(addr.c_str(), nullptr, nullptr, &res0)) {
       throw runtime_error("can\'t resolve hostname " + addr + ": " + string_for_error(errno));
     }
 
-    std::unique_ptr<struct addrinfo, void(*)(struct addrinfo*)> res0_unique(
+    std::unique_ptr<struct addrinfo, void (*)(struct addrinfo*)> res0_unique(
         res0, freeaddrinfo);
     struct addrinfo *res4 = nullptr, *res6 = nullptr;
     for (struct addrinfo* res = res0; res; res = res->ai_next) {

@@ -2,8 +2,8 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "Platform.hh"
@@ -19,8 +19,6 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
-
-
 
 std::string basename(const std::string& filename);
 std::string dirname(const std::string& filename);
@@ -100,13 +98,13 @@ private:
 };
 
 namespace std {
-  template <>
-  struct hash<scoped_fd> {
-    size_t operator()(const scoped_fd& fd) const {
-      return std::hash<int>()(static_cast<int>(fd));
-    }
-  };
-}
+template <>
+struct hash<scoped_fd> {
+  size_t operator()(const scoped_fd& fd) const {
+    return std::hash<int>()(static_cast<int>(fd));
+  }
+};
+} // namespace std
 
 std::string read_all(int fd);
 std::string read_all(FILE* f);
@@ -131,8 +129,6 @@ void fwritex(FILE* f, const std::string& data);
 uint8_t fgetcx(FILE* f);
 
 std::string fgets(FILE* f);
-
-
 
 template <typename T>
 T readx(int fd) {
@@ -169,8 +165,6 @@ template <typename T>
 void fwritex(FILE* f, const T& t) {
   fwritex(f, &t, sizeof(T));
 }
-
-
 
 template <typename T>
 T load_object_file(const std::string& filename, bool allow_oversize = false) {
@@ -210,11 +204,11 @@ std::string load_file(const std::string& filename);
 void save_file(const std::string& filename, const void* data, size_t size);
 void save_file(const std::string& filename, const std::string& data);
 
-std::unique_ptr<FILE, void(*)(FILE*)> fopen_unique(const std::string& filename,
+std::unique_ptr<FILE, void (*)(FILE*)> fopen_unique(const std::string& filename,
     const std::string& mode = "rb", FILE* dash_file = nullptr);
-std::unique_ptr<FILE, void(*)(FILE*)> fdopen_unique(int fd,
+std::unique_ptr<FILE, void (*)(FILE*)> fdopen_unique(int fd,
     const std::string& mode = "rb");
-std::unique_ptr<FILE, void(*)(FILE*)> fmemopen_unique(const void* buf,
+std::unique_ptr<FILE, void (*)(FILE*)> fmemopen_unique(const void* buf,
     size_t size);
 std::shared_ptr<FILE> fopen_shared(const std::string& filename,
     const std::string& mode = "rb", FILE* dash_file = nullptr);

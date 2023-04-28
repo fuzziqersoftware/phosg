@@ -4,19 +4,18 @@
 
 #include <atomic>
 #include <functional>
-#include <vector>
-#include <thread>
 #include <string>
+#include <thread>
+#include <vector>
 
-#include "Time.hh"
 #include "Strings.hh"
-
-
+#include "Time.hh"
 
 class CallOnDestroy {
 public:
   CallOnDestroy(std::function<void()> f);
   ~CallOnDestroy();
+
 private:
   std::function<void()> f;
 };
@@ -24,8 +23,6 @@ private:
 inline CallOnDestroy on_close_scope(std::function<void()> f) {
   return CallOnDestroy(move(f));
 }
-
-
 
 template <typename IntT>
 void parallel_range_thread_fn(

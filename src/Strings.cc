@@ -22,11 +22,9 @@
 
 using namespace std;
 
-
 unique_ptr<void, void (*)(void*)> malloc_unique(size_t size) {
   return unique_ptr<void, void (*)(void*)>(malloc(size), free);
 }
-
 
 bool starts_with(const string& s, const string& start) {
   if (s.length() >= start.length()) {
@@ -160,8 +158,6 @@ uint8_t value_for_hex_char(char x) {
   throw out_of_range(string_printf("invalid hex char: %c", x));
 }
 
-
-
 static LogLevel current_log_level = LogLevel::INFO;
 
 LogLevel log_level() {
@@ -173,7 +169,10 @@ void set_log_level(LogLevel new_level) {
 }
 
 static const vector<char> log_level_chars({
-  'D', 'I', 'W', 'E',
+    'D',
+    'I',
+    'W',
+    'E',
 });
 
 void print_log_prefix(FILE* stream, LogLevel level) {
@@ -186,30 +185,29 @@ void print_log_prefix(FILE* stream, LogLevel level) {
   fprintf(stream, "%c %d %s - ", level_char, getpid_cached(), time_buffer);
 }
 
-void log_debug_v(const char* fmt, va_list va)   { log_v<LogLevel::DEBUG>(fmt, va); }
-void log_info_v(const char* fmt, va_list va)    { log_v<LogLevel::INFO>(fmt, va); }
+void log_debug_v(const char* fmt, va_list va) { log_v<LogLevel::DEBUG>(fmt, va); }
+void log_info_v(const char* fmt, va_list va) { log_v<LogLevel::INFO>(fmt, va); }
 void log_warning_v(const char* fmt, va_list va) { log_v<LogLevel::WARNING>(fmt, va); }
-void log_error_v(const char* fmt, va_list va)   { log_v<LogLevel::ERROR>(fmt, va); }
+void log_error_v(const char* fmt, va_list va) { log_v<LogLevel::ERROR>(fmt, va); }
 
 #define LOG_HELPER_BODY(LEVEL) \
-  if (should_log(LEVEL)) { \
-    va_list va; \
-    va_start(va, fmt); \
-    log_v<LEVEL>(fmt, va); \
-    va_end(va); \
+  if (should_log(LEVEL)) {     \
+    va_list va;                \
+    va_start(va, fmt);         \
+    log_v<LEVEL>(fmt, va);     \
+    va_end(va);                \
   }
 
-__attribute__((format(printf, 1, 2))) void log_debug(const char* fmt, ...)   { LOG_HELPER_BODY(LogLevel::DEBUG); }
-__attribute__((format(printf, 1, 2))) void log_info(const char* fmt, ...)    { LOG_HELPER_BODY(LogLevel::INFO); }
+__attribute__((format(printf, 1, 2))) void log_debug(const char* fmt, ...) { LOG_HELPER_BODY(LogLevel::DEBUG); }
+__attribute__((format(printf, 1, 2))) void log_info(const char* fmt, ...) { LOG_HELPER_BODY(LogLevel::INFO); }
 __attribute__((format(printf, 1, 2))) void log_warning(const char* fmt, ...) { LOG_HELPER_BODY(LogLevel::WARNING); }
-__attribute__((format(printf, 1, 2))) void log_error(const char* fmt, ...)   { LOG_HELPER_BODY(LogLevel::ERROR); }
+__attribute__((format(printf, 1, 2))) void log_error(const char* fmt, ...) { LOG_HELPER_BODY(LogLevel::ERROR); }
 
 #undef LOG_HELPER_BODY
 
 PrefixedLogger::PrefixedLogger(const std::string& prefix, LogLevel min_level)
-  : prefix(prefix), min_level(min_level) { }
-
-
+    : prefix(prefix),
+      min_level(min_level) {}
 
 vector<string> split(const string& s, char delim, size_t max_splits) {
   vector<string> ret;
@@ -375,7 +373,8 @@ void print_indent(FILE* stream, int indent_level) {
 // TODO: generalize these classes
 class RedBoldTerminalGuard {
 public:
-  RedBoldTerminalGuard(FILE* f, bool active = true) : f(f), active(active) {
+  RedBoldTerminalGuard(FILE* f, bool active = true) : f(f),
+                                                      active(active) {
     if (this->active) {
       print_color_escape(this->f, TerminalFormat::BOLD, TerminalFormat::FG_RED,
           TerminalFormat::END);
@@ -386,6 +385,7 @@ public:
       print_color_escape(this->f, TerminalFormat::NORMAL, TerminalFormat::END);
     }
   }
+
 private:
   FILE* f;
   bool active;
@@ -393,7 +393,8 @@ private:
 
 class InverseTerminalGuard {
 public:
-  InverseTerminalGuard(FILE* f, bool active = true) : f(f), active(active) {
+  InverseTerminalGuard(FILE* f, bool active = true) : f(f),
+                                                      active(active) {
     if (this->active) {
       print_color_escape(this->f, TerminalFormat::INVERSE, TerminalFormat::END);
     }
@@ -403,6 +404,7 @@ public:
       print_color_escape(this->f, TerminalFormat::NORMAL, TerminalFormat::END);
     }
   }
+
 private:
   FILE* f;
   bool active;
@@ -503,8 +505,8 @@ void print_data(
     uint8_t line_bytes = 0x10 - line_invalid_end_bytes - line_invalid_start_bytes;
 
     auto print_fields_column = [&]<typename LoadedDataT, typename StoredDataT>(
-        const char* field_format,
-        const char* blank_format) -> void {
+                                   const char* field_format,
+                                   const char* blank_format) -> void {
       fputs(skip_separator ? " " : " |", stream);
 
       const auto* line_fields = reinterpret_cast<const StoredDataT*>(line_buf);
@@ -669,8 +671,6 @@ void print_data(FILE* stream, const std::string& data, uint64_t address,
   print_data(stream, data.data(), data.size(), address, prev, flags);
 }
 
-
-
 static inline void add_mask_bits(string* mask, bool mask_enabled, size_t num_bytes) {
   if (!mask) {
     return;
@@ -714,7 +714,7 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
       }
       in++;
 
-    // if between /* and */, don't write to output buffer
+      // if between /* and */, don't write to output buffer
     } else if (reading_multiline_comment) {
       if ((in[0] == '*') && (in[1] == '/')) {
         reading_multiline_comment = 0;
@@ -723,7 +723,7 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
         in++;
       }
 
-    // if between quotes, read bytes to output buffer, unescaping where needed
+      // if between quotes, read bytes to output buffer, unescaping where needed
     } else if (reading_string) {
       if (in[0] == '\"') {
         reading_string = 0;
@@ -750,7 +750,7 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
         in++;
       }
 
-    // if between single quotes, word-expand bytes to output buffer, unescaping
+      // if between single quotes, word-expand bytes to output buffer, unescaping
     } else if (reading_unicode_string) {
       if (in[0] == '\'') {
         reading_unicode_string = 0;
@@ -786,7 +786,7 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
         in++;
       }
 
-    // if between <>, read a file name, then stick that file into the buffer
+      // if between <>, read a file name, then stick that file into the buffer
     } else if (reading_filename) {
       if (in[0] == '>') {
         // TODO: support <filename@offset:size> syntax
@@ -800,17 +800,17 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
       }
       in++;
 
-    // ? inverts mask_enabled
+      // ? inverts mask_enabled
     } else if (in[0] == '?') {
       mask_enabled = !mask_enabled;
       in++;
 
-    // $ changes the endianness
+      // $ changes the endianness
     } else if (in[0] == '$') {
       big_endian = !big_endian;
       in++;
 
-    // # signifies a decimal number
+      // # signifies a decimal number
     } else if (in[0] == '#') { // 8-bit
       in++;
       if (in[0] == '#') { // 16-bit
@@ -849,7 +849,7 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
         add_mask_bits(mask, mask_enabled, 1);
       }
 
-    // % is a float, %% is a double
+      // % is a float, %% is a double
     } else if (in[0] == '%') {
       in++;
       if (in[0] == '%') {
@@ -873,7 +873,7 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
         add_mask_bits(mask, mask_enabled, 4);
       }
 
-    // anything else is a hex digit
+      // anything else is a hex digit
     } else {
       if ((in[0] >= '0') && (in[0] <= '9')) {
         read_nybble = true;
@@ -960,9 +960,9 @@ string format_time(struct timeval* tv) {
       "December"};
 
   return string_printf("%u %s %4u %02u:%02u:%02u.%03hu", cooked.tm_mday,
-     monthnames[cooked.tm_mon], cooked.tm_year + 1900,
-     cooked.tm_hour, cooked.tm_min, cooked.tm_sec,
-     static_cast<uint16_t>(tv->tv_usec / 1000));
+      monthnames[cooked.tm_mon], cooked.tm_year + 1900,
+      cooked.tm_hour, cooked.tm_min, cooked.tm_sec,
+      static_cast<uint16_t>(tv->tv_usec / 1000));
 }
 
 string format_duration(uint64_t usecs, int8_t subsecond_precision) {
@@ -989,7 +989,8 @@ string format_duration(uint64_t usecs, int8_t subsecond_precision) {
     string seconds_str = string_printf("%.*lf", subsecond_precision,
         static_cast<double>(usecs_part) / 1000000ULL);
     return string_printf("%" PRIu64 ":%s", minutes,
-        ((seconds_str.at(1) == '.') ? "0" : "")) + seconds_str;
+               ((seconds_str.at(1) == '.') ? "0" : "")) +
+        seconds_str;
 
   } else if (usecs < 24 * 60 * 60 * 1000000ULL) {
     if (subsecond_precision < 0) {
@@ -997,13 +998,12 @@ string format_duration(uint64_t usecs, int8_t subsecond_precision) {
     }
     uint64_t hours = usecs / (60 * 60 * 1000000ULL);
     uint64_t minutes = (usecs / (60 * 1000000ULL)) % 60;
-    uint64_t usecs_part = usecs
-        - (hours * 60 * 60 * 1000000ULL)
-        - (minutes * 60 * 1000000ULL);
+    uint64_t usecs_part = usecs - (hours * 60 * 60 * 1000000ULL) - (minutes * 60 * 1000000ULL);
     string seconds_str = string_printf("%.*lf", subsecond_precision,
         static_cast<double>(usecs_part) / 1000000ULL);
     return string_printf("%" PRIu64 ":%02" PRIu64 ":%s", hours, minutes,
-        ((seconds_str.size() == 1 || seconds_str.at(1) == '.') ? "0" : "")) + seconds_str;
+               ((seconds_str.size() == 1 || seconds_str.at(1) == '.') ? "0" : "")) +
+        seconds_str;
 
   } else {
     if (subsecond_precision < 0) {
@@ -1012,14 +1012,12 @@ string format_duration(uint64_t usecs, int8_t subsecond_precision) {
     uint64_t days = usecs / (24 * 60 * 60 * 1000000ULL);
     uint64_t hours = (usecs / (60 * 60 * 1000000ULL)) % 24;
     uint64_t minutes = (usecs / (60 * 1000000ULL)) % 60;
-    uint64_t usecs_part = usecs
-        - (days * 24 * 60 * 60 * 1000000ULL)
-        - (hours * 60 * 60 * 1000000ULL)
-        - (minutes * 60 * 1000000ULL);
+    uint64_t usecs_part = usecs - (days * 24 * 60 * 60 * 1000000ULL) - (hours * 60 * 60 * 1000000ULL) - (minutes * 60 * 1000000ULL);
     string seconds_str = string_printf("%.*lf", subsecond_precision,
         static_cast<double>(usecs_part) / 1000000ULL);
     return string_printf("%" PRIu64 ":%02" PRIu64 ":%02" PRIu64 ":%s", days,
-        hours, minutes, ((seconds_str.size() == 1 || seconds_str.at(1) == '.') ? "0" : "")) + seconds_str;
+               hours, minutes, ((seconds_str.size() == 1 || seconds_str.at(1) == '.') ? "0" : "")) +
+        seconds_str;
   }
 }
 
@@ -1033,8 +1031,28 @@ string format_duration(uint64_t usecs, int8_t subsecond_precision) {
 #define YB_SIZE (ZB_SIZE * 1024ULL)
 #define HB_SIZE (YB_SIZE * 1024ULL)
 
-string format_size(size_t size, bool include_bytes) {
+#if (SIZE_T_BITS == 8)
 
+string format_size(size_t size, bool include_bytes) {
+  return string_printf("%zu bytes", size);
+}
+
+#elif (SIZE_T_BITS == 16)
+
+string format_size(size_t size, bool include_bytes) {
+  if (size < KB_SIZE) {
+    return string_printf("%zu bytes", size);
+  }
+  if (include_bytes) {
+    return string_printf("%zu bytes (%.02f KB)", size, (float)size / KB_SIZE);
+  } else {
+    return string_printf("%.02f KB", (float)size / KB_SIZE);
+  }
+}
+
+#elif (SIZE_T_BITS == 32)
+
+string format_size(size_t size, bool include_bytes) {
   if (size < KB_SIZE) {
     return string_printf("%zu bytes", size);
   }
@@ -1045,10 +1063,31 @@ string format_size(size_t size, bool include_bytes) {
     if (size < GB_SIZE) {
       return string_printf("%zu bytes (%.02f MB)", size, (float)size / MB_SIZE);
     }
-#ifndef __x86_64__
-    // size_t can only represent up to 4GB in a 32-bit environment
     return string_printf("%zu bytes (%.02f GB)", size, (float)size / GB_SIZE);
-#else
+  } else {
+    if (size < MB_SIZE) {
+      return string_printf("%.02f KB", (float)size / KB_SIZE);
+    }
+    if (size < GB_SIZE) {
+      return string_printf("%.02f MB", (float)size / MB_SIZE);
+    }
+    return string_printf("%.02f GB", (float)size / GB_SIZE);
+  }
+}
+
+#elif (SIZE_T_BITS == 64)
+
+string format_size(size_t size, bool include_bytes) {
+  if (size < KB_SIZE) {
+    return string_printf("%zu bytes", size);
+  }
+  if (include_bytes) {
+    if (size < MB_SIZE) {
+      return string_printf("%zu bytes (%.02f KB)", size, (float)size / KB_SIZE);
+    }
+    if (size < GB_SIZE) {
+      return string_printf("%zu bytes (%.02f MB)", size, (float)size / MB_SIZE);
+    }
     if (size < TB_SIZE) {
       return string_printf("%zu bytes (%.02f GB)", size, (float)size / GB_SIZE);
     }
@@ -1059,7 +1098,6 @@ string format_size(size_t size, bool include_bytes) {
       return string_printf("%zu bytes (%.02f PB)", size, (float)size / PB_SIZE);
     }
     return string_printf("%zu bytes (%.02f EB)", size, (float)size / EB_SIZE);
-#endif
   } else {
     if (size < MB_SIZE) {
       return string_printf("%.02f KB", (float)size / KB_SIZE);
@@ -1067,10 +1105,6 @@ string format_size(size_t size, bool include_bytes) {
     if (size < GB_SIZE) {
       return string_printf("%.02f MB", (float)size / MB_SIZE);
     }
-#ifndef __x86_64__
-    // size_t can only represent up to 4GB in a 32-bit environment
-    return string_printf("%.02f GB", (float)size / GB_SIZE);
-#else
     if (size < TB_SIZE) {
       return string_printf("%.02f GB", (float)size / GB_SIZE);
     }
@@ -1081,9 +1115,10 @@ string format_size(size_t size, bool include_bytes) {
       return string_printf("%.02f PB", (float)size / PB_SIZE);
     }
     return string_printf("%.02f EB", (float)size / EB_SIZE);
-#endif
   }
 }
+
+#endif
 
 size_t parse_size(const char* str) {
   // input is like [0-9](\.[0-9]+)? *[KkMmGgTtPpEe]?[Bb]?
@@ -1102,14 +1137,17 @@ size_t parse_size(const char* str) {
       factor *= 0.1;
     }
   }
-  for (; *str == ' '; str++) { }
+  for (; *str == ' '; str++) {
+  }
+#if SIZE_T_BITS >= 16
   if (*str == 'K' || *str == 'k') {
     unit_scale = KB_SIZE;
+#if SIZE_T_BITS >= 32
   } else if (*str == 'M' || *str == 'm') {
     unit_scale = MB_SIZE;
   } else if (*str == 'G' || *str == 'g') {
     unit_scale = GB_SIZE;
-#if SIZE_WIDTH > 32
+#if SIZE_T_BITS == 64
   } else if (*str == 'T' || *str == 't') {
     unit_scale = TB_SIZE;
   } else if (*str == 'P' || *str == 'p') {
@@ -1117,25 +1155,32 @@ size_t parse_size(const char* str) {
   } else if (*str == 'E' || *str == 'e') {
     unit_scale = EB_SIZE;
 #endif
+#endif
   }
+#endif
 
   return integer_part * unit_scale + static_cast<size_t>(fractional_part * unit_scale);
 }
 
-
-
 BitReader::BitReader()
-  : owned_data(nullptr), data(nullptr), length(0), offset(0) { }
+    : owned_data(nullptr),
+      data(nullptr),
+      length(0),
+      offset(0) {}
 
-BitReader::BitReader(shared_ptr<string> data, size_t offset) :
-    owned_data(data), data(reinterpret_cast<const uint8_t*>(data->data())),
-    length(data->size() * 8), offset(offset) { }
+BitReader::BitReader(shared_ptr<string> data, size_t offset)
+    : owned_data(data),
+      data(reinterpret_cast<const uint8_t*>(data->data())),
+      length(data->size() * 8),
+      offset(offset) {}
 
-BitReader::BitReader(const void* data, size_t size, size_t offset) :
-    data(reinterpret_cast<const uint8_t*>(data)), length(size), offset(offset) { }
+BitReader::BitReader(const void* data, size_t size, size_t offset)
+    : data(reinterpret_cast<const uint8_t*>(data)),
+      length(size),
+      offset(offset) {}
 
-BitReader::BitReader(const string& data, size_t offset) :
-    BitReader(data.data(), data.size() * 8, offset) { }
+BitReader::BitReader(const string& data, size_t offset)
+    : BitReader(data.data(), data.size() * 8, offset) {}
 
 size_t BitReader::where() const {
   return this->offset;
@@ -1189,9 +1234,7 @@ uint64_t BitReader::read(uint8_t size, bool advance) {
   return ret;
 }
 
-
-
-BitWriter::BitWriter() : last_byte_unset_bits(0) { }
+BitWriter::BitWriter() : last_byte_unset_bits(0) {}
 
 size_t BitWriter::size() const {
   return this->data.size() * 8 - this->last_byte_unset_bits;
@@ -1227,20 +1270,25 @@ void BitWriter::write(bool v) {
   }
 }
 
-
-
 StringReader::StringReader()
-  : owned_data(nullptr), data(nullptr), length(0), offset(0) { }
+    : owned_data(nullptr),
+      data(nullptr),
+      length(0),
+      offset(0) {}
 
-StringReader::StringReader(shared_ptr<string> data, size_t offset) :
-    owned_data(data), data(reinterpret_cast<const uint8_t*>(data->data())),
-    length(data->size()), offset(offset) { }
+StringReader::StringReader(shared_ptr<string> data, size_t offset)
+    : owned_data(data),
+      data(reinterpret_cast<const uint8_t*>(data->data())),
+      length(data->size()),
+      offset(offset) {}
 
-StringReader::StringReader(const void* data, size_t size, size_t offset) :
-    data(reinterpret_cast<const uint8_t*>(data)), length(size), offset(offset) { }
+StringReader::StringReader(const void* data, size_t size, size_t offset)
+    : data(reinterpret_cast<const uint8_t*>(data)),
+      length(size),
+      offset(offset) {}
 
-StringReader::StringReader(const string& data, size_t offset) :
-    StringReader(data.data(), data.size(), offset) { }
+StringReader::StringReader(const string& data, size_t offset)
+    : StringReader(data.data(), data.size(), offset) {}
 
 size_t StringReader::where() const {
   return this->offset;
@@ -1480,8 +1528,6 @@ string StringReader::pget_cstr(size_t offset) const {
   }
   return ret;
 }
-
-
 
 size_t StringWriter::size() const {
   return this->data.size();

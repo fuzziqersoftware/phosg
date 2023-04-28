@@ -4,15 +4,13 @@
 #include <stdio.h>
 #include <time.h>
 
-#include <string>
 #include <set>
+#include <string>
 
-#include "Vector.hh"
 #include "UnitTest.hh"
+#include "Vector.hh"
 
 using namespace std;
-
-
 
 void run_randomized_test() {
   printf("-- randomized\n");
@@ -48,7 +46,7 @@ void run_randomized_test() {
   printf("--   erase 1\n");
   {
     // delete all points where x + y is an odd number
-    for (auto it = t.begin(); it != t.end(); ) {
+    for (auto it = t.begin(); it != t.end();) {
       expect_eq(1, points.count(make_pair(it->first.x, it->first.y)));
       if ((it->first.x + it->first.y) % 2) {
         t.erase_advance(it);
@@ -66,7 +64,7 @@ void run_randomized_test() {
   printf("--   erase 2\n");
   {
     // delete all points in (250, 250) -> (750, 750)
-    for (auto it = t.begin(); it != t.end(); ) {
+    for (auto it = t.begin(); it != t.end();) {
       expect_eq(1, points.count(make_pair(it->first.x, it->first.y)));
       if ((it->first.x >= 250) && (it->first.y >= 250) &&
           (it->first.x < 750) && (it->first.y < 750)) {
@@ -85,8 +83,6 @@ void run_randomized_test() {
   expect_eq(false, t.exists({250, 250}, {750, 750}));
   expect_eq(true, t.exists({0, 0}, {1000, 1000}));
 }
-
-
 
 void run_basic_test() {
   printf("-- basic\n");
@@ -118,12 +114,12 @@ void run_basic_test() {
     }
   };
   const vector<Entry> entries({
-    {2, 3, 0},
-    {5, 4, 1},
-    {9, 6, 2},
-    {4, 7, 3},
-    {8, 1, 4},
-    {7, 2, 5},
+      {2, 3, 0},
+      {5, 4, 1},
+      {9, 6, 2},
+      {4, 7, 3},
+      {8, 1, 4},
+      {7, 2, 5},
   });
 
   printf("--   insert\n");
@@ -140,7 +136,8 @@ void run_basic_test() {
   try {
     t.at({8, 2});
     expect(false);
-  } catch (const out_of_range&) { }
+  } catch (const out_of_range&) {
+  }
   expect_eq(true, t.exists({5, 4}));
   expect_eq(false, t.exists({5, 3}));
 
@@ -209,7 +206,6 @@ void run_basic_test() {
     expect_eq(0, remaining_entries.size());
   }
 }
-
 
 int main(int, char** argv) {
   run_basic_test();

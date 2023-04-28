@@ -6,7 +6,6 @@
 
 using namespace std;
 
-
 int main(int, char** argv) {
 
   uint64_t start_time = now();

@@ -7,8 +7,6 @@
 #include <memory>
 #include <vector>
 
-
-
 template <typename CoordType, typename ValueType>
 class KDTree {
 private:
@@ -24,7 +22,7 @@ private:
 
     Node(Node* parent, const CoordType& pt, size_t dim, const ValueType& v);
 
-    template<typename... Args>
+    template <typename... Args>
     Node(const CoordType& pt, Args&&... args);
   };
 

@@ -4,7 +4,6 @@
 #include "Encoding.hh"
 #include "UnitTest.hh"
 
-
 int main(int, char** argv) {
   expect_eq(0x0000, (sign_extend<uint16_t, uint8_t>(0x00)));
   expect_eq(0x0001, (sign_extend<uint16_t, uint8_t>(0x01)));

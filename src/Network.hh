@@ -1,12 +1,11 @@
 #pragma once
 
 #include <stdint.h>
-#include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 
 #include <string>
 #include <utility>
-
 
 std::pair<struct sockaddr_storage, size_t> make_sockaddr_storage(
     const std::string& addr, uint16_t port);

@@ -5,7 +5,6 @@
 
 #include <unordered_map>
 
-
 template <typename K>
 class LRUSet {
 protected:

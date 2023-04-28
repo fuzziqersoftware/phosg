@@ -10,10 +10,9 @@
 #include <string>
 #include <vector>
 
-#include "Platform.hh"
 #include "Encoding.hh"
 #include "Filesystem.hh"
-
+#include "Platform.hh"
 
 std::unique_ptr<void, void (*)(void*)> malloc_unique(size_t size);
 
@@ -101,9 +100,9 @@ void log_info_v(const char* fmt, va_list va);
 void log_warning_v(const char* fmt, va_list va);
 void log_error_v(const char* fmt, va_list va);
 
-
 template <LogLevel LEVEL>
-ATTR_PRINTF(1, 2) void log(const char* fmt, ...) {
+ATTR_PRINTF(1, 2)
+void log(const char* fmt, ...) {
   if (should_log(LEVEL)) {
     va_list va;
     va_start(va, fmt);
@@ -112,10 +111,14 @@ ATTR_PRINTF(1, 2) void log(const char* fmt, ...) {
   }
 }
 
-ATTR_PRINTF(1, 2) void log_debug(const char* fmt, ...);
-ATTR_PRINTF(1, 2) void log_info(const char* fmt, ...);
-ATTR_PRINTF(1, 2) void log_warning(const char* fmt, ...);
-ATTR_PRINTF(1, 2) void log_error(const char* fmt, ...);
+ATTR_PRINTF(1, 2)
+void log_debug(const char* fmt, ...);
+ATTR_PRINTF(1, 2)
+void log_info(const char* fmt, ...);
+ATTR_PRINTF(1, 2)
+void log_warning(const char* fmt, ...);
+ATTR_PRINTF(1, 2)
+void log_error(const char* fmt, ...);
 
 struct PrefixedLogger {
   std::string prefix;
@@ -144,30 +147,31 @@ struct PrefixedLogger {
     return true;
   }
 
-  bool debug_v(const char* fmt, va_list va) const   { return this->v<LogLevel::DEBUG>(fmt, va); }
-  bool info_v(const char* fmt, va_list va) const    { return this->v<LogLevel::INFO>(fmt, va); }
+  bool debug_v(const char* fmt, va_list va) const { return this->v<LogLevel::DEBUG>(fmt, va); }
+  bool info_v(const char* fmt, va_list va) const { return this->v<LogLevel::INFO>(fmt, va); }
   bool warning_v(const char* fmt, va_list va) const { return this->v<LogLevel::WARNING>(fmt, va); }
-  bool error_v(const char* fmt, va_list va) const   { return this->v<LogLevel::ERROR>(fmt, va); }
+  bool error_v(const char* fmt, va_list va) const { return this->v<LogLevel::ERROR>(fmt, va); }
 
-#define LOG_HELPER_BODY(LEVEL) \
-    if (!this->should_log(LEVEL)) { \
-      return false; \
-    } \
-    va_list va; \
-    va_start(va, fmt); \
-    this->v<LEVEL>(fmt, va); \
-    va_end(va); \
-    return true;
+#define LOG_HELPER_BODY(LEVEL)    \
+  if (!this->should_log(LEVEL)) { \
+    return false;                 \
+  }                               \
+  va_list va;                     \
+  va_start(va, fmt);              \
+  this->v<LEVEL>(fmt, va);        \
+  va_end(va);                     \
+  return true;
 
   template <LogLevel LEVEL>
-  ATTR_PRINTF(2, 3) bool operator()(const char* fmt, ...) const {
+  ATTR_PRINTF(2, 3)
+  bool operator()(const char* fmt, ...) const {
     LOG_HELPER_BODY(LEVEL);
   }
 
-  bool debug(const char* fmt, ...) const ATTR_PRINTF(2, 3)   { LOG_HELPER_BODY(LogLevel::DEBUG); }
-  bool info(const char* fmt, ...) const ATTR_PRINTF(2, 3)    { LOG_HELPER_BODY(LogLevel::INFO); }
+  bool debug(const char* fmt, ...) const ATTR_PRINTF(2, 3) { LOG_HELPER_BODY(LogLevel::DEBUG); }
+  bool info(const char* fmt, ...) const ATTR_PRINTF(2, 3) { LOG_HELPER_BODY(LogLevel::INFO); }
   bool warning(const char* fmt, ...) const ATTR_PRINTF(2, 3) { LOG_HELPER_BODY(LogLevel::WARNING); }
-  bool error(const char* fmt, ...) const ATTR_PRINTF(2, 3)   { LOG_HELPER_BODY(LogLevel::ERROR); }
+  bool error(const char* fmt, ...) const ATTR_PRINTF(2, 3) { LOG_HELPER_BODY(LogLevel::ERROR); }
 
 #undef LOG_HELPER_BODY
 };
@@ -176,7 +180,7 @@ std::vector<std::string> split(const std::string& s, char delim, size_t max_spli
 std::vector<std::wstring> split(const std::wstring& s, wchar_t delim, size_t max_splits = 0);
 std::vector<std::string> split_context(const std::string& s, char delim, size_t max_splits = 0);
 
-template<typename ItemContainerT, typename DelimiterT>
+template <typename ItemContainerT, typename DelimiterT>
 std::string join(const ItemContainerT& items, DelimiterT& delim) {
   std::string ret;
   for (const auto& item : items) {
@@ -188,7 +192,7 @@ std::string join(const ItemContainerT& items, DelimiterT& delim) {
   return ret;
 }
 
-template<typename ItemContainerT>
+template <typename ItemContainerT>
 std::string join(const ItemContainerT& items) {
   std::string ret;
   for (const auto& item : items) {
@@ -207,30 +211,30 @@ size_t skip_word(const char* s, size_t offset);
 std::string string_for_error(int error);
 
 enum class TerminalFormat {
-  END        = -1,
-  NORMAL     = 0,
-  BOLD       = 1,
-  UNDERLINE  = 4,
-  BLINK      = 5,
-  INVERSE    = 7,
-  FG_BLACK   = 30,
-  FG_RED     = 31,
-  FG_GREEN   = 32,
-  FG_YELLOW  = 33,
-  FG_BLUE    = 34,
+  END = -1,
+  NORMAL = 0,
+  BOLD = 1,
+  UNDERLINE = 4,
+  BLINK = 5,
+  INVERSE = 7,
+  FG_BLACK = 30,
+  FG_RED = 31,
+  FG_GREEN = 32,
+  FG_YELLOW = 33,
+  FG_BLUE = 34,
   FG_MAGENTA = 35,
-  FG_CYAN    = 36,
-  FG_GRAY    = 37,
-  FG_WHITE   = 38,
-  BG_BLACK   = 40,
-  BG_RED     = 41,
-  BG_GREEN   = 42,
-  BG_YELLOW  = 43,
-  BG_BLUE    = 44,
+  FG_CYAN = 36,
+  FG_GRAY = 37,
+  FG_WHITE = 38,
+  BG_BLACK = 40,
+  BG_RED = 41,
+  BG_GREEN = 42,
+  BG_YELLOW = 43,
+  BG_BLUE = 44,
   BG_MAGENTA = 45,
-  BG_CYAN    = 46,
-  BG_GRAY    = 47,
-  BG_WHITE   = 48,
+  BG_CYAN = 46,
+  BG_GRAY = 47,
+  BG_WHITE = 48,
 };
 
 std::string vformat_color_escape(TerminalFormat color, va_list va);
@@ -240,22 +244,22 @@ void print_color_escape(FILE* stream, TerminalFormat color, ...);
 void print_indent(FILE* stream, int indent_level);
 
 enum PrintDataFlags {
-  USE_COLOR             = 0x0001, // Force color output (for diffs and non-ASCII)
-  PRINT_ASCII           = 0x0002, // Print ASCII view on the right
-  PRINT_FLOAT           = 0x0004, // Print float view on the right
-  PRINT_DOUBLE          = 0x0008, // Print double view on the right
+  USE_COLOR = 0x0001, // Force color output (for diffs and non-ASCII)
+  PRINT_ASCII = 0x0002, // Print ASCII view on the right
+  PRINT_FLOAT = 0x0004, // Print float view on the right
+  PRINT_DOUBLE = 0x0008, // Print double view on the right
   REVERSE_ENDIAN_FLOATS = 0x0010, // Floats/doubles should be byteswapped
-  COLLAPSE_ZERO_LINES   = 0x0020, // Skip lines of all zeroes
-  SKIP_SEPARATOR        = 0x0040, // Instead of " | ", print just " "
-  DISABLE_COLOR         = 0x0080, // Never use color output
-  OFFSET_8_BITS         = 0x0100, // Always use 2 hex digits in offset column
-  OFFSET_16_BITS        = 0x0200, // Always use 4 hex digits in offset column
-  OFFSET_32_BITS        = 0x0400, // Always use 8 hex digits in offset column
-  OFFSET_64_BITS        = 0x0800, // Always use 16 hex digits in offset column
-  BIG_ENDIAN_FLOATS     = 0x1000, // Floats/doubles are explicitly big-endian
-  LITTLE_ENDIAN_FLOATS  = 0x2000, // Floats/doubles are explicitly little-endian
+  COLLAPSE_ZERO_LINES = 0x0020, // Skip lines of all zeroes
+  SKIP_SEPARATOR = 0x0040, // Instead of " | ", print just " "
+  DISABLE_COLOR = 0x0080, // Never use color output
+  OFFSET_8_BITS = 0x0100, // Always use 2 hex digits in offset column
+  OFFSET_16_BITS = 0x0200, // Always use 4 hex digits in offset column
+  OFFSET_32_BITS = 0x0400, // Always use 8 hex digits in offset column
+  OFFSET_64_BITS = 0x0800, // Always use 16 hex digits in offset column
+  BIG_ENDIAN_FLOATS = 0x1000, // Floats/doubles are explicitly big-endian
+  LITTLE_ENDIAN_FLOATS = 0x2000, // Floats/doubles are explicitly little-endian
 
-  DEFAULT             = PRINT_ASCII,
+  DEFAULT = PRINT_ASCII,
 };
 
 void print_data(
@@ -392,7 +396,8 @@ public:
     }
     return this->data + offset;
   }
-  template <typename T> const T& pget(size_t offset, size_t size = sizeof(T)) const {
+  template <typename T>
+  const T& pget(size_t offset, size_t size = sizeof(T)) const {
     return *reinterpret_cast<const T*>(this->pgetv(offset, size));
   }
 
@@ -403,7 +408,8 @@ public:
     }
     return ret;
   }
-  template <typename T> const T& get(bool advance = true, size_t size = sizeof(T)) {
+  template <typename T>
+  const T& get(bool advance = true, size_t size = sizeof(T)) {
     const T& ret = this->pget<T>(this->offset, size);
     if (advance) {
       this->offset += size;
@@ -411,47 +417,47 @@ public:
     return ret;
   }
 
-  inline uint8_t get_u8(bool advance = true)     { return this->get<uint8_t>(advance); }
-  inline int8_t get_s8(bool advance = true)      { return this->get<int8_t>(advance); }
-  inline uint8_t pget_u8(size_t offset) const    { return this->pget<uint8_t>(offset); }
-  inline int8_t pget_s8(size_t offset) const     { return this->pget<int8_t>(offset); }
+  inline uint8_t get_u8(bool advance = true) { return this->get<uint8_t>(advance); }
+  inline int8_t get_s8(bool advance = true) { return this->get<int8_t>(advance); }
+  inline uint8_t pget_u8(size_t offset) const { return this->pget<uint8_t>(offset); }
+  inline int8_t pget_s8(size_t offset) const { return this->pget<int8_t>(offset); }
 
-  inline uint16_t get_u16b(bool advance = true)  { return this->get<be_uint16_t>(advance); }
-  inline uint16_t get_u16l(bool advance = true)  { return this->get<le_uint16_t>(advance); }
-  inline int16_t get_s16b(bool advance = true)   { return this->get<be_int16_t>(advance); }
-  inline int16_t get_s16l(bool advance = true)   { return this->get<le_int16_t>(advance); }
+  inline uint16_t get_u16b(bool advance = true) { return this->get<be_uint16_t>(advance); }
+  inline uint16_t get_u16l(bool advance = true) { return this->get<le_uint16_t>(advance); }
+  inline int16_t get_s16b(bool advance = true) { return this->get<be_int16_t>(advance); }
+  inline int16_t get_s16l(bool advance = true) { return this->get<le_int16_t>(advance); }
   inline uint16_t pget_u16b(size_t offset) const { return this->pget<be_uint16_t>(offset); }
   inline uint16_t pget_u16l(size_t offset) const { return this->pget<le_uint16_t>(offset); }
-  inline int16_t pget_s16b(size_t offset) const  { return this->pget<be_int16_t>(offset); }
-  inline int16_t pget_s16l(size_t offset) const  { return this->pget<le_int16_t>(offset); }
+  inline int16_t pget_s16b(size_t offset) const { return this->pget<be_int16_t>(offset); }
+  inline int16_t pget_s16l(size_t offset) const { return this->pget<le_int16_t>(offset); }
 
-  inline uint32_t get_u32b(bool advance = true)  { return this->get<be_uint32_t>(advance); }
-  inline uint32_t get_u32l(bool advance = true)  { return this->get<le_uint32_t>(advance); }
-  inline int32_t get_s32b(bool advance = true)   { return this->get<be_int32_t>(advance); }
-  inline int32_t get_s32l(bool advance = true)   { return this->get<le_int32_t>(advance); }
+  inline uint32_t get_u32b(bool advance = true) { return this->get<be_uint32_t>(advance); }
+  inline uint32_t get_u32l(bool advance = true) { return this->get<le_uint32_t>(advance); }
+  inline int32_t get_s32b(bool advance = true) { return this->get<be_int32_t>(advance); }
+  inline int32_t get_s32l(bool advance = true) { return this->get<le_int32_t>(advance); }
   inline uint32_t pget_u32b(size_t offset) const { return this->pget<be_uint32_t>(offset); }
   inline uint32_t pget_u32l(size_t offset) const { return this->pget<le_uint32_t>(offset); }
-  inline int32_t pget_s32b(size_t offset) const  { return this->pget<be_int32_t>(offset); }
-  inline int32_t pget_s32l(size_t offset) const  { return this->pget<le_int32_t>(offset); }
+  inline int32_t pget_s32b(size_t offset) const { return this->pget<be_int32_t>(offset); }
+  inline int32_t pget_s32l(size_t offset) const { return this->pget<le_int32_t>(offset); }
 
-  inline uint64_t get_u64b(bool advance = true)  { return this->get<be_uint64_t>(advance); }
-  inline uint64_t get_u64l(bool advance = true)  { return this->get<le_uint64_t>(advance); }
-  inline int64_t get_s64b(bool advance = true)   { return this->get<be_int64_t>(advance); }
-  inline int64_t get_s64l(bool advance = true)   { return this->get<le_int64_t>(advance); }
+  inline uint64_t get_u64b(bool advance = true) { return this->get<be_uint64_t>(advance); }
+  inline uint64_t get_u64l(bool advance = true) { return this->get<le_uint64_t>(advance); }
+  inline int64_t get_s64b(bool advance = true) { return this->get<be_int64_t>(advance); }
+  inline int64_t get_s64l(bool advance = true) { return this->get<le_int64_t>(advance); }
   inline uint64_t pget_u64b(size_t offset) const { return this->pget<be_uint64_t>(offset); }
   inline uint64_t pget_u64l(size_t offset) const { return this->pget<le_uint64_t>(offset); }
-  inline int64_t pget_s64b(size_t offset) const  { return this->pget<be_int64_t>(offset); }
-  inline int64_t pget_s64l(size_t offset) const  { return this->pget<le_int64_t>(offset); }
+  inline int64_t pget_s64b(size_t offset) const { return this->pget<be_int64_t>(offset); }
+  inline int64_t pget_s64l(size_t offset) const { return this->pget<le_int64_t>(offset); }
 
-  inline float get_f32b(bool advance = true)     { return this->get<be_float>(advance); }
-  inline float get_f32l(bool advance = true)     { return this->get<le_float>(advance); }
-  inline float pget_f32b(size_t offset) const    { return this->pget<be_float>(offset); }
-  inline float pget_f32l(size_t offset) const    { return this->pget<le_float>(offset); }
+  inline float get_f32b(bool advance = true) { return this->get<be_float>(advance); }
+  inline float get_f32l(bool advance = true) { return this->get<le_float>(advance); }
+  inline float pget_f32b(size_t offset) const { return this->pget<be_float>(offset); }
+  inline float pget_f32l(size_t offset) const { return this->pget<le_float>(offset); }
 
-  inline double get_f64b(bool advance = true)    { return this->get<be_double>(advance); }
-  inline double get_f64l(bool advance = true)    { return this->get<le_double>(advance); }
-  inline double pget_f64b(size_t offset) const   { return this->pget<be_double>(offset); }
-  inline double pget_f64l(size_t offset) const   { return this->pget<le_double>(offset); }
+  inline double get_f64b(bool advance = true) { return this->get<be_double>(advance); }
+  inline double get_f64l(bool advance = true) { return this->get<le_double>(advance); }
+  inline double pget_f64b(size_t offset) const { return this->pget<be_double>(offset); }
+  inline double pget_f64l(size_t offset) const { return this->pget<le_double>(offset); }
 
   inline uint32_t get_u24b(bool advance = true) {
     uint32_t ret = this->pget_u24b(this->offset);
@@ -506,22 +512,22 @@ public:
       throw std::out_of_range("end of string");
     }
     return (static_cast<uint64_t>(this->data[offset]) << 40) |
-           (static_cast<uint64_t>(this->data[offset + 1]) << 32) |
-           (static_cast<uint64_t>(this->data[offset + 2]) << 24) |
-           (static_cast<uint64_t>(this->data[offset + 3]) << 16) |
-           (static_cast<uint64_t>(this->data[offset + 4]) << 8) |
-           (static_cast<uint64_t>(this->data[offset + 5]));
+        (static_cast<uint64_t>(this->data[offset + 1]) << 32) |
+        (static_cast<uint64_t>(this->data[offset + 2]) << 24) |
+        (static_cast<uint64_t>(this->data[offset + 3]) << 16) |
+        (static_cast<uint64_t>(this->data[offset + 4]) << 8) |
+        (static_cast<uint64_t>(this->data[offset + 5]));
   }
   inline uint64_t pget_u48l(size_t offset) const {
     if (offset + 6 > this->length) {
       throw std::out_of_range("end of string");
     }
     return (static_cast<uint64_t>(this->data[offset])) |
-           (static_cast<uint64_t>(this->data[offset + 1]) << 8) |
-           (static_cast<uint64_t>(this->data[offset + 2]) << 16) |
-           (static_cast<uint64_t>(this->data[offset + 3]) << 24) |
-           (static_cast<uint64_t>(this->data[offset + 4]) << 32) |
-           (static_cast<uint64_t>(this->data[offset + 5]) << 40);
+        (static_cast<uint64_t>(this->data[offset + 1]) << 8) |
+        (static_cast<uint64_t>(this->data[offset + 2]) << 16) |
+        (static_cast<uint64_t>(this->data[offset + 3]) << 24) |
+        (static_cast<uint64_t>(this->data[offset + 4]) << 32) |
+        (static_cast<uint64_t>(this->data[offset + 5]) << 40);
   }
   inline int64_t pget_s48b(size_t offset) const { return ext48(this->pget_u48b(offset)); }
   inline int64_t pget_s48l(size_t offset) const { return ext48(this->pget_u48l(offset)); }
@@ -556,7 +562,8 @@ public:
   void write(const void* data, size_t size);
   void write(const std::string& data);
 
-  template <typename T> void put(const T& v) {
+  template <typename T>
+  void put(const T& v) {
     this->data.append(reinterpret_cast<const char*>(&v), sizeof(v));
   }
 
@@ -568,97 +575,97 @@ public:
     *reinterpret_cast<T*>(this->data.data() + offset) = v;
   }
 
-  inline void put_u8(uint8_t v)    { this->put<uint8_t>(v); }
-  inline void put_s8(int8_t v)     { this->put<int8_t>(v); }
-  inline void put_u16(uint16_t v)  { this->put<uint16_t>(v); }
-  inline void put_s16(int16_t v)   { this->put<int16_t>(v); }
-  inline void put_u24(uint32_t v)  { this->put<uint32_t>(v); }
-  inline void put_s24(int32_t v)   { this->put<int32_t>(v); }
-  inline void put_u32(uint32_t v)  { this->put<uint32_t>(v); }
-  inline void put_s32(int32_t v)   { this->put<int32_t>(v); }
-  inline void put_u48(uint64_t v)  { this->put<uint64_t>(v); }
-  inline void put_s48(int64_t v)   { this->put<int64_t>(v); }
-  inline void put_u64(uint64_t v)  { this->put<uint64_t>(v); }
-  inline void put_s64(int64_t v)   { this->put<int64_t>(v); }
+  inline void put_u8(uint8_t v) { this->put<uint8_t>(v); }
+  inline void put_s8(int8_t v) { this->put<int8_t>(v); }
+  inline void put_u16(uint16_t v) { this->put<uint16_t>(v); }
+  inline void put_s16(int16_t v) { this->put<int16_t>(v); }
+  inline void put_u24(uint32_t v) { this->put<uint32_t>(v); }
+  inline void put_s24(int32_t v) { this->put<int32_t>(v); }
+  inline void put_u32(uint32_t v) { this->put<uint32_t>(v); }
+  inline void put_s32(int32_t v) { this->put<int32_t>(v); }
+  inline void put_u48(uint64_t v) { this->put<uint64_t>(v); }
+  inline void put_s48(int64_t v) { this->put<int64_t>(v); }
+  inline void put_u64(uint64_t v) { this->put<uint64_t>(v); }
+  inline void put_s64(int64_t v) { this->put<int64_t>(v); }
 
   inline void put_u16r(uint16_t v) { this->put<re_uint16_t>(v); }
-  inline void put_s16r(int16_t v)  { this->put<re_int16_t>(v); }
+  inline void put_s16r(int16_t v) { this->put<re_int16_t>(v); }
   inline void put_u24r(uint32_t v) { this->put<re_uint32_t>(v); }
-  inline void put_s24r(int32_t v)  { this->put<re_int32_t>(v); }
+  inline void put_s24r(int32_t v) { this->put<re_int32_t>(v); }
   inline void put_u32r(uint32_t v) { this->put<re_uint32_t>(v); }
-  inline void put_s32r(int32_t v)  { this->put<re_int32_t>(v); }
+  inline void put_s32r(int32_t v) { this->put<re_int32_t>(v); }
   inline void put_u48r(uint64_t v) { this->put<re_uint64_t>(v); }
-  inline void put_s48r(int64_t v)  { this->put<re_int64_t>(v); }
+  inline void put_s48r(int64_t v) { this->put<re_int64_t>(v); }
   inline void put_u64r(uint64_t v) { this->put<re_uint64_t>(v); }
-  inline void put_s64r(int64_t v)  { this->put<re_int64_t>(v); }
+  inline void put_s64r(int64_t v) { this->put<re_int64_t>(v); }
 
   inline void put_u16b(uint16_t v) { this->put<be_uint16_t>(v); }
-  inline void put_s16b(int16_t v)  { this->put<be_int16_t>(v); }
+  inline void put_s16b(int16_t v) { this->put<be_int16_t>(v); }
   inline void put_u24b(uint32_t v) { this->put<be_uint32_t>(v); }
-  inline void put_s24b(int32_t v)  { this->put<be_int32_t>(v); }
+  inline void put_s24b(int32_t v) { this->put<be_int32_t>(v); }
   inline void put_u32b(uint32_t v) { this->put<be_uint32_t>(v); }
-  inline void put_s32b(int32_t v)  { this->put<be_int32_t>(v); }
+  inline void put_s32b(int32_t v) { this->put<be_int32_t>(v); }
   inline void put_u48b(uint64_t v) { this->put<be_uint64_t>(v); }
-  inline void put_s48b(int64_t v)  { this->put<be_int64_t>(v); }
+  inline void put_s48b(int64_t v) { this->put<be_int64_t>(v); }
   inline void put_u64b(uint64_t v) { this->put<be_uint64_t>(v); }
-  inline void put_s64b(int64_t v)  { this->put<be_int64_t>(v); }
+  inline void put_s64b(int64_t v) { this->put<be_int64_t>(v); }
 
   inline void put_u16l(uint16_t v) { this->put<le_uint16_t>(v); }
-  inline void put_s16l(int16_t v)  { this->put<le_int16_t>(v); }
+  inline void put_s16l(int16_t v) { this->put<le_int16_t>(v); }
   inline void put_u24l(uint32_t v) { this->put<le_uint32_t>(v); }
-  inline void put_s24l(int32_t v)  { this->put<le_int32_t>(v); }
+  inline void put_s24l(int32_t v) { this->put<le_int32_t>(v); }
   inline void put_u32l(uint32_t v) { this->put<le_uint32_t>(v); }
-  inline void put_s32l(int32_t v)  { this->put<le_int32_t>(v); }
+  inline void put_s32l(int32_t v) { this->put<le_int32_t>(v); }
   inline void put_u48l(uint64_t v) { this->put<le_uint64_t>(v); }
-  inline void put_s48l(int64_t v)  { this->put<le_int64_t>(v); }
+  inline void put_s48l(int64_t v) { this->put<le_int64_t>(v); }
   inline void put_u64l(uint64_t v) { this->put<le_uint64_t>(v); }
-  inline void put_s64l(int64_t v)  { this->put<le_int64_t>(v); }
+  inline void put_s64l(int64_t v) { this->put<le_int64_t>(v); }
 
-  inline void pput_u8(size_t offset, uint8_t v)    { this->pput<uint8_t>(offset, v); }
-  inline void pput_s8(size_t offset, int8_t v)     { this->pput<int8_t>(offset, v); }
-  inline void pput_u16(size_t offset, uint16_t v)  { this->pput<uint16_t>(offset, v); }
-  inline void pput_s16(size_t offset, int16_t v)   { this->pput<int16_t>(offset, v); }
-  inline void pput_u24(size_t offset, uint32_t v)  { this->pput<uint32_t>(offset, v); }
-  inline void pput_s24(size_t offset, int32_t v)   { this->pput<int32_t>(offset, v); }
-  inline void pput_u32(size_t offset, uint32_t v)  { this->pput<uint32_t>(offset, v); }
-  inline void pput_s32(size_t offset, int32_t v)   { this->pput<int32_t>(offset, v); }
-  inline void pput_u48(size_t offset, uint64_t v)  { this->pput<uint64_t>(offset, v); }
-  inline void pput_s48(size_t offset, int64_t v)   { this->pput<int64_t>(offset, v); }
-  inline void pput_u64(size_t offset, uint64_t v)  { this->pput<uint64_t>(offset, v); }
-  inline void pput_s64(size_t offset, int64_t v)   { this->pput<int64_t>(offset, v); }
+  inline void pput_u8(size_t offset, uint8_t v) { this->pput<uint8_t>(offset, v); }
+  inline void pput_s8(size_t offset, int8_t v) { this->pput<int8_t>(offset, v); }
+  inline void pput_u16(size_t offset, uint16_t v) { this->pput<uint16_t>(offset, v); }
+  inline void pput_s16(size_t offset, int16_t v) { this->pput<int16_t>(offset, v); }
+  inline void pput_u24(size_t offset, uint32_t v) { this->pput<uint32_t>(offset, v); }
+  inline void pput_s24(size_t offset, int32_t v) { this->pput<int32_t>(offset, v); }
+  inline void pput_u32(size_t offset, uint32_t v) { this->pput<uint32_t>(offset, v); }
+  inline void pput_s32(size_t offset, int32_t v) { this->pput<int32_t>(offset, v); }
+  inline void pput_u48(size_t offset, uint64_t v) { this->pput<uint64_t>(offset, v); }
+  inline void pput_s48(size_t offset, int64_t v) { this->pput<int64_t>(offset, v); }
+  inline void pput_u64(size_t offset, uint64_t v) { this->pput<uint64_t>(offset, v); }
+  inline void pput_s64(size_t offset, int64_t v) { this->pput<int64_t>(offset, v); }
 
   inline void pput_u16r(size_t offset, uint16_t v) { this->pput<re_uint16_t>(offset, v); }
-  inline void pput_s16r(size_t offset, int16_t v)  { this->pput<re_int16_t>(offset, v); }
+  inline void pput_s16r(size_t offset, int16_t v) { this->pput<re_int16_t>(offset, v); }
   inline void pput_u24r(size_t offset, uint32_t v) { this->pput<re_uint32_t>(offset, v); }
-  inline void pput_s24r(size_t offset, int32_t v)  { this->pput<re_int32_t>(offset, v); }
+  inline void pput_s24r(size_t offset, int32_t v) { this->pput<re_int32_t>(offset, v); }
   inline void pput_u32r(size_t offset, uint32_t v) { this->pput<re_uint32_t>(offset, v); }
-  inline void pput_s32r(size_t offset, int32_t v)  { this->pput<re_int32_t>(offset, v); }
+  inline void pput_s32r(size_t offset, int32_t v) { this->pput<re_int32_t>(offset, v); }
   inline void pput_u48r(size_t offset, uint64_t v) { this->pput<re_uint64_t>(offset, v); }
-  inline void pput_s48r(size_t offset, int64_t v)  { this->pput<re_int64_t>(offset, v); }
+  inline void pput_s48r(size_t offset, int64_t v) { this->pput<re_int64_t>(offset, v); }
   inline void pput_u64r(size_t offset, uint64_t v) { this->pput<re_uint64_t>(offset, v); }
-  inline void pput_s64r(size_t offset, int64_t v)  { this->pput<re_int64_t>(offset, v); }
+  inline void pput_s64r(size_t offset, int64_t v) { this->pput<re_int64_t>(offset, v); }
 
   inline void pput_u16b(size_t offset, uint16_t v) { this->pput<be_uint16_t>(offset, v); }
-  inline void pput_s16b(size_t offset, int16_t v)  { this->pput<be_int16_t>(offset, v); }
+  inline void pput_s16b(size_t offset, int16_t v) { this->pput<be_int16_t>(offset, v); }
   inline void pput_u24b(size_t offset, uint32_t v) { this->pput<be_uint32_t>(offset, v); }
-  inline void pput_s24b(size_t offset, int32_t v)  { this->pput<be_int32_t>(offset, v); }
+  inline void pput_s24b(size_t offset, int32_t v) { this->pput<be_int32_t>(offset, v); }
   inline void pput_u32b(size_t offset, uint32_t v) { this->pput<be_uint32_t>(offset, v); }
-  inline void pput_s32b(size_t offset, int32_t v)  { this->pput<be_int32_t>(offset, v); }
+  inline void pput_s32b(size_t offset, int32_t v) { this->pput<be_int32_t>(offset, v); }
   inline void pput_u48b(size_t offset, uint64_t v) { this->pput<be_uint64_t>(offset, v); }
-  inline void pput_s48b(size_t offset, int64_t v)  { this->pput<be_int64_t>(offset, v); }
+  inline void pput_s48b(size_t offset, int64_t v) { this->pput<be_int64_t>(offset, v); }
   inline void pput_u64b(size_t offset, uint64_t v) { this->pput<be_uint64_t>(offset, v); }
-  inline void pput_s64b(size_t offset, int64_t v)  { this->pput<be_int64_t>(offset, v); }
+  inline void pput_s64b(size_t offset, int64_t v) { this->pput<be_int64_t>(offset, v); }
 
   inline void pput_u16l(size_t offset, uint16_t v) { this->pput<le_uint16_t>(offset, v); }
-  inline void pput_s16l(size_t offset, int16_t v)  { this->pput<le_int16_t>(offset, v); }
+  inline void pput_s16l(size_t offset, int16_t v) { this->pput<le_int16_t>(offset, v); }
   inline void pput_u24l(size_t offset, uint32_t v) { this->pput<le_uint32_t>(offset, v); }
-  inline void pput_s24l(size_t offset, int32_t v)  { this->pput<le_int32_t>(offset, v); }
+  inline void pput_s24l(size_t offset, int32_t v) { this->pput<le_int32_t>(offset, v); }
   inline void pput_u32l(size_t offset, uint32_t v) { this->pput<le_uint32_t>(offset, v); }
-  inline void pput_s32l(size_t offset, int32_t v)  { this->pput<le_int32_t>(offset, v); }
+  inline void pput_s32l(size_t offset, int32_t v) { this->pput<le_int32_t>(offset, v); }
   inline void pput_u48l(size_t offset, uint64_t v) { this->pput<le_uint64_t>(offset, v); }
-  inline void pput_s48l(size_t offset, int64_t v)  { this->pput<le_int64_t>(offset, v); }
+  inline void pput_s48l(size_t offset, int64_t v) { this->pput<le_int64_t>(offset, v); }
   inline void pput_u64l(size_t offset, uint64_t v) { this->pput<le_uint64_t>(offset, v); }
-  inline void pput_s64l(size_t offset, int64_t v)  { this->pput<le_int64_t>(offset, v); }
+  inline void pput_s64l(size_t offset, int64_t v) { this->pput<le_int64_t>(offset, v); }
 
   inline std::string& str() {
     return this->data;
@@ -674,7 +681,7 @@ private:
 template <typename T>
 class StringBuffer : std::string {
 public:
-  StringBuffer(size_t size = sizeof(T)) : std::string(size, '\0') { }
+  StringBuffer(size_t size = sizeof(T)) : std::string(size, '\0') {}
   virtual ~StringBuffer() = default;
 
   T* buffer() {

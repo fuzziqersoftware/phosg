@@ -19,8 +19,8 @@
 #include <signal.h>
 #endif
 
-#include <set>
 #include <deque>
+#include <set>
 
 #include "Filesystem.hh"
 #include "Strings.hh"
@@ -28,14 +28,13 @@
 
 using namespace std;
 
-
-unique_ptr<FILE, void(*)(FILE*)> popen_unique(const string& command,
+unique_ptr<FILE, void (*)(FILE*)> popen_unique(const string& command,
     const string& mode) {
-  unique_ptr<FILE, void(*)(FILE*)> f(
-    popen(command.c_str(), mode.c_str()),
-    [](FILE* f) {
-      pclose(f);
-    });
+  unique_ptr<FILE, void (*)(FILE*)> f(
+      popen(command.c_str(), mode.c_str()),
+      [](FILE* f) {
+        pclose(f);
+      });
   if (!f.get()) {
     throw cannot_open_file(command);
   }
@@ -89,8 +88,7 @@ pid_t pid_for_name(const string& name, bool search_commands, bool exclude_self) 
 // calls the specified callback once for each process
 unordered_map<pid_t, string> list_processes(bool with_commands) {
 
-  auto f = popen_unique(with_commands ? "ps -ax -o pid -o command | grep [0-9]" :
-      "ps -ax -c -o pid -o command | grep [0-9]", "r");
+  auto f = popen_unique(with_commands ? "ps -ax -o pid -o command | grep [0-9]" : "ps -ax -c -o pid -o command | grep [0-9]", "r");
 
   unordered_map<pid_t, string> ret;
   while (!feof(f.get())) {
@@ -98,7 +96,8 @@ unordered_map<pid_t, string> list_processes(bool with_commands) {
     fscanf(f.get(), "%d", &pid);
 
     int ch;
-    while ((ch = fgetc(f.get())) == ' ');
+    while ((ch = fgetc(f.get())) == ' ')
+      ;
     ungetc(ch, f.get());
 
     string name;
@@ -241,8 +240,11 @@ static void replace_fd(int oldfd, int newfd) {
 
 Subprocess::Subprocess(const vector<string>& cmd, int stdin_fd, int stdout_fd,
     int stderr_fd, const string* cwd, const unordered_map<string, string>* env)
-    : stdin_write_fd(-1), stdout_read_fd(-1), stderr_read_fd(-1), child_pid(0),
-    exit_status(-1) {
+    : stdin_write_fd(-1),
+      stdout_read_fd(-1),
+      stderr_read_fd(-1),
+      child_pid(0),
+      exit_status(-1) {
 
   set<int> parent_fds_to_close;
 
@@ -297,10 +299,10 @@ Subprocess::Subprocess(const vector<string>& cmd, int stdin_fd, int stdout_fd,
         envp.emplace_back(environ.back().c_str());
       }
       envp.emplace_back(nullptr);
-      execve(cmd[0].c_str(), (char* const *)argv.data(), (char* const *)envp.data());
+      execve(cmd[0].c_str(), (char* const*)argv.data(), (char* const*)envp.data());
 
     } else {
-      execvp(cmd[0].c_str(), (char* const *)argv.data());
+      execvp(cmd[0].c_str(), (char* const*)argv.data());
     }
     // if we get here, fork() worked, but execv_() failed: exit child process without even doing cleanup
     _exit(1);
@@ -312,20 +314,20 @@ Subprocess::Subprocess(const vector<string>& cmd, int stdin_fd, int stdout_fd,
 }
 
 Subprocess::Subprocess()
-  : stdin_write_fd(-1),
-    stdout_read_fd(-1),
-    stderr_read_fd(-1),
-    child_pid(-1),
-    terminated(false),
-    exit_status(-1) { }
+    : stdin_write_fd(-1),
+      stdout_read_fd(-1),
+      stderr_read_fd(-1),
+      child_pid(-1),
+      terminated(false),
+      exit_status(-1) {}
 
 Subprocess::Subprocess(Subprocess&& other)
-  : stdin_write_fd(other.stdin_write_fd),
-    stdout_read_fd(other.stdout_read_fd),
-    stderr_read_fd(other.stderr_read_fd),
-    child_pid(other.child_pid),
-    terminated(other.terminated),
-    exit_status(other.exit_status) {
+    : stdin_write_fd(other.stdin_write_fd),
+      stdout_read_fd(other.stdout_read_fd),
+      stderr_read_fd(other.stderr_read_fd),
+      child_pid(other.child_pid),
+      terminated(other.terminated),
+      exit_status(other.exit_status) {
   other.stdin_write_fd = -1;
   other.stdout_read_fd = -1;
   other.stderr_read_fd = -1;
@@ -485,7 +487,7 @@ void Subprocess::kill(int signum) {
   }
 }
 
-SubprocessResult::SubprocessResult() : elapsed_time(now()) { }
+SubprocessResult::SubprocessResult() : elapsed_time(now()) {}
 
 static const size_t READ_BLOCK_SIZE = 128 * 1024;
 
@@ -506,7 +508,8 @@ SubprocessResult run_process(const vector<string>& cmd, const string* stdin_data
   struct Buffer {
     const string* buf;
     size_t offset;
-    Buffer(const string* buf) : buf(buf), offset(0) { }
+    Buffer(const string* buf) : buf(buf),
+                                offset(0) {}
   };
   unordered_map<int, Buffer> write_fd_to_buffer;
   unordered_map<int, string*> read_fd_to_buffer;

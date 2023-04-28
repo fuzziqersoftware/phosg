@@ -9,8 +9,6 @@
 
 using namespace std;
 
-
-
 int main(int argc, char** argv) {
   const char* src_filename = (argc > 1) ? argv[1] : nullptr;
   const char* dst_filename = (argc > 2) ? argv[2] : nullptr;

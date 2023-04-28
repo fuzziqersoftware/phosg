@@ -8,7 +8,6 @@
 
 using namespace std;
 
-
 int main(int, char** argv) {
 
   fprintf(stderr, "-- construction\n");
@@ -179,10 +178,8 @@ int main(int, char** argv) {
 
   fprintf(stderr, "-- comments\n");
   assert(JSONObject() == *JSONObject::parse("// this is null\nnull"));
-  assert(JSONObject((vector<JSONObject>())) == *JSONObject::parse(
-      "[\n// empty list\n]"));
-  assert(JSONObject(unordered_map<string, JSONObject>()) == *JSONObject::parse(
-      "{\n// empty dict\n}"));
+  assert(JSONObject((vector<JSONObject>())) == *JSONObject::parse("[\n// empty list\n]"));
+  assert(JSONObject(unordered_map<string, JSONObject>()) == *JSONObject::parse("{\n// empty dict\n}"));
 
   printf("%s: all tests passed\n", argv[0]);
   return 0;

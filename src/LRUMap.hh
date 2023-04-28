@@ -3,9 +3,8 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-#include <unordered_map>
 #include <stdexcept>
-
+#include <unordered_map>
 
 template <typename KeyT, typename ValueT>
 class LRUMap {
@@ -18,9 +17,17 @@ protected:
     size_t size;
 
     Item(const ValueT& value, size_t size)
-      : prev(nullptr), next(nullptr), key(nullptr), value(value), size(size) { }
+        : prev(nullptr),
+          next(nullptr),
+          key(nullptr),
+          value(value),
+          size(size) {}
     Item(ValueT&& value, size_t size)
-      : prev(nullptr), next(nullptr), key(nullptr), value(std::move(value)), size(size) { }
+        : prev(nullptr),
+          next(nullptr),
+          key(nullptr),
+          value(std::move(value)),
+          size(size) {}
   };
 
   mutable Item* head;
@@ -69,7 +76,10 @@ protected:
   }
 
 public:
-  LRUMap() : head(nullptr), tail(nullptr), items(), total_size(0) { }
+  LRUMap() : head(nullptr),
+             tail(nullptr),
+             items(),
+             total_size(0) {}
   virtual ~LRUMap() = default;
 
   ValueT& at(const KeyT& k) {
@@ -118,8 +128,9 @@ public:
     if (item_it == this->items.end()) {
       new_item_created = true;
       item_it = this->items.emplace(std::piecewise_construct,
-          std::forward_as_tuple(std::move(k)),
-          std::forward_as_tuple(std::move(v), size)).first;
+                               std::forward_as_tuple(std::move(k)),
+                               std::forward_as_tuple(std::move(v), size))
+                    .first;
     }
 
     auto& i = item_it->second;

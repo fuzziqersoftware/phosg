@@ -10,8 +10,6 @@
 
 #include "Strings.hh"
 
-
-
 std::string escape_json_string(const std::string& s);
 
 class JSONObject {
@@ -118,16 +116,15 @@ public:
 
 private:
   std::variant<
-    const void*, // We use this type for JSON null (by storing nullptr here)
-    bool,
-    int64_t, // This is convertible to double implicitly in as_float()
-    double, // This is convertible to int implicitly in as_int()
-    std::string,
-    list_type,
-    dict_type
-  > value;
+      const void*, // We use this type for JSON null (by storing nullptr here)
+      bool,
+      int64_t, // This is convertible to double implicitly in as_float()
+      double, // This is convertible to int implicitly in as_int()
+      std::string,
+      list_type,
+      dict_type>
+      value;
 };
-
 
 std::shared_ptr<JSONObject> make_json_null();
 std::shared_ptr<JSONObject> make_json_bool(bool x);

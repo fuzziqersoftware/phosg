@@ -11,7 +11,6 @@
 
 using namespace std;
 
-
 string random_data(size_t bytes) {
   string ret(bytes, '\0');
   random_data(ret.data(), ret.size());

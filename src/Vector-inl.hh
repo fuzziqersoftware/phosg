@@ -6,13 +6,15 @@
 
 #include "Strings.hh"
 
-
+template <typename T>
+Vector2<T>::Vector2()
+    : x(0),
+      y(0) {}
 
 template <typename T>
-Vector2<T>::Vector2() : x(0), y(0) { }
-
-template <typename T>
-Vector2<T>::Vector2(T x, T y) : x(x), y(y) { }
+Vector2<T>::Vector2(T x, T y)
+    : x(x),
+      y(y) {}
 
 template <typename T>
 Vector2<T> Vector2<T>::operator-() const {
@@ -164,17 +166,23 @@ constexpr size_t Vector2<T>::dimensions() {
   return 2;
 }
 
-
-
+template <typename T>
+Vector3<T>::Vector3()
+    : x(0),
+      y(0),
+      z(0) {}
 
 template <typename T>
-Vector3<T>::Vector3() : x(0), y(0), z(0) { }
+Vector3<T>::Vector3(T x, T y, T z)
+    : x(x),
+      y(y),
+      z(z) {}
 
 template <typename T>
-Vector3<T>::Vector3(T x, T y, T z) : x(x), y(y), z(z) { }
-
-template <typename T>
-Vector3<T>::Vector3(const Vector2<T>& xy, T z) : x(xy.x), y(xy.y), z(z) { }
+Vector3<T>::Vector3(const Vector2<T>& xy, T z)
+    : x(xy.x),
+      y(xy.y),
+      z(z) {}
 
 template <typename T>
 Vector3<T> Vector3<T>::operator-() const {
@@ -347,20 +355,33 @@ constexpr size_t Vector3<T>::dimensions() {
   return 3;
 }
 
-
-
+template <typename T>
+Vector4<T>::Vector4()
+    : x(0),
+      y(0),
+      z(0),
+      w(0) {}
 
 template <typename T>
-Vector4<T>::Vector4() : x(0), y(0), z(0), w(0) { }
+Vector4<T>::Vector4(T x, T y, T z, T w)
+    : x(x),
+      y(y),
+      z(z),
+      w(w) {}
 
 template <typename T>
-Vector4<T>::Vector4(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) { }
+Vector4<T>::Vector4(const Vector2<T>& xy, T z, T w)
+    : x(xy.x),
+      y(xy.y),
+      z(z),
+      w(w) {}
 
 template <typename T>
-Vector4<T>::Vector4(const Vector2<T>& xy, T z, T w) : x(xy.x), y(xy.y), z(z), w(w) { }
-
-template <typename T>
-Vector4<T>::Vector4(const Vector3<T>& xyz, T w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) { }
+Vector4<T>::Vector4(const Vector3<T>& xyz, T w)
+    : x(xyz.x),
+      y(xyz.y),
+      z(xyz.z),
+      w(w) {}
 
 template <typename T>
 Vector4<T> Vector4<T>::operator-() const {
@@ -370,43 +391,43 @@ Vector4<T> Vector4<T>::operator-() const {
 template <typename T>
 Vector4<T> Vector4<T>::operator+(const Vector4<T>& other) const {
   return Vector4<T>(this->x + other.x, this->y + other.y, this->z + other.z,
-                    this->w + other.w);
+      this->w + other.w);
 }
 
 template <typename T>
 Vector4<T> Vector4<T>::operator-(const Vector4<T>& other) const {
   return Vector4<T>(this->x - other.x, this->y - other.y, this->z - other.z,
-                    this->w - other.w);
+      this->w - other.w);
 }
 
 template <typename T>
 Vector4<T> Vector4<T>::operator+(T other) const {
   return Vector4<T>(this->x + other, this->y + other, this->z + other,
-                    this->w + other);
+      this->w + other);
 }
 
 template <typename T>
 Vector4<T> Vector4<T>::operator-(T other) const {
   return Vector4<T>(this->x - other, this->y - other, this->z - other,
-                    this->w - other);
+      this->w - other);
 }
 
 template <typename T>
 Vector4<T> Vector4<T>::operator*(T other) const {
   return Vector4<T>(this->x * other, this->y * other, this->z * other,
-                    this->w * other);
+      this->w * other);
 }
 
 template <typename T>
 Vector4<T> Vector4<T>::operator/(T other) const {
   return Vector4<T>(this->x / other, this->y / other, this->z / other,
-                    this->w / other);
+      this->w / other);
 }
 
 template <typename T>
 Vector4<T> Vector4<T>::operator%(T other) const {
   return Vector4<T>(this->x % other, this->y % other, this->z % other,
-                    this->w % other);
+      this->w % other);
 }
 
 template <typename T>
@@ -529,13 +550,13 @@ double Vector4<T>::norm() const {
 template <typename T>
 T Vector4<T>::norm2() const {
   return (this->x * this->x) + (this->y * this->y) + (this->z * this->z) +
-         (this->w * this->w);
+      (this->w * this->w);
 }
 
 template <typename T>
 T Vector4<T>::dot(const Vector4<T>& other) const {
   return (this->x * other.x) + (this->y * other.y) + (this->z * other.z) +
-         (this->w * other.w);
+      (this->w * other.w);
 }
 
 template <typename T>
@@ -547,8 +568,6 @@ template <typename T>
 constexpr size_t Vector4<T>::dimensions() {
   return 4;
 }
-
-
 
 template <typename T>
 Matrix4<T>::Matrix4() {

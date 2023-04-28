@@ -9,7 +9,6 @@
 
 using namespace std;
 
-
 void print_usage(const char* argv0) {
   fprintf(stderr, "\
 Usage: %s [options] infile outfile\n\
@@ -21,9 +20,9 @@ Options:\n\
   --format: Write output JSON in a human-readable format (default).\n\
   --compress: Instead of formatting in a human-readable format, minimize the\n\
     size of the resulting data.\n\
-\n", argv0);
+\n",
+      argv0);
 }
-
 
 int main(int argc, char** argv) {
 

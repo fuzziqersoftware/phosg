@@ -27,8 +27,6 @@
 
 using namespace std;
 
-
-
 std::string basename(const std::string& filename) {
   size_t slash_pos = filename.rfind('/');
   return (slash_pos == string::npos) ? filename : filename.substr(slash_pos + 1);
@@ -69,12 +67,11 @@ string getcwd() {
   return ret;
 }
 
-
 #ifndef PHOSG_WINDOWS
 
 // TODO: this can definitely be implemented on windows; I'm just lazy
 string get_user_home_directory() {
-  const char *homedir = getenv("HOME");
+  const char* homedir = getenv("HOME");
   if (homedir) {
     return homedir;
   }
@@ -95,28 +92,29 @@ string get_user_home_directory() {
 
 #endif
 
-cannot_stat_file::cannot_stat_file(int fd) :
-    runtime_error("can\'t stat fd " + to_string(fd) + ": " + string_for_error(errno)),
-    error(errno) { }
+cannot_stat_file::cannot_stat_file(int fd)
+    : runtime_error("can\'t stat fd " + to_string(fd) + ": " + string_for_error(errno)),
+      error(errno) {}
 
-cannot_stat_file::cannot_stat_file(const string& filename) :
-    runtime_error("can\'t stat file " + filename + ": " + string_for_error(errno)),
-    error(errno) { }
+cannot_stat_file::cannot_stat_file(const string& filename)
+    : runtime_error("can\'t stat file " + filename + ": " + string_for_error(errno)),
+      error(errno) {}
 
-cannot_open_file::cannot_open_file(int fd) :
-    runtime_error("can\'t open fd " + to_string(fd) + ": " + string_for_error(errno)),
-    error(errno) { }
+cannot_open_file::cannot_open_file(int fd)
+    : runtime_error("can\'t open fd " + to_string(fd) + ": " + string_for_error(errno)),
+      error(errno) {}
 
-cannot_open_file::cannot_open_file(const string& filename) :
-    runtime_error("can\'t open file " + filename + ": " + string_for_error(errno)),
-    error(errno) { }
+cannot_open_file::cannot_open_file(const string& filename)
+    : runtime_error("can\'t open file " + filename + ": " + string_for_error(errno)),
+      error(errno) {}
 
-io_error::io_error(int fd) :
-    runtime_error("io error on fd " + to_string(fd) + ": " + string_for_error(errno)),
-    error(errno) { }
+io_error::io_error(int fd)
+    : runtime_error("io error on fd " + to_string(fd) + ": " + string_for_error(errno)),
+      error(errno) {}
 
-io_error::io_error(int fd, const string& what) :
-    runtime_error(string_printf("io error on fd %d: %s", fd, what.c_str())), error(-1) { }
+io_error::io_error(int fd, const string& what)
+    : runtime_error(string_printf("io error on fd %d: %s", fd, what.c_str())),
+      error(-1) {}
 
 struct stat stat(const string& filename) {
   struct stat st;
@@ -219,9 +217,9 @@ string realpath(const string& path) {
   return data;
 }
 
-scoped_fd::scoped_fd() : fd(-1) { }
+scoped_fd::scoped_fd() : fd(-1) {}
 
-scoped_fd::scoped_fd(int fd) : fd(fd) { }
+scoped_fd::scoped_fd(int fd) : fd(fd) {}
 
 scoped_fd::scoped_fd(const char* filename, int mode, mode_t perm) : fd(-1) {
   this->open(filename, mode, perm);
@@ -551,27 +549,29 @@ static void fclose_raw(FILE* f) {
   fclose(f);
 }
 
-unique_ptr<FILE, void(*)(FILE*)> fopen_unique(const string& filename,
+unique_ptr<FILE, void (*)(FILE*)> fopen_unique(const string& filename,
     const string& mode, FILE* dash_file) {
   if (dash_file && (filename == "-")) {
-    return unique_ptr<FILE, void(*)(FILE*)>(dash_file, +[](FILE*) { });
+    return unique_ptr<FILE, void (*)(FILE*)>(
+        dash_file, +[](FILE*) {});
   }
-  return unique_ptr<FILE, void(*)(FILE*)>(fopen_binary_raw(filename, mode), fclose_raw);
+  return unique_ptr<FILE, void (*)(FILE*)>(fopen_binary_raw(filename, mode), fclose_raw);
 }
 
-unique_ptr<FILE, void(*)(FILE*)> fdopen_unique(int fd, const string& mode) {
-  return unique_ptr<FILE, void(*)(FILE*)>(fdopen_binary_raw(fd, mode), fclose_raw);
+unique_ptr<FILE, void (*)(FILE*)> fdopen_unique(int fd, const string& mode) {
+  return unique_ptr<FILE, void (*)(FILE*)>(fdopen_binary_raw(fd, mode), fclose_raw);
 }
 
-unique_ptr<FILE, void(*)(FILE*)> fmemopen_unique(const void* buf, size_t size) {
-  return unique_ptr<FILE, void(*)(FILE*)>(fmemopen(
-      const_cast<void*>(buf), size, "rb"), fclose_raw);
+unique_ptr<FILE, void (*)(FILE*)> fmemopen_unique(const void* buf, size_t size) {
+  return unique_ptr<FILE, void (*)(FILE*)>(fmemopen(
+                                               const_cast<void*>(buf), size, "rb"),
+      fclose_raw);
 }
 
 shared_ptr<FILE> fopen_shared(const string& filename, const string& mode,
     FILE* dash_file) {
   if (dash_file && (filename == "-")) {
-    return shared_ptr<FILE>(dash_file, [](FILE*) { });
+    return shared_ptr<FILE>(dash_file, [](FILE*) {});
   }
   return shared_ptr<FILE>(fopen_binary_raw(filename, mode), fclose_raw);
 }

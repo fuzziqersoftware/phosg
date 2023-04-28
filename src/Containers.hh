@@ -1,11 +1,10 @@
 #pragma once
 
-#include <vector>
 #include <map>
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
-
+#include <vector>
 
 template <typename V>
 std::vector<V> set_to_vec(const std::set<V>& s) {

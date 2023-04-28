@@ -2,8 +2,6 @@
 
 #include <string>
 
-
-
 template <typename T>
 struct Vector2 {
   union {
