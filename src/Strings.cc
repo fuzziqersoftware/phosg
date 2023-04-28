@@ -290,6 +290,66 @@ vector<string> split_context(const string& s, char delim, size_t max_splits) {
   return ret;
 }
 
+vector<string> split_args(const string& s) {
+  vector<string> ret;
+  char current_quote = 0;
+  bool in_space_between_args = true;
+
+  for (size_t z = 0; z < s.size(); z++) {
+    bool can_be_space = true;
+    char to_write = 0;
+    if (current_quote) {
+      can_be_space = false;
+      if (s[z] == current_quote) {
+        current_quote = 0;
+      } else if (s[z] == '\\') {
+        z++;
+        if (z >= s.size()) {
+          throw runtime_error("incomplete escape sequence");
+        }
+        to_write = s[z];
+      } else {
+        to_write = s[z];
+      }
+    } else if ((s[z] == '\"') || (s[z] == '\'')) {
+      current_quote = s[z];
+    } else if (s[z] == '\\') {
+      can_be_space = false;
+      z++;
+      if (z >= s.size()) {
+        throw runtime_error("incomplete escape sequence");
+      }
+      to_write = s[z];
+    } else {
+      to_write = s[z];
+    }
+
+    if (to_write) {
+      bool is_space_between_args = can_be_space && isblank(to_write);
+      if (is_space_between_args && in_space_between_args) {
+        // Nothing
+      } else if (!is_space_between_args && in_space_between_args) {
+        // Start of another arg
+        ret.emplace_back();
+        if (to_write) {
+          ret.back().push_back(to_write);
+        }
+        in_space_between_args = false;
+      } else if (is_space_between_args && !in_space_between_args) {
+        in_space_between_args = true;
+      } else { // !is_space_between_args && !in_space_between_args
+        ret.back().push_back(to_write);
+      }
+    }
+  }
+
+  if (current_quote) {
+    throw runtime_error("unterminated quoted string");
+  }
+
+  return ret;
+}
+
 size_t skip_whitespace(const string& s, size_t offset) {
   while (offset < s.length() &&
       (s[offset] == ' ' || s[offset] == '\t' || s[offset] == '\r' || s[offset] == '\n')) {

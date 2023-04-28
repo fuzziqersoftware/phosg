@@ -179,6 +179,7 @@ struct PrefixedLogger {
 std::vector<std::string> split(const std::string& s, char delim, size_t max_splits = 0);
 std::vector<std::wstring> split(const std::wstring& s, wchar_t delim, size_t max_splits = 0);
 std::vector<std::string> split_context(const std::string& s, char delim, size_t max_splits = 0);
+std::vector<std::string> split_args(const std::string& s);
 
 template <typename ItemContainerT, typename DelimiterT>
 std::string join(const ItemContainerT& items, DelimiterT& delim) {

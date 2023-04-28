@@ -503,6 +503,18 @@ int main(int, char** argv) {
     expect_eq(vector<string>({"(12,34)", "567,abc"}), split_context("(12,34),567,abc", ',', 1));
   }
 
+  {
+    fprintf(stderr, "-- split_args\n");
+    expect_eq(vector<string>({"12", "34", "567", "abc"}), split_args("12 34 567 abc"));
+    expect_eq(vector<string>({"12", "34 567", "abc"}), split_args("12 \'34 567\' abc"));
+    expect_eq(vector<string>({"12", "34 567", "abc"}), split_args("12 \"34 567\" abc"));
+    expect_eq(vector<string>({"12", "34 \'567", "abc"}), split_args("12 \'34 \\\'567\' abc"));
+    expect_eq(vector<string>({"12", "34 \"567", "abc"}), split_args("12 \"34 \\\"567\" abc"));
+    expect_eq(vector<string>({"12", "34 567", "abc"}), split_args("12 34\\ 567 abc"));
+    expect_eq(vector<string>({"12", "34 567", "abc"}), split_args("   12 34\\ 567 abc   "));
+    expect_eq(vector<string>({"12", "34 567", "abc", " "}), split_args("   12 34\\ 567 abc  \\   "));
+  }
+
   fprintf(stderr, "-- skip_whitespace/skip_non_whitespace\n");
   expect_eq(0, skip_whitespace("1234", 0));
   expect_eq(2, skip_whitespace("  1234", 0));
