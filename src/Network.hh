@@ -5,6 +5,7 @@
 #include <sys/types.h>
 
 #include <string>
+#include <unordered_map>
 #include <utility>
 
 std::pair<struct sockaddr_storage, size_t> make_sockaddr_storage(
@@ -63,3 +64,5 @@ std::pair<int, int> socketpair(
     int domain = AF_LOCAL,
     int type = SOCK_STREAM,
     int protocol = 0);
+
+std::unordered_map<std::string, struct sockaddr_storage> get_network_interfaces();

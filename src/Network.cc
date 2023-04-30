@@ -5,6 +5,7 @@
 #include "Platform.hh"
 
 #include <arpa/inet.h>
+#include <ifaddrs.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -16,6 +17,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <memory>
 #include <stdexcept>
 #include <string>
 
@@ -268,4 +270,22 @@ pair<int, int> socketpair(int domain, int type, int protocol) {
     throw runtime_error("socketpair failed: " + string_for_error(errno));
   }
   return make_pair(fds[0], fds[1]);
+}
+
+unordered_map<string, struct sockaddr_storage> get_network_interfaces() {
+  struct ifaddrs* ifa_raw;
+  if (getifaddrs(&ifa_raw)) {
+    throw runtime_error("failed to get interface addresses: " + string_for_error(errno));
+  }
+  unique_ptr<struct ifaddrs, void (*)(struct ifaddrs*)> ifa(ifa_raw, freeifaddrs);
+
+  unordered_map<string, struct sockaddr_storage> ret;
+  for (struct ifaddrs* i = ifa.get(); i; i = i->ifa_next) {
+    if (!i->ifa_addr) {
+      continue;
+    }
+    ret.emplace(i->ifa_name, *reinterpret_cast<const struct sockaddr_storage*>(i->ifa_addr));
+  }
+
+  return ret;
 }
