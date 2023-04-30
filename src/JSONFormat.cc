@@ -27,6 +27,7 @@ Options:\n\
 int main(int argc, char** argv) {
 
   bool format = true;
+  uint32_t options = 0;
   const char* src_filename = nullptr;
   const char* dst_filename = nullptr;
   for (int x = 1; x < argc; x++) {
@@ -38,6 +39,8 @@ int main(int argc, char** argv) {
         format = true;
       } else if (!strcmp(argv[x], "--compress")) {
         format = false;
+      } else if (!strcmp(argv[x], "--hex-integers")) {
+        options |= JSONObject::SerializeOption::HEX_INTEGERS;
       } else {
         fprintf(stderr, "unknown argument: %s\n", argv[x]);
         return 1;
@@ -69,9 +72,9 @@ int main(int argc, char** argv) {
 
   string result;
   if (format) {
-    result = json->format();
+    result = json->format(options);
   } else {
-    result = json->serialize();
+    result = json->serialize(options);
   }
 
   if (!dst_filename || !strcmp(dst_filename, "-")) {

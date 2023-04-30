@@ -9,6 +9,7 @@
 using namespace std;
 
 int main(int, char** argv) {
+  uint32_t hex_option = JSONObject::SerializeOption::HEX_INTEGERS;
 
   fprintf(stderr, "-- construction\n");
   unordered_map<string, JSONObject> members;
@@ -107,6 +108,9 @@ int main(int, char** argv) {
   assert(root.at("int0")->serialize() == "0");
   assert(root.at("int1")->serialize() == "134");
   assert(root.at("int2")->serialize() == "-3214");
+  assert(root.at("int0")->serialize(hex_option) == "0x0");
+  assert(root.at("int1")->serialize(hex_option) == "0x86");
+  assert(root.at("int2")->serialize(hex_option) == "-0xC8E");
   assert(root.at("float0")->serialize() == "0.0");
   assert(root.at("float1")->serialize() == "1.4");
   assert(root.at("float2")->serialize() == "-10.5");
@@ -125,6 +129,9 @@ int main(int, char** argv) {
   assert(*root.at("int0") == *JSONObject::parse("0"));
   assert(*root.at("int1") == *JSONObject::parse("134"));
   assert(*root.at("int2") == *JSONObject::parse("-3214"));
+  assert(*root.at("int0") == *JSONObject::parse("0x0"));
+  assert(*root.at("int1") == *JSONObject::parse("0x86"));
+  assert(*root.at("int2") == *JSONObject::parse("-0xC8E"));
   assert(*root.at("float0") == *JSONObject::parse("0.0"));
   assert(*root.at("float1") == *JSONObject::parse("1.4"));
   assert(*root.at("float2") == *JSONObject::parse("-10.5"));

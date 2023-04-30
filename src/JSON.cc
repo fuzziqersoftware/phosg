@@ -523,17 +523,27 @@ string escape_json_string(const string& s) {
   return ret;
 }
 
-string JSONObject::serialize() const {
+string JSONObject::serialize(uint32_t options) const {
   size_t type_index = this->value.index();
   switch (type_index) {
     case 0: // const void* (null)
-      return "null";
+      return (options & SerializeOption::ONE_CHARACTER_TRIVIAL_CONSTANTS) ? "n" : "null";
 
     case 1: // bool
-      return this->as_bool() ? "true" : "false";
+      if (options & SerializeOption::ONE_CHARACTER_TRIVIAL_CONSTANTS) {
+        return this->as_bool() ? "t" : "f";
+      } else {
+        return this->as_bool() ? "true" : "false";
+      }
 
-    case 2: // int64_t
-      return to_string(this->as_int());
+    case 2: { // int64_t
+      int64_t v = this->as_int();
+      if (options & SerializeOption::HEX_INTEGERS) {
+        return v < 0 ? string_printf("-0x%" PRIX64, -v) : string_printf("0x%" PRIX64, v);
+      } else {
+        return to_string(this->as_int());
+      }
+    }
 
     case 3: { // double
       string ret = string_printf("%g", this->as_float());
@@ -552,7 +562,7 @@ string JSONObject::serialize() const {
         if (ret.size() > 1) {
           ret += ',';
         }
-        ret += o->serialize();
+        ret += o->serialize(options);
       }
       return ret + "]";
     }
@@ -563,7 +573,7 @@ string JSONObject::serialize() const {
         if (ret.size() > 1) {
           ret += ',';
         }
-        ret += "\"" + escape_json_string(o.first) + "\":" + o.second->serialize();
+        ret += "\"" + escape_json_string(o.first) + "\":" + o.second->serialize(options);
       }
       return ret + "}";
     }
@@ -573,14 +583,14 @@ string JSONObject::serialize() const {
   }
 }
 
-string JSONObject::format(size_t indent) const {
+string JSONObject::format(uint32_t options, size_t indent) const {
   switch (this->value.index()) {
     case 0: // null
     case 1: // bool
     case 2: // int
     case 3: // float
     case 4: // string
-      return this->serialize();
+      return this->serialize(options);
 
     case 5: { // list_type
       const auto& list = this->as_list();
@@ -593,7 +603,7 @@ string JSONObject::format(size_t indent) const {
         if (ret.size() > 1) {
           ret += ',';
         }
-        ret += '\n' + string(indent + 2, ' ') + o->format(indent + 2);
+        ret += '\n' + string(indent + 2, ' ') + o->format(options, indent + 2);
       }
       return ret + '\n' + string(indent, ' ') + "]";
     }
@@ -609,7 +619,7 @@ string JSONObject::format(size_t indent) const {
         if (ret.size() > 1) {
           ret += ',';
         }
-        ret += '\n' + string(indent + 2, ' ') + "\"" + escape_json_string(o.first) + "\": " + o.second->format(indent + 2);
+        ret += '\n' + string(indent + 2, ' ') + "\"" + escape_json_string(o.first) + "\": " + o.second->format(options, indent + 2);
       }
       return ret + '\n' + string(indent, ' ') + "}";
     }
