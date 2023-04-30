@@ -574,7 +574,7 @@ int main(int, char** argv) {
     expect_eq(expected_offsets, offsets);
   }
 
-  fprintf(stderr, "-- parse_data_string/format_data_string\n");
+  fprintf(stderr, "-- parse_data_string/format_data_string with arbitrary data\n");
   {
     string input("/* omit 01 02 */ 03 ?04? $ ##30 $ ##127 ?\"dark\"? ###-1 \'cold\' %-1.667 %%-2.667");
     string expected_data(
@@ -612,6 +612,15 @@ int main(int, char** argv) {
       expect_eq(expected_data, output_data);
       expect_eq(expected_mask, output_mask);
     }
+  }
+
+  fprintf(stderr, "-- parse_data_string/format_data_string with printable data\n");
+  {
+    string input("this is printable\nand it is sort of a haiku\nwith some control bytes\t\r\n");
+    string expected_formatted("\"this is printable\\nand it is sort of a haiku\\nwith some control bytes\\t\\r\\n\"");
+    string formatted = format_data_string(input);
+    expect_eq(expected_formatted, formatted);
+    expect_eq(input, parse_data_string(formatted));
   }
 
   fprintf(stderr, "-- format_size\n");
