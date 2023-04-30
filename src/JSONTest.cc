@@ -10,6 +10,7 @@ using namespace std;
 
 int main(int, char** argv) {
   uint32_t hex_option = JSONObject::SerializeOption::HEX_INTEGERS;
+  uint32_t format_option = JSONObject::SerializeOption::FORMAT;
 
   fprintf(stderr, "-- construction\n");
   unordered_map<string, JSONObject> members;
@@ -119,6 +120,27 @@ int main(int, char** argv) {
   assert(root.at("dict0")->serialize() == "{}");
   assert(root.at("dict1")->serialize() == "{\"1\":1}");
 
+  fprintf(stderr, "-- serialize(format)\n");
+  assert(root.at("null")->serialize(format_option) == "null");
+  assert(root.at("true")->serialize(format_option) == "true");
+  assert(root.at("false")->serialize(format_option) == "false");
+  assert(root.at("string0")->serialize(format_option) == "\"\"");
+  assert(root.at("string1")->serialize(format_option) == "\"no special chars\"");
+  assert(root.at("string2")->serialize(format_option) == "\"omg \\\"\'\\\\\\t\\n\"");
+  assert(root.at("int0")->serialize(format_option) == "0");
+  assert(root.at("int1")->serialize(format_option) == "134");
+  assert(root.at("int2")->serialize(format_option) == "-3214");
+  assert(root.at("int0")->serialize(format_option | hex_option) == "0x0");
+  assert(root.at("int1")->serialize(format_option | hex_option) == "0x86");
+  assert(root.at("int2")->serialize(format_option | hex_option) == "-0xC8E");
+  assert(root.at("float0")->serialize(format_option) == "0.0");
+  assert(root.at("float1")->serialize(format_option) == "1.4");
+  assert(root.at("float2")->serialize(format_option) == "-10.5");
+  assert(root.at("list0")->serialize(format_option) == "[]");
+  assert(root.at("list1")->serialize(format_option) == "[\n  1\n]");
+  assert(root.at("dict0")->serialize(format_option) == "{}");
+  assert(root.at("dict1")->serialize(format_option) == "{\n  \"1\": 1\n}");
+
   fprintf(stderr, "-- parse\n");
   assert(*root.at("null") == *JSONObject::parse("null"));
   assert(*root.at("true") == *JSONObject::parse("true"));
@@ -147,8 +169,8 @@ int main(int, char** argv) {
 
   fprintf(stderr, "-- serialize/parse\n");
   assert(*JSONObject::parse(root.serialize()) == root);
-  fprintf(stderr, "-- format/parse\n");
-  assert(*JSONObject::parse(root.format()) == root);
+  fprintf(stderr, "-- serialize(format)/parse\n");
+  assert(*JSONObject::parse(root.serialize(JSONObject::SerializeOption::FORMAT)) == root);
 
   fprintf(stderr, "-- exceptions\n");
   try {

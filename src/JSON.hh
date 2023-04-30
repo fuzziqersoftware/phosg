@@ -108,12 +108,13 @@ public:
   bool is_bool() const;
   bool is_null() const;
 
-  // Exporters. serialize() returns the shortest possible text representation of
-  // the object; format() returns a longer representation with whitespace
-  // inserted to make it more human-readable.
   enum SerializeOption : uint32_t {
-    // These options enable behaviors that don't conform to the JSON standard.
+    // These options enable serialization behaviors, most of which don't
+    // conform to the JSON standard.
 
+    // This option adds whitespace to the output to make it easier for humans
+    // to read.
+    FORMAT = 4,
     // If this is enabled, all integers are serialized in hexadecimal.
     // JSONObject can parse output generated with this option.
     HEX_INTEGERS = 1,
@@ -122,8 +123,7 @@ public:
     // this option.
     ONE_CHARACTER_TRIVIAL_CONSTANTS = 2,
   };
-  std::string serialize(uint32_t options = 0) const;
-  std::string format(uint32_t options = 0, size_t indent_level = 0) const;
+  std::string serialize(uint32_t options = 0, size_t indent_level = 0) const;
 
 private:
   std::variant<

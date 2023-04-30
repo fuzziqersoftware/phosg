@@ -19,14 +19,14 @@ If outfile is - or not specified, write to standard output.\n\
 Options:\n\
   --format: Write output JSON in a human-readable format (default).\n\
   --compress: Instead of formatting in a human-readable format, minimize the\n\
-    size of the resulting data.\n\
+      size of the resulting data.\n\
+  --hex-integers: Write integers in hexadecimal format. This is a nonstandard\n\
+      extension to JSON and most parsers won\'t accept it.\n\
 \n",
       argv0);
 }
 
 int main(int argc, char** argv) {
-
-  bool format = true;
   uint32_t options = 0;
   const char* src_filename = nullptr;
   const char* dst_filename = nullptr;
@@ -36,9 +36,9 @@ int main(int argc, char** argv) {
         print_usage(argv[0]);
         return 1;
       } else if (!strcmp(argv[x], "--format")) {
-        format = true;
+        options |= JSONObject::SerializeOption::FORMAT;
       } else if (!strcmp(argv[x], "--compress")) {
-        format = false;
+        options &= ~JSONObject::SerializeOption::FORMAT;
       } else if (!strcmp(argv[x], "--hex-integers")) {
         options |= JSONObject::SerializeOption::HEX_INTEGERS;
       } else {
@@ -70,12 +70,7 @@ int main(int argc, char** argv) {
     return 2;
   }
 
-  string result;
-  if (format) {
-    result = json->format(options);
-  } else {
-    result = json->serialize(options);
-  }
+  string result = json->serialize(options);
 
   if (!dst_filename || !strcmp(dst_filename, "-")) {
     fwritex(stdout, result);

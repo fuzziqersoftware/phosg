@@ -523,7 +523,7 @@ string escape_json_string(const string& s) {
   return ret;
 }
 
-string JSONObject::serialize(uint32_t options) const {
+string JSONObject::serialize(uint32_t options, size_t indent_level) const {
   size_t type_index = this->value.index();
   switch (type_index) {
     case 0: // const void* (null)
@@ -557,42 +557,8 @@ string JSONObject::serialize(uint32_t options) const {
       return "\"" + escape_json_string(this->as_string()) + "\"";
 
     case 5: { // list_type
-      string ret = "[";
-      for (const shared_ptr<JSONObject>& o : this->as_list()) {
-        if (ret.size() > 1) {
-          ret += ',';
-        }
-        ret += o->serialize(options);
-      }
-      return ret + "]";
-    }
+      bool format = options & SerializeOption::FORMAT;
 
-    case 6: { // dict_type
-      string ret = "{";
-      for (const auto& o : this->as_dict()) {
-        if (ret.size() > 1) {
-          ret += ',';
-        }
-        ret += "\"" + escape_json_string(o.first) + "\":" + o.second->serialize(options);
-      }
-      return ret + "}";
-    }
-
-    default:
-      throw JSONObject::parse_error("unknown object type");
-  }
-}
-
-string JSONObject::format(uint32_t options, size_t indent) const {
-  switch (this->value.index()) {
-    case 0: // null
-    case 1: // bool
-    case 2: // int
-    case 3: // float
-    case 4: // string
-      return this->serialize(options);
-
-    case 5: { // list_type
       const auto& list = this->as_list();
       if (list.empty()) {
         return "[]";
@@ -603,12 +569,22 @@ string JSONObject::format(uint32_t options, size_t indent) const {
         if (ret.size() > 1) {
           ret += ',';
         }
-        ret += '\n' + string(indent + 2, ' ') + o->format(options, indent + 2);
+        if (format) {
+          ret += '\n' + string(indent_level + 2, ' ') + o->serialize(options, indent_level + 2);
+        } else {
+          ret += o->serialize(options);
+        }
       }
-      return ret + '\n' + string(indent, ' ') + "]";
+      if (format) {
+        return ret + '\n' + string(indent_level, ' ') + "]";
+      } else {
+        return ret + "]";
+      }
     }
 
     case 6: { // dict_type
+      bool format = options & SerializeOption::FORMAT;
+
       const auto& dict = this->as_dict();
       if (dict.empty()) {
         return "{}";
@@ -619,13 +595,22 @@ string JSONObject::format(uint32_t options, size_t indent) const {
         if (ret.size() > 1) {
           ret += ',';
         }
-        ret += '\n' + string(indent + 2, ' ') + "\"" + escape_json_string(o.first) + "\": " + o.second->format(options, indent + 2);
+        if (format) {
+          ret += '\n' + string(indent_level + 2, ' ') + "\"" + escape_json_string(o.first) + "\": " + o.second->serialize(options, indent_level + 2);
+        } else {
+          ret += "\"" + escape_json_string(o.first) + "\":" + o.second->serialize(options);
+        }
       }
-      return ret + '\n' + string(indent, ' ') + "}";
+      if (format) {
+        return ret + '\n' + string(indent_level, ' ') + "}";
+      } else {
+        return ret + "}";
+      }
     }
-  }
 
-  throw JSONObject::parse_error("unknown object type");
+    default:
+      throw JSONObject::parse_error("unknown object type");
+  }
 }
 
 shared_ptr<JSONObject> make_json_null() {
