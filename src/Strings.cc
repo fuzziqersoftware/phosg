@@ -1631,3 +1631,14 @@ void StringWriter::write(const void* data, size_t size) {
 void StringWriter::write(const std::string& data) {
   this->data.append(data);
 }
+
+size_t count_zeroes(const void* vdata, size_t size) {
+  const uint8_t* data = reinterpret_cast<const uint8_t*>(vdata);
+  size_t zero_count = 0;
+  for (size_t z = 0; z < size; z++) {
+    if (data[z] == 0) {
+      zero_count++;
+    }
+  }
+  return zero_count;
+}
