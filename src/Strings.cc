@@ -1632,10 +1632,10 @@ void StringWriter::write(const std::string& data) {
   this->data.append(data);
 }
 
-size_t count_zeroes(const void* vdata, size_t size) {
+size_t count_zeroes(const void* vdata, size_t size, size_t stride) {
   const uint8_t* data = reinterpret_cast<const uint8_t*>(vdata);
   size_t zero_count = 0;
-  for (size_t z = 0; z < size; z++) {
+  for (size_t z = 0; z < size; z += stride) {
     if (data[z] == 0) {
       zero_count++;
     }

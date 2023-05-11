@@ -695,4 +695,4 @@ T* data_at(std::string& s, size_t offset = 0) {
   return reinterpret_cast<T*>(s.data() + offset);
 }
 
-size_t count_zeroes(const void* vdata, size_t size);
+size_t count_zeroes(const void* vdata, size_t size, size_t stride = 1);
