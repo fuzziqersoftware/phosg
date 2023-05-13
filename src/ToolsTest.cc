@@ -16,18 +16,29 @@ int main(int, char** argv) {
   }
   expect(called);
 
-  printf("-- parallel_range\n");
   const size_t num_threads = thread::hardware_concurrency();
-  vector<size_t> thread_counts(num_threads, 0);
-  auto handle_value = [&](uint64_t, size_t thread_num) -> bool {
-    thread_counts[thread_num]++;
+
+  printf("-- parallel_range\n");
+  vector<uint8_t> hits(0x1000000, 0);
+  auto handle_value = [&](uint64_t v, size_t thread_num) -> bool {
+    hits[v] = thread_num + 1;
     return false;
   };
-  parallel_range<uint64_t, false>(handle_value, 0, 0x10000, num_threads);
-  for (size_t x = 0; x < num_threads; x++) {
-    fprintf(stderr, "---- thread %zu: %zu\n", x, thread_counts[x]);
-    expect_ne(thread_counts[x], 0);
+  parallel_range<uint64_t, false>(handle_value, 0, hits.size(), num_threads);
+
+  vector<size_t> thread_counts(num_threads, 0);
+  for (size_t x = 0; x < hits.size(); x++) {
+    expect_ne(hits[x], 0);
+    thread_counts.at(hits[x] - 1)++;
   }
+
+  size_t sum = 0;
+  for (size_t x = 0; x < thread_counts.size(); x++) {
+    expect_ne(thread_counts[x], 0);
+    fprintf(stderr, "---- thread %zu: %zu\n", x, thread_counts[x]);
+    sum += thread_counts[x];
+  }
+  expect_eq(sum, hits.size());
 
   printf("-- parallel_range return value\n");
   uint64_t target_value = 0xC349;
