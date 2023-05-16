@@ -68,7 +68,7 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r) {
       separator = r.get_s8();
     }
 
-    ret->value = move(data);
+    ret->value = std::move(data);
 
   } else if (root_type_ch == '[') {
     list_type data;
@@ -91,7 +91,7 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r) {
       separator = r.get_s8();
     }
 
-    ret->value = move(data);
+    ret->value = std::move(data);
 
   } else if (root_type_ch == '-' || root_type_ch == '+' || isdigit(root_type_ch)) {
     int64_t int_data;
@@ -217,7 +217,7 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r) {
     }
     r.get_s8();
 
-    ret->value = move(data);
+    ret->value = std::move(data);
 
   } else if (!strncmp(r.peek(4), "null", 4)) {
     ret->value = nullptr;
@@ -252,20 +252,20 @@ JSONObject::JSONObject() : value(nullptr) {}
 JSONObject::JSONObject(bool x) : value(x) {}
 JSONObject::JSONObject(const char* x) {
   string s(x);
-  this->value = move(s);
+  this->value = std::move(s);
 }
 JSONObject::JSONObject(const char* x, size_t size) {
   string s(x, size);
-  this->value = move(s);
+  this->value = std::move(s);
 }
 JSONObject::JSONObject(const string& x) : value(x) {}
-JSONObject::JSONObject(string&& x) : value(move(x)) {}
+JSONObject::JSONObject(string&& x) : value(std::move(x)) {}
 JSONObject::JSONObject(int64_t x) : value(x) {}
 JSONObject::JSONObject(double x) : value(x) {}
 JSONObject::JSONObject(const list_type& x) : value(x) {}
-JSONObject::JSONObject(list_type&& x) : value(move(x)) {}
+JSONObject::JSONObject(list_type&& x) : value(std::move(x)) {}
 JSONObject::JSONObject(const dict_type& x) : value(x) {}
-JSONObject::JSONObject(dict_type&& x) : value(move(x)) {}
+JSONObject::JSONObject(dict_type&& x) : value(std::move(x)) {}
 
 // non-shared_ptr constructors
 JSONObject::JSONObject(const vector<JSONObject>& x) {
@@ -273,15 +273,15 @@ JSONObject::JSONObject(const vector<JSONObject>& x) {
   for (const auto& it : x) {
     data.emplace_back(new JSONObject(it));
   }
-  this->value = move(data);
+  this->value = std::move(data);
 }
 
 JSONObject::JSONObject(vector<JSONObject>&& x) {
   list_type data;
   for (auto& it : x) {
-    data.emplace_back(new JSONObject(move(it)));
+    data.emplace_back(new JSONObject(std::move(it)));
   }
-  this->value = move(data);
+  this->value = std::move(data);
 }
 
 JSONObject::JSONObject(const unordered_map<string, JSONObject>& x) {
@@ -289,16 +289,16 @@ JSONObject::JSONObject(const unordered_map<string, JSONObject>& x) {
   for (auto& it : x) {
     data.emplace(it.first, shared_ptr<JSONObject>(new JSONObject(it.second)));
   }
-  this->value = move(data);
+  this->value = std::move(data);
 }
 
 JSONObject::JSONObject(unordered_map<string, JSONObject>&& x) {
   dict_type data;
   for (auto& it : x) {
     data.emplace(
-        it.first, shared_ptr<JSONObject>(new JSONObject(move(it.second))));
+        it.first, shared_ptr<JSONObject>(new JSONObject(std::move(it.second))));
   }
-  this->value = move(data);
+  this->value = std::move(data);
 }
 
 bool JSONObject::operator==(const JSONObject& other) const {
@@ -637,17 +637,17 @@ shared_ptr<JSONObject> make_json_str(const string& s) {
   return shared_ptr<JSONObject>(new JSONObject(s));
 }
 shared_ptr<JSONObject> make_json_str(string&& s) {
-  return shared_ptr<JSONObject>(new JSONObject(move(s)));
+  return shared_ptr<JSONObject>(new JSONObject(std::move(s)));
 }
 
 shared_ptr<JSONObject> make_json_list(vector<shared_ptr<JSONObject>>&& values) {
-  return shared_ptr<JSONObject>(new JSONObject(move(values)));
+  return shared_ptr<JSONObject>(new JSONObject(std::move(values)));
 }
 
 shared_ptr<JSONObject> make_json_list(
     initializer_list<shared_ptr<JSONObject>> values) {
   vector<shared_ptr<JSONObject>> vec(values);
-  return shared_ptr<JSONObject>(new JSONObject(move(vec)));
+  return shared_ptr<JSONObject>(new JSONObject(std::move(vec)));
 }
 
 shared_ptr<JSONObject> make_json_dict(
@@ -656,7 +656,7 @@ shared_ptr<JSONObject> make_json_dict(
   for (const auto& i : values) {
     dict.emplace(i.first, i.second);
   }
-  return shared_ptr<JSONObject>(new JSONObject(move(dict)));
+  return shared_ptr<JSONObject>(new JSONObject(std::move(dict)));
 }
 
 shared_ptr<JSONObject> make_json_dict(
@@ -665,5 +665,5 @@ shared_ptr<JSONObject> make_json_dict(
   for (const auto& i : values) {
     dict.emplace(i.first, i.second);
   }
-  return shared_ptr<JSONObject>(new JSONObject(move(dict)));
+  return shared_ptr<JSONObject>(new JSONObject(std::move(dict)));
 }

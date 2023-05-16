@@ -157,7 +157,7 @@ std::shared_ptr<JSONObject> make_json_list(const std::vector<T>& values) {
   for (const auto& it : values) {
     vec.emplace_back(new JSONObject(it));
   }
-  return std::shared_ptr<JSONObject>(new JSONObject(move(vec)));
+  return std::shared_ptr<JSONObject>(new JSONObject(std::move(vec)));
 }
 
 template <typename T>
@@ -167,7 +167,7 @@ std::shared_ptr<JSONObject> make_json_list(std::initializer_list<T> values) {
   for (const auto& it : values) {
     vec.emplace_back(new JSONObject(it));
   }
-  return std::shared_ptr<JSONObject>(new JSONObject(move(vec)));
+  return std::shared_ptr<JSONObject>(new JSONObject(std::move(vec)));
 }
 
 template <typename V>
@@ -176,7 +176,7 @@ std::shared_ptr<JSONObject> make_json_dict(const std::unordered_map<std::string,
   for (const auto& it : values) {
     dict.emplace(it.first, new JSONObject(it.second));
   }
-  return std::shared_ptr<JSONObject>(new JSONObject(move(dict)));
+  return std::shared_ptr<JSONObject>(new JSONObject(std::move(dict)));
 }
 
 template <typename V>
@@ -185,7 +185,7 @@ std::shared_ptr<JSONObject> make_json_dict(std::initializer_list<std::pair<std::
   for (const auto& it : values) {
     dict.emplace(it.first, new JSONObject(it.second));
   }
-  return std::shared_ptr<JSONObject>(new JSONObject(move(dict)));
+  return std::shared_ptr<JSONObject>(new JSONObject(std::move(dict)));
 }
 
 template <typename V>
@@ -194,5 +194,5 @@ std::shared_ptr<JSONObject> make_json_dict(std::initializer_list<std::pair<const
   for (const auto& it : values) {
     dict.emplace(it.first, new JSONObject(it.second));
   }
-  return std::shared_ptr<JSONObject>(new JSONObject(move(dict)));
+  return std::shared_ptr<JSONObject>(new JSONObject(std::move(dict)));
 }

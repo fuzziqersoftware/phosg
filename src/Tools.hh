@@ -21,7 +21,7 @@ private:
 };
 
 inline CallOnDestroy on_close_scope(std::function<void()> f) {
-  return CallOnDestroy(move(f));
+  return CallOnDestroy(std::move(f));
 }
 
 template <typename IntT>

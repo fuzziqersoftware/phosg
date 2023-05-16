@@ -480,7 +480,7 @@ std::string fgets(FILE* f) {
   }
 
   if (blocks.size() == 1) {
-    return move(blocks.front());
+    return std::move(blocks.front());
   } else {
     return join(blocks);
   }
