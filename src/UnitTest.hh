@@ -45,3 +45,6 @@ void expect_raises(std::function<void()> fn) {
     expect_msg(false, "incorrect exception type raised");
   }
 };
+
+template <>
+void expect_raises<std::exception>(std::function<void()> fn);

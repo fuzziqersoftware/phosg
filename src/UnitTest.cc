@@ -19,3 +19,18 @@ void expect_generic(bool pred, const char* msg, const char* file, uint64_t line)
 
   throw expectation_failed(msg, file, line);
 }
+
+template <>
+void expect_raises<std::exception>(std::function<void()> fn) {
+  try {
+    fn();
+    expect_msg(false, "expected exception, but none raised");
+  } catch (const std::exception& e) {
+    return;
+  } catch (...) {
+    // TODO: It'd be nice to show SOMETHING about the thrown exception here,
+    // but it's probably pretty rare to catch something that isn't a
+    // std::exception anyway.
+    expect_msg(false, "incorrect exception type raised");
+  }
+};
