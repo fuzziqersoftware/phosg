@@ -39,9 +39,19 @@ public:
   using list_type = std::vector<std::shared_ptr<JSONObject>>;
   using dict_type = std::unordered_map<std::string, std::shared_ptr<JSONObject>>;
 
-  static std::shared_ptr<JSONObject> parse(StringReader& r);
-  static std::shared_ptr<JSONObject> parse(const char* s, size_t size);
-  static std::shared_ptr<JSONObject> parse(const std::string& s);
+  // JSON text parsers. If disable_extensions is true, the following
+  // nonstandard extensions are not allowed:
+  // - Trailing commas in lists and dictionaries
+  // - Hexadecimal integers
+  // - Comments
+  // These extensions do not make any standard-compliant JSON unparseable, so
+  // they are enabled by default.
+  static std::shared_ptr<JSONObject> parse(
+      StringReader& r, bool disable_extensions = false);
+  static std::shared_ptr<JSONObject> parse(
+      const char* s, size_t size, bool disable_extensions = false);
+  static std::shared_ptr<JSONObject> parse(
+      const std::string& s, bool disable_extensions = false);
 
   // Direct constructors. Use these when generating JSON to be sent/written/etc.
   JSONObject(); // null
@@ -113,14 +123,16 @@ public:
     // conform to the JSON standard.
 
     // This option adds whitespace to the output to make it easier for humans
-    // to read.
+    // to read. The output is still standard-compliant.
     FORMAT = 4,
-    // If this is enabled, all integers are serialized in hexadecimal.
-    // JSONObject can parse output generated with this option.
+    // If this is enabled, all integers are serialized in hexadecimal. This is
+    // not standard-compliant, but JSONObject can parse output generated with
+    // this option if disable_extensions is false (the default).
     HEX_INTEGERS = 1,
     // If this is enabled, null, true, and false are serialized as single
-    // characters (n, t, and f). JSONObject cannot parse output generated with
-    // this option.
+    // characters (n, t, and f). This is not standard-compliant, but JSONObject
+    // can parse output generated with this option if disable_extensions is
+    // false (the default).
     ONE_CHARACTER_TRIVIAL_CONSTANTS = 2,
   };
   std::string serialize(uint32_t options = 0, size_t indent_level = 0) const;

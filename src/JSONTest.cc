@@ -11,6 +11,7 @@ using namespace std;
 int main(int, char** argv) {
   uint32_t hex_option = JSONObject::SerializeOption::HEX_INTEGERS;
   uint32_t format_option = JSONObject::SerializeOption::FORMAT;
+  uint32_t one_char_trivial_option = JSONObject::SerializeOption::ONE_CHARACTER_TRIVIAL_CONSTANTS;
 
   fprintf(stderr, "-- construction\n");
   unordered_map<string, JSONObject> members;
@@ -103,6 +104,9 @@ int main(int, char** argv) {
   assert(root.at("null")->serialize() == "null");
   assert(root.at("true")->serialize() == "true");
   assert(root.at("false")->serialize() == "false");
+  assert(root.at("null")->serialize(one_char_trivial_option) == "n");
+  assert(root.at("true")->serialize(one_char_trivial_option) == "t");
+  assert(root.at("false")->serialize(one_char_trivial_option) == "f");
   assert(root.at("string0")->serialize() == "\"\"");
   assert(root.at("string1")->serialize() == "\"no special chars\"");
   assert(root.at("string2")->serialize() == "\"omg \\\"\'\\\\\\t\\n\"");
@@ -124,6 +128,9 @@ int main(int, char** argv) {
   assert(root.at("null")->serialize(format_option) == "null");
   assert(root.at("true")->serialize(format_option) == "true");
   assert(root.at("false")->serialize(format_option) == "false");
+  assert(root.at("null")->serialize(format_option | one_char_trivial_option) == "n");
+  assert(root.at("true")->serialize(format_option | one_char_trivial_option) == "t");
+  assert(root.at("false")->serialize(format_option | one_char_trivial_option) == "f");
   assert(root.at("string0")->serialize(format_option) == "\"\"");
   assert(root.at("string1")->serialize(format_option) == "\"no special chars\"");
   assert(root.at("string2")->serialize(format_option) == "\"omg \\\"\'\\\\\\t\\n\"");
@@ -145,6 +152,9 @@ int main(int, char** argv) {
   assert(*root.at("null") == *JSONObject::parse("null"));
   assert(*root.at("true") == *JSONObject::parse("true"));
   assert(*root.at("false") == *JSONObject::parse("false"));
+  assert(*root.at("null") == *JSONObject::parse("n"));
+  assert(*root.at("true") == *JSONObject::parse("t"));
+  assert(*root.at("false") == *JSONObject::parse("f"));
   assert(*root.at("string0") == *JSONObject::parse("\"\""));
   assert(*root.at("string1") == *JSONObject::parse("\"no special chars\""));
   assert(*root.at("string2") == *JSONObject::parse("\"omg \\\"\'\\\\\\t\\n\""));
@@ -209,6 +219,22 @@ int main(int, char** argv) {
   assert(JSONObject() == *JSONObject::parse("// this is null\nnull"));
   assert(JSONObject((vector<JSONObject>())) == *JSONObject::parse("[\n// empty list\n]"));
   assert(JSONObject(unordered_map<string, JSONObject>()) == *JSONObject::parse("{\n// empty dict\n}"));
+
+  fprintf(stderr, "-- extensions in strict mode\n");
+  try {
+    JSONObject::parse("0x123", 5, true);
+    assert(false);
+  } catch (const JSONObject::parse_error& e) {
+  } catch (...) {
+    assert(false);
+  }
+  try {
+    JSONObject::parse("// this is null\nnull", 20, true);
+    assert(false);
+  } catch (const JSONObject::parse_error& e) {
+  } catch (...) {
+    assert(false);
+  }
 
   printf("%s: all tests passed\n", argv[0]);
   return 0;

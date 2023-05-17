@@ -368,6 +368,7 @@ public:
   void truncate(size_t new_size);
   void go(size_t offset);
   void skip(size_t bytes);
+  bool skip_if(const void* data, size_t size);
   bool eof() const;
   std::string all() const;
 

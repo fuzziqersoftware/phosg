@@ -1408,6 +1408,15 @@ void StringReader::skip(size_t bytes) {
   }
 }
 
+bool StringReader::skip_if(const void* data, size_t size) {
+  if ((this->remaining() < size) || memcmp(this->peek(size), data, size)) {
+    return false;
+  } else {
+    this->skip(size);
+    return true;
+  }
+}
+
 bool StringReader::eof() const {
   return (this->offset >= this->length);
 }

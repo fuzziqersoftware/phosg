@@ -14,7 +14,7 @@ JSONObject::type_error::type_error(const string& what) : runtime_error(what) {}
 JSONObject::key_error::key_error(const string& what) : runtime_error(what) {}
 JSONObject::index_error::index_error(const string& what) : runtime_error(what) {}
 
-static void skip_whitespace_and_comments(StringReader& r) {
+static void skip_whitespace_and_comments(StringReader& r, bool disable_extensions) {
   bool reading_comment = false;
   while (!r.eof()) {
     char ch = r.get_s8(false);
@@ -23,7 +23,7 @@ static void skip_whitespace_and_comments(StringReader& r) {
         reading_comment = false;
       }
     } else {
-      if ((ch == '/') && (r.pget_s8(r.where() + 1) == '/')) {
+      if (!disable_extensions && (ch == '/') && (r.pget_s8(r.where() + 1) == '/')) {
         reading_comment = true;
       } else if ((ch != ' ') && (ch != '\t') && (ch != '\r') && (ch != '\n')) {
         return;
@@ -33,8 +33,8 @@ static void skip_whitespace_and_comments(StringReader& r) {
   }
 }
 
-shared_ptr<JSONObject> JSONObject::parse(StringReader& r) {
-  skip_whitespace_and_comments(r);
+shared_ptr<JSONObject> JSONObject::parse(StringReader& r, bool disable_extensions) {
+  skip_whitespace_and_comments(r, disable_extensions);
 
   shared_ptr<JSONObject> ret(new JSONObject());
   char root_type_ch = r.get_s8(false);
@@ -49,22 +49,22 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r) {
       }
       expected_separator = ',';
 
-      skip_whitespace_and_comments(r);
-      if (r.get_s8(false) == '}') {
+      skip_whitespace_and_comments(r, disable_extensions);
+      if (!disable_extensions && (r.get_s8(false) == '}')) {
         r.get_s8();
         break;
       }
 
-      shared_ptr<JSONObject> key = JSONObject::parse(r);
-      skip_whitespace_and_comments(r);
+      shared_ptr<JSONObject> key = JSONObject::parse(r, disable_extensions);
+      skip_whitespace_and_comments(r, disable_extensions);
 
       if (r.get_s8() != ':') {
         throw parse_error("dictionary does not contain key/value pairs; pos=" + to_string(r.where()));
       }
-      skip_whitespace_and_comments(r);
+      skip_whitespace_and_comments(r, disable_extensions);
 
-      data.emplace(key->as_string(), JSONObject::parse(r));
-      skip_whitespace_and_comments(r);
+      data.emplace(key->as_string(), JSONObject::parse(r, disable_extensions));
+      skip_whitespace_and_comments(r, disable_extensions);
       separator = r.get_s8();
     }
 
@@ -80,14 +80,14 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r) {
       }
       expected_separator = ',';
 
-      skip_whitespace_and_comments(r);
-      if (r.get_s8(false) == ']') {
+      skip_whitespace_and_comments(r, disable_extensions);
+      if (!disable_extensions && (r.get_s8(false) == ']')) {
         r.get_s8();
         break;
       }
 
-      data.emplace_back(JSONObject::parse(r));
-      skip_whitespace_and_comments(r);
+      data.emplace_back(JSONObject::parse(r, disable_extensions));
+      skip_whitespace_and_comments(r, disable_extensions);
       separator = r.get_s8();
     }
 
@@ -104,7 +104,8 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r) {
       r.get_s8();
     }
 
-    if (((r.where() + 2) < r.size()) &&
+    if (!disable_extensions &&
+        ((r.where() + 2) < r.size()) &&
         (r.get_s8(false) == '0') &&
         (r.pget_s8(r.where() + 1) == 'x')) { // hex
       r.go(r.where() + 2);
@@ -211,7 +212,7 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r) {
         } else {
           throw parse_error("invalid escape sequence in string; pos=" + to_string(r.where()));
         }
-      } else { // not an escap sequence
+      } else { // not an escape sequence
         data.push_back(ch);
       }
     }
@@ -219,17 +220,14 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r) {
 
     ret->value = std::move(data);
 
-  } else if (!strncmp(r.peek(4), "null", 4)) {
+  } else if (r.skip_if("null", 4) || (!disable_extensions && r.skip_if("n", 1))) {
     ret->value = nullptr;
-    r.go(r.where() + 4);
 
-  } else if (!strncmp(r.peek(4), "true", 4)) {
+  } else if (r.skip_if("true", 4) || (!disable_extensions && r.skip_if("t", 1))) {
     ret->value = true;
-    r.go(r.where() + 4);
 
-  } else if (!strncmp(r.peek(5), "false", 5)) {
+  } else if (r.skip_if("false", 5) || (!disable_extensions && r.skip_if("f", 1))) {
     ret->value = false;
-    r.go(r.where() + 5);
 
   } else {
     throw parse_error("unknown root sentinel; pos=" + to_string(r.where()));
@@ -238,14 +236,14 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r) {
   return ret;
 }
 
-shared_ptr<JSONObject> JSONObject::parse(const char* s, size_t size) {
+shared_ptr<JSONObject> JSONObject::parse(const char* s, size_t size, bool disable_extensions) {
   StringReader r(s, size);
-  return JSONObject::parse(r);
+  return JSONObject::parse(r, disable_extensions);
 }
 
-shared_ptr<JSONObject> JSONObject::parse(const string& s) {
+shared_ptr<JSONObject> JSONObject::parse(const string& s, bool disable_extensions) {
   StringReader r(s.c_str(), s.size());
-  return JSONObject::parse(r);
+  return JSONObject::parse(r, disable_extensions);
 }
 
 JSONObject::JSONObject() : value(nullptr) {}
