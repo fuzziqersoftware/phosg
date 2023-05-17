@@ -13,11 +13,9 @@ int main(int, char** argv) {
   expect_eq(c.size(), 0);
   expect_eq(c.count(), 0);
 
-  try {
+  expect_raises<out_of_range>([&]() {
     c.at("key1");
-    expect_msg(false, "c.at() did not throw");
-  } catch (const out_of_range&) {
-  }
+  });
 
   expect(c.insert("key1", "value0", 30));
   expect_eq(c.size(), 30);

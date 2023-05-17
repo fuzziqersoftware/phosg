@@ -133,11 +133,9 @@ void run_basic_test() {
   printf("--   at/exists\n");
   expect_eq(6, t.size());
   expect_eq(4, t.at({8, 1}));
-  try {
+  expect_raises<out_of_range>([&]() {
     t.at({8, 2});
-    expect(false);
-  } catch (const out_of_range&) {
-  }
+  });
   expect_eq(true, t.exists({5, 4}));
   expect_eq(false, t.exists({5, 3}));
 

@@ -45,6 +45,22 @@ int main(int, char** argv) {
   expect_fails(expect_le(4, 3));
   expect_fails(expect(false));
 
+  expect_fails(expect_raises<runtime_error>([&]() {
+    return;
+  }));
+
+  expect_fails(expect_raises<runtime_error>([&]() {
+    throw logic_error("omg hax");
+  }));
+
+  expect_raises<runtime_error>([&]() {
+    throw runtime_error("omg hax");
+  });
+
+  expect_raises<exception>([&]() {
+    throw runtime_error("omg hax");
+  });
+
   printf("%s: all tests passed\n", argv[0]);
   return 0;
 }

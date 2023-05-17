@@ -5,6 +5,7 @@
 #include <string>
 
 #include "JSON.hh"
+#include "UnitTest.hh"
 
 using namespace std;
 
@@ -34,226 +35,189 @@ int main(int, char** argv) {
   JSONObject root(members);
 
   fprintf(stderr, "-- equality\n");
-  assert(root == JSONObject(members));
+  expect_eq(root, JSONObject(members));
   members.emplace(piecewise_construct, make_tuple("extra_item"), make_tuple((int64_t)3));
-  assert(root != JSONObject(members));
+  expect_ne(root, JSONObject(members));
 
   fprintf(stderr, "-- int/float equality\n");
-  assert(JSONObject((int64_t)3) == JSONObject(3.0));
-  assert(JSONObject(0.0) == JSONObject((int64_t)0));
-  assert(JSONObject(true) != JSONObject((int64_t)1));
+  expect_eq(JSONObject((int64_t)3), JSONObject(3.0));
+  expect_eq(JSONObject(0.0), JSONObject((int64_t)0));
+  expect_ne(JSONObject(true), JSONObject((int64_t)1));
 
   fprintf(stderr, "-- retrieval\n");
-  assert(root.at("null")->is_null() == true);
-  assert(root.at("true")->is_null() == false);
-  assert(root.at("false")->is_null() == false);
-  assert(root.at("string0")->is_null() == false);
-  assert(root.at("string1")->is_null() == false);
-  assert(root.at("string2")->is_null() == false);
-  assert(root.at("int0")->is_null() == false);
-  assert(root.at("int1")->is_null() == false);
-  assert(root.at("int2")->is_null() == false);
-  assert(root.at("float0")->is_null() == false);
-  assert(root.at("float1")->is_null() == false);
-  assert(root.at("float2")->is_null() == false);
-  assert(root.at("list0")->is_null() == false);
-  assert(root.at("list1")->is_null() == false);
-  assert(root.at("dict0")->is_null() == false);
-  assert(root.at("dict1")->is_null() == false);
+  expect_eq(root.at("null")->is_null(), true);
+  expect_eq(root.at("true")->is_null(), false);
+  expect_eq(root.at("false")->is_null(), false);
+  expect_eq(root.at("string0")->is_null(), false);
+  expect_eq(root.at("string1")->is_null(), false);
+  expect_eq(root.at("string2")->is_null(), false);
+  expect_eq(root.at("int0")->is_null(), false);
+  expect_eq(root.at("int1")->is_null(), false);
+  expect_eq(root.at("int2")->is_null(), false);
+  expect_eq(root.at("float0")->is_null(), false);
+  expect_eq(root.at("float1")->is_null(), false);
+  expect_eq(root.at("float2")->is_null(), false);
+  expect_eq(root.at("list0")->is_null(), false);
+  expect_eq(root.at("list1")->is_null(), false);
+  expect_eq(root.at("dict0")->is_null(), false);
+  expect_eq(root.at("dict1")->is_null(), false);
 
   fprintf(stderr, "-- retrieval + equality\n");
-  assert(*root.at("null") == JSONObject());
-  assert(*root.at("true") == JSONObject(true));
-  assert(*root.at("false") == JSONObject(false));
-  assert(*root.at("string0") == JSONObject(""));
-  assert(*root.at("string1") == JSONObject("no special chars"));
-  assert(*root.at("string2") == JSONObject("omg \"\'\\\t\n"));
-  assert(*root.at("int0") == JSONObject((int64_t)0));
-  assert(*root.at("int1") == JSONObject((int64_t)134));
-  assert(*root.at("int2") == JSONObject((int64_t)-3214));
-  assert(*root.at("float0") == JSONObject(0.0));
-  assert(*root.at("float1") == JSONObject(1.4));
-  assert(*root.at("float2") == JSONObject(-10.5));
-  assert(*root.at("list0") == JSONObject((vector<JSONObject>())));
-  assert(*root.at("list1") == JSONObject((vector<JSONObject>({{JSONObject((int64_t)1)}}))));
-  assert(*root.at("list1")->at(0) == JSONObject((int64_t)1));
-  assert(*root.at("dict0") == JSONObject(unordered_map<string, JSONObject>()));
-  assert(*root.at("dict1") == JSONObject(unordered_map<string, JSONObject>({{"1", JSONObject((int64_t)1)}})));
-  assert(*root.at("dict1")->at("1") == JSONObject((int64_t)1));
+  expect_eq(*root.at("null"), JSONObject());
+  expect_eq(*root.at("true"), JSONObject(true));
+  expect_eq(*root.at("false"), JSONObject(false));
+  expect_eq(*root.at("string0"), JSONObject(""));
+  expect_eq(*root.at("string1"), JSONObject("no special chars"));
+  expect_eq(*root.at("string2"), JSONObject("omg \"\'\\\t\n"));
+  expect_eq(*root.at("int0"), JSONObject((int64_t)0));
+  expect_eq(*root.at("int1"), JSONObject((int64_t)134));
+  expect_eq(*root.at("int2"), JSONObject((int64_t)-3214));
+  expect_eq(*root.at("float0"), JSONObject(0.0));
+  expect_eq(*root.at("float1"), JSONObject(1.4));
+  expect_eq(*root.at("float2"), JSONObject(-10.5));
+  expect_eq(*root.at("list0"), JSONObject((vector<JSONObject>())));
+  expect_eq(*root.at("list1"), JSONObject((vector<JSONObject>({{JSONObject((int64_t)1)}}))));
+  expect_eq(*root.at("list1")->at(0), JSONObject((int64_t)1));
+  expect_eq(*root.at("dict0"), JSONObject(unordered_map<string, JSONObject>()));
+  expect_eq(*root.at("dict1"), JSONObject(unordered_map<string, JSONObject>({{"1", JSONObject((int64_t)1)}})));
+  expect_eq(*root.at("dict1")->at("1"), JSONObject((int64_t)1));
 
   fprintf(stderr, "-- retrieval + unwrap + equality\n");
-  assert(root.at("true")->as_bool() == true);
-  assert(root.at("false")->as_bool() == false);
-  assert(root.at("string0")->as_string() == "");
-  assert(root.at("string1")->as_string() == "no special chars");
-  assert(root.at("string2")->as_string() == "omg \"\'\\\t\n");
-  assert(root.at("int0")->as_int() == 0);
-  assert(root.at("int1")->as_int() == 134);
-  assert(root.at("int2")->as_int() == -3214);
-  assert(root.at("float0")->as_float() == 0.0);
-  assert(root.at("float1")->as_float() == 1.4);
-  assert(root.at("float2")->as_float() == -10.5);
-  assert(root.at("list0")->as_list() == vector<shared_ptr<JSONObject>>());
-  assert(root.at("list1")->as_list().size() == 1);
-  assert(root.at("list1")->at(0)->as_int() == 1);
-  assert(root.at("dict0")->as_dict().size() == 0);
-  assert(root.at("dict1")->at("1")->as_int() == 1);
-  assert(root.at("dict1")->as_dict().size() == 1);
+  expect_eq(root.at("true")->as_bool(), true);
+  expect_eq(root.at("false")->as_bool(), false);
+  expect_eq(root.at("string0")->as_string(), "");
+  expect_eq(root.at("string1")->as_string(), "no special chars");
+  expect_eq(root.at("string2")->as_string(), "omg \"\'\\\t\n");
+  expect_eq(root.at("int0")->as_int(), 0);
+  expect_eq(root.at("int1")->as_int(), 134);
+  expect_eq(root.at("int2")->as_int(), -3214);
+  expect_eq(root.at("float0")->as_float(), 0.0);
+  expect_eq(root.at("float1")->as_float(), 1.4);
+  expect_eq(root.at("float2")->as_float(), -10.5);
+  expect_eq(root.at("list0")->as_list(), vector<shared_ptr<JSONObject>>());
+  expect_eq(root.at("list1")->as_list().size(), 1);
+  expect_eq(root.at("list1")->at(0)->as_int(), 1);
+  expect_eq(root.at("dict0")->as_dict().size(), 0);
+  expect_eq(root.at("dict1")->at("1")->as_int(), 1);
+  expect_eq(root.at("dict1")->as_dict().size(), 1);
 
   fprintf(stderr, "-- serialize\n");
-  assert(root.at("null")->serialize() == "null");
-  assert(root.at("true")->serialize() == "true");
-  assert(root.at("false")->serialize() == "false");
-  assert(root.at("null")->serialize(one_char_trivial_option) == "n");
-  assert(root.at("true")->serialize(one_char_trivial_option) == "t");
-  assert(root.at("false")->serialize(one_char_trivial_option) == "f");
-  assert(root.at("string0")->serialize() == "\"\"");
-  assert(root.at("string1")->serialize() == "\"no special chars\"");
-  assert(root.at("string2")->serialize() == "\"omg \\\"\'\\\\\\t\\n\"");
-  assert(root.at("int0")->serialize() == "0");
-  assert(root.at("int1")->serialize() == "134");
-  assert(root.at("int2")->serialize() == "-3214");
-  assert(root.at("int0")->serialize(hex_option) == "0x0");
-  assert(root.at("int1")->serialize(hex_option) == "0x86");
-  assert(root.at("int2")->serialize(hex_option) == "-0xC8E");
-  assert(root.at("float0")->serialize() == "0.0");
-  assert(root.at("float1")->serialize() == "1.4");
-  assert(root.at("float2")->serialize() == "-10.5");
-  assert(root.at("list0")->serialize() == "[]");
-  assert(root.at("list1")->serialize() == "[1]");
-  assert(root.at("dict0")->serialize() == "{}");
-  assert(root.at("dict1")->serialize() == "{\"1\":1}");
+  expect_eq(root.at("null")->serialize(), "null");
+  expect_eq(root.at("true")->serialize(), "true");
+  expect_eq(root.at("false")->serialize(), "false");
+  expect_eq(root.at("null")->serialize(one_char_trivial_option), "n");
+  expect_eq(root.at("true")->serialize(one_char_trivial_option), "t");
+  expect_eq(root.at("false")->serialize(one_char_trivial_option), "f");
+  expect_eq(root.at("string0")->serialize(), "\"\"");
+  expect_eq(root.at("string1")->serialize(), "\"no special chars\"");
+  expect_eq(root.at("string2")->serialize(), "\"omg \\\"\'\\\\\\t\\n\"");
+  expect_eq(root.at("int0")->serialize(), "0");
+  expect_eq(root.at("int1")->serialize(), "134");
+  expect_eq(root.at("int2")->serialize(), "-3214");
+  expect_eq(root.at("int0")->serialize(hex_option), "0x0");
+  expect_eq(root.at("int1")->serialize(hex_option), "0x86");
+  expect_eq(root.at("int2")->serialize(hex_option), "-0xC8E");
+  expect_eq(root.at("float0")->serialize(), "0.0");
+  expect_eq(root.at("float1")->serialize(), "1.4");
+  expect_eq(root.at("float2")->serialize(), "-10.5");
+  expect_eq(root.at("list0")->serialize(), "[]");
+  expect_eq(root.at("list1")->serialize(), "[1]");
+  expect_eq(root.at("dict0")->serialize(), "{}");
+  expect_eq(root.at("dict1")->serialize(), "{\"1\":1}");
 
   fprintf(stderr, "-- serialize(format)\n");
-  assert(root.at("null")->serialize(format_option) == "null");
-  assert(root.at("true")->serialize(format_option) == "true");
-  assert(root.at("false")->serialize(format_option) == "false");
-  assert(root.at("null")->serialize(format_option | one_char_trivial_option) == "n");
-  assert(root.at("true")->serialize(format_option | one_char_trivial_option) == "t");
-  assert(root.at("false")->serialize(format_option | one_char_trivial_option) == "f");
-  assert(root.at("string0")->serialize(format_option) == "\"\"");
-  assert(root.at("string1")->serialize(format_option) == "\"no special chars\"");
-  assert(root.at("string2")->serialize(format_option) == "\"omg \\\"\'\\\\\\t\\n\"");
-  assert(root.at("int0")->serialize(format_option) == "0");
-  assert(root.at("int1")->serialize(format_option) == "134");
-  assert(root.at("int2")->serialize(format_option) == "-3214");
-  assert(root.at("int0")->serialize(format_option | hex_option) == "0x0");
-  assert(root.at("int1")->serialize(format_option | hex_option) == "0x86");
-  assert(root.at("int2")->serialize(format_option | hex_option) == "-0xC8E");
-  assert(root.at("float0")->serialize(format_option) == "0.0");
-  assert(root.at("float1")->serialize(format_option) == "1.4");
-  assert(root.at("float2")->serialize(format_option) == "-10.5");
-  assert(root.at("list0")->serialize(format_option) == "[]");
-  assert(root.at("list1")->serialize(format_option) == "[\n  1\n]");
-  assert(root.at("dict0")->serialize(format_option) == "{}");
-  assert(root.at("dict1")->serialize(format_option) == "{\n  \"1\": 1\n}");
+  expect_eq(root.at("null")->serialize(format_option), "null");
+  expect_eq(root.at("true")->serialize(format_option), "true");
+  expect_eq(root.at("false")->serialize(format_option), "false");
+  expect_eq(root.at("null")->serialize(format_option | one_char_trivial_option), "n");
+  expect_eq(root.at("true")->serialize(format_option | one_char_trivial_option), "t");
+  expect_eq(root.at("false")->serialize(format_option | one_char_trivial_option), "f");
+  expect_eq(root.at("string0")->serialize(format_option), "\"\"");
+  expect_eq(root.at("string1")->serialize(format_option), "\"no special chars\"");
+  expect_eq(root.at("string2")->serialize(format_option), "\"omg \\\"\'\\\\\\t\\n\"");
+  expect_eq(root.at("int0")->serialize(format_option), "0");
+  expect_eq(root.at("int1")->serialize(format_option), "134");
+  expect_eq(root.at("int2")->serialize(format_option), "-3214");
+  expect_eq(root.at("int0")->serialize(format_option | hex_option), "0x0");
+  expect_eq(root.at("int1")->serialize(format_option | hex_option), "0x86");
+  expect_eq(root.at("int2")->serialize(format_option | hex_option), "-0xC8E");
+  expect_eq(root.at("float0")->serialize(format_option), "0.0");
+  expect_eq(root.at("float1")->serialize(format_option), "1.4");
+  expect_eq(root.at("float2")->serialize(format_option), "-10.5");
+  expect_eq(root.at("list0")->serialize(format_option), "[]");
+  expect_eq(root.at("list1")->serialize(format_option), "[\n  1\n]");
+  expect_eq(root.at("dict0")->serialize(format_option), "{}");
+  expect_eq(root.at("dict1")->serialize(format_option), "{\n  \"1\": 1\n}");
 
   fprintf(stderr, "-- parse\n");
-  assert(*root.at("null") == *JSONObject::parse("null"));
-  assert(*root.at("true") == *JSONObject::parse("true"));
-  assert(*root.at("false") == *JSONObject::parse("false"));
-  assert(*root.at("null") == *JSONObject::parse("n"));
-  assert(*root.at("true") == *JSONObject::parse("t"));
-  assert(*root.at("false") == *JSONObject::parse("f"));
-  assert(*root.at("string0") == *JSONObject::parse("\"\""));
-  assert(*root.at("string1") == *JSONObject::parse("\"no special chars\""));
-  assert(*root.at("string2") == *JSONObject::parse("\"omg \\\"\'\\\\\\t\\n\""));
-  assert(*root.at("int0") == *JSONObject::parse("0"));
-  assert(*root.at("int1") == *JSONObject::parse("134"));
-  assert(*root.at("int2") == *JSONObject::parse("-3214"));
-  assert(*root.at("int0") == *JSONObject::parse("0x0"));
-  assert(*root.at("int1") == *JSONObject::parse("0x86"));
-  assert(*root.at("int2") == *JSONObject::parse("-0xC8E"));
-  assert(*root.at("float0") == *JSONObject::parse("0.0"));
-  assert(*root.at("float1") == *JSONObject::parse("1.4"));
-  assert(*root.at("float2") == *JSONObject::parse("-10.5"));
-  assert(*root.at("list0") == *JSONObject::parse("[]"));
-  assert(*root.at("list1") == *JSONObject::parse("[1]"));
-  assert(*root.at("dict0") == *JSONObject::parse("{}"));
-  assert(*root.at("dict1") == *JSONObject::parse("{\"1\":1}"));
+  expect_eq(*root.at("null"), *JSONObject::parse("null"));
+  expect_eq(*root.at("true"), *JSONObject::parse("true"));
+  expect_eq(*root.at("false"), *JSONObject::parse("false"));
+  expect_eq(*root.at("null"), *JSONObject::parse("n"));
+  expect_eq(*root.at("true"), *JSONObject::parse("t"));
+  expect_eq(*root.at("false"), *JSONObject::parse("f"));
+  expect_eq(*root.at("string0"), *JSONObject::parse("\"\""));
+  expect_eq(*root.at("string1"), *JSONObject::parse("\"no special chars\""));
+  expect_eq(*root.at("string2"), *JSONObject::parse("\"omg \\\"\'\\\\\\t\\n\""));
+  expect_eq(*root.at("int0"), *JSONObject::parse("0"));
+  expect_eq(*root.at("int1"), *JSONObject::parse("134"));
+  expect_eq(*root.at("int2"), *JSONObject::parse("-3214"));
+  expect_eq(*root.at("int0"), *JSONObject::parse("0x0"));
+  expect_eq(*root.at("int1"), *JSONObject::parse("0x86"));
+  expect_eq(*root.at("int2"), *JSONObject::parse("-0xC8E"));
+  expect_eq(*root.at("float0"), *JSONObject::parse("0.0"));
+  expect_eq(*root.at("float1"), *JSONObject::parse("1.4"));
+  expect_eq(*root.at("float2"), *JSONObject::parse("-10.5"));
+  expect_eq(*root.at("list0"), *JSONObject::parse("[]"));
+  expect_eq(*root.at("list1"), *JSONObject::parse("[1]"));
+  expect_eq(*root.at("dict0"), *JSONObject::parse("{}"));
+  expect_eq(*root.at("dict1"), *JSONObject::parse("{\"1\":1}"));
 
   fprintf(stderr, "-- parse list with trailing comma\n");
-  assert(*root.at("list1") == *JSONObject::parse("[1,]"));
+  expect_eq(*root.at("list1"), *JSONObject::parse("[1,]"));
   fprintf(stderr, "-- parse dict with trailing comma\n");
-  assert(*root.at("dict1") == *JSONObject::parse("{\"1\":1,}"));
+  expect_eq(*root.at("dict1"), *JSONObject::parse("{\"1\":1,}"));
 
   fprintf(stderr, "-- serialize/parse\n");
-  assert(*JSONObject::parse(root.serialize()) == root);
+  expect_eq(*JSONObject::parse(root.serialize()), root);
   fprintf(stderr, "-- serialize(format)/parse\n");
-  assert(*JSONObject::parse(root.serialize(JSONObject::SerializeOption::FORMAT)) == root);
+  expect_eq(*JSONObject::parse(root.serialize(JSONObject::SerializeOption::FORMAT)), root);
 
   fprintf(stderr, "-- exceptions\n");
-  try {
+  expect_raises<JSONObject::key_error>([&]() {
     root.at("missing_key");
-    assert(false);
-  } catch (const JSONObject::key_error& e) {
-  } catch (...) {
-    assert(false);
-  }
-
-  try {
+  });
+  expect_raises<JSONObject::index_error>([&]() {
     root.at("list1")->at(2);
-    assert(false);
-  } catch (const JSONObject::index_error& e) {
-  } catch (...) {
-    assert(false);
-  }
-
-  try {
+  });
+  expect_raises<JSONObject::type_error>([&]() {
     root.at("list1")->as_dict();
-    assert(false);
-  } catch (const JSONObject::type_error& e) {
-  } catch (...) {
-    assert(false);
-  }
-
-  try {
+  });
+  expect_raises<JSONObject::parse_error>([&]() {
     JSONObject::parse("{this isn\'t valid json}");
-    assert(false);
-  } catch (const JSONObject::parse_error& e) {
-  } catch (...) {
-    assert(false);
-  }
-
-  try {
+  });
+  expect_raises<JSONObject::parse_error>([&]() {
     JSONObject::parse("{} some garbage after valid JSON");
-    assert(false);
-  } catch (const JSONObject::parse_error& e) {
-  } catch (...) {
-    assert(false);
-  }
-
-  try {
+  });
+  expect_raises<JSONObject::parse_error>([&]() {
     JSONObject::parse("{} \"valid JSON after some other valid JSON\"");
-    assert(false);
-  } catch (const JSONObject::parse_error& e) {
-  } catch (...) {
-    assert(false);
-  }
+  });
 
-  assert(JSONObject::parse("false // a comment after valid JSON")->serialize() == "false");
-  assert(JSONObject::parse("false     ")->serialize() == "false");
+  expect_eq(JSONObject::parse("false // a comment after valid JSON")->serialize(), "false");
+  expect_eq(JSONObject::parse("false     ")->serialize(), "false");
 
   fprintf(stderr, "-- comments\n");
-  assert(JSONObject() == *JSONObject::parse("// this is null\nnull"));
-  assert(JSONObject((vector<JSONObject>())) == *JSONObject::parse("[\n// empty list\n]"));
-  assert(JSONObject(unordered_map<string, JSONObject>()) == *JSONObject::parse("{\n// empty dict\n}"));
+  expect_eq(JSONObject(), *JSONObject::parse("// this is null\nnull"));
+  expect_eq(JSONObject((vector<JSONObject>())), *JSONObject::parse("[\n// empty list\n]"));
+  expect_eq(JSONObject(unordered_map<string, JSONObject>()), *JSONObject::parse("{\n// empty dict\n}"));
 
   fprintf(stderr, "-- extensions in strict mode\n");
-  try {
+  expect_raises<JSONObject::parse_error>([&]() {
     JSONObject::parse("0x123", 5, true);
-    assert(false);
-  } catch (const JSONObject::parse_error& e) {
-  } catch (...) {
-    assert(false);
-  }
-  try {
+  });
+  expect_raises<JSONObject::parse_error>([&]() {
     JSONObject::parse("// this is null\nnull", 20, true);
-    assert(false);
-  } catch (const JSONObject::parse_error& e) {
-  } catch (...) {
-    assert(false);
-  }
+  });
 
   printf("%s: all tests passed\n", argv[0]);
   return 0;
