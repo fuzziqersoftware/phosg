@@ -299,8 +299,6 @@ std::string parse_data_string(const std::string& s, std::string* mask = nullptr,
 std::string format_data_string(const std::string& data, const std::string* mask = nullptr);
 std::string format_data_string(const void* data, size_t size, const void* mask = nullptr);
 
-std::string format_time(struct timeval* tv = nullptr);
-std::string format_duration(uint64_t usecs, int8_t subsecond_precision = -1);
 std::string format_size(size_t size, bool include_bytes = false);
 size_t parse_size(const char* str);
 
