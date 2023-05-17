@@ -215,6 +215,25 @@ int main(int, char** argv) {
     assert(false);
   }
 
+  try {
+    JSONObject::parse("{} some garbage after valid JSON");
+    assert(false);
+  } catch (const JSONObject::parse_error& e) {
+  } catch (...) {
+    assert(false);
+  }
+
+  try {
+    JSONObject::parse("{} \"valid JSON after some other valid JSON\"");
+    assert(false);
+  } catch (const JSONObject::parse_error& e) {
+  } catch (...) {
+    assert(false);
+  }
+
+  assert(JSONObject::parse("false // a comment after valid JSON")->serialize() == "false");
+  assert(JSONObject::parse("false     ")->serialize() == "false");
+
   fprintf(stderr, "-- comments\n");
   assert(JSONObject() == *JSONObject::parse("// this is null\nnull"));
   assert(JSONObject((vector<JSONObject>())) == *JSONObject::parse("[\n// empty list\n]"));

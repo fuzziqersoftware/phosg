@@ -238,12 +238,16 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r, bool disable_extension
 
 shared_ptr<JSONObject> JSONObject::parse(const char* s, size_t size, bool disable_extensions) {
   StringReader r(s, size);
-  return JSONObject::parse(r, disable_extensions);
+  auto ret = JSONObject::parse(r, disable_extensions);
+  skip_whitespace_and_comments(r, disable_extensions);
+  if (!r.eof()) {
+    throw JSONObject::parse_error("unparsed data remains after value");
+  }
+  return ret;
 }
 
 shared_ptr<JSONObject> JSONObject::parse(const string& s, bool disable_extensions) {
-  StringReader r(s.c_str(), s.size());
-  return JSONObject::parse(r, disable_extensions);
+  return JSONObject::parse(s.data(), s.size(), disable_extensions);
 }
 
 JSONObject::JSONObject() : value(nullptr) {}

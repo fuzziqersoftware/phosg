@@ -46,6 +46,9 @@ public:
   // - Comments
   // These extensions do not make any standard-compliant JSON unparseable, so
   // they are enabled by default.
+  // The StringReader variant of this function does not throw if there's extra
+  // data after a valid JSON object; the other variants do (unless it's only
+  // whitespace).
   static std::shared_ptr<JSONObject> parse(
       StringReader& r, bool disable_extensions = false);
   static std::shared_ptr<JSONObject> parse(
