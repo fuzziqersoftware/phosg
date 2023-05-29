@@ -24,7 +24,7 @@ int main(int, char** argv) {
     hits[v] = thread_num + 1;
     return false;
   };
-  parallel_range<uint64_t, false>(handle_value, 0, hits.size(), num_threads);
+  parallel_range<uint64_t>(handle_value, 0, hits.size(), num_threads, nullptr);
 
   vector<size_t> thread_counts(num_threads, 0);
   for (size_t x = 0; x < hits.size(); x++) {
@@ -45,14 +45,14 @@ int main(int, char** argv) {
   auto is_equal = [&](uint64_t v, size_t) -> bool {
     return (v == target_value);
   };
-  expect_eq((parallel_range<uint64_t, false>(is_equal, 0, 0x10000, num_threads)), target_value);
+  expect_eq((parallel_range<uint64_t>(is_equal, 0, 0x10000, num_threads, nullptr)), target_value);
   // Note: We can't check that parallel_range ends early when fn returns true
   // because it's not actually guaranteed to do so - it's only guaranteed to
   // return any of the values for which fn returns true. One could imagine a sequence of events in
   // which the target value's call takes a very long time, and all other threads
   // could finish checking all other values before the target one returns true.
   target_value = 0xCC349; // > end_value; should not be found
-  expect_eq((parallel_range<uint64_t, false>(is_equal, 0, 0x10000, num_threads)), 0x10000);
+  expect_eq((parallel_range<uint64_t>(is_equal, 0, 0x10000, num_threads, nullptr)), 0x10000);
 
   printf("%s: all tests passed\n", argv[0]);
   return 0;
