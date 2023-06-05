@@ -45,7 +45,9 @@ public:
   // - Hexadecimal integers
   // - Comments
   // These extensions do not make any standard-compliant JSON unparseable, so
-  // they are enabled by default.
+  // they are enabled by default. The inverse function, serialize, has the
+  // opposite behavior - it always generates standard-compilant JSON unless
+  // extensions are specifically requested.
   // The StringReader variant of this function does not throw if there's extra
   // data after a valid JSON object; the other variants do (unless it's only
   // whitespace).
@@ -142,7 +144,7 @@ public:
 
 private:
   std::variant<
-      const void*, // We use this type for JSON null (by storing nullptr here)
+      nullptr_t, // We use this type for JSON null
       bool,
       int64_t, // This is convertible to double implicitly in as_float()
       double, // This is convertible to int implicitly in as_int()

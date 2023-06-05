@@ -318,7 +318,7 @@ bool JSONObject::operator==(const JSONObject& other) const {
     return false;
   }
   switch (this_index) {
-    case 0: // const void* (null)
+    case 0: // nullptr_t
       return true; // no data to compare
     case 1: // bool
     case 2: // int64_t
@@ -498,7 +498,7 @@ bool JSONObject::is_bool() const {
 }
 
 bool JSONObject::is_null() const {
-  return holds_alternative<const void*>(this->value);
+  return holds_alternative<nullptr_t>(this->value);
 }
 
 string escape_json_string(const string& s) {
@@ -528,7 +528,7 @@ string escape_json_string(const string& s) {
 string JSONObject::serialize(uint32_t options, size_t indent_level) const {
   size_t type_index = this->value.index();
   switch (type_index) {
-    case 0: // const void* (null)
+    case 0: // nullptr_t
       return (options & SerializeOption::ONE_CHARACTER_TRIVIAL_CONSTANTS) ? "n" : "null";
 
     case 1: // bool
