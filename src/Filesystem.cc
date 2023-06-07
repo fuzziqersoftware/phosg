@@ -58,6 +58,28 @@ unordered_set<string> list_directory(const string& dirname) {
   return files;
 }
 
+vector<string> list_directory_sorted(const string& dirname) {
+  vector<string> files;
+
+  DIR* dir = opendir(dirname.c_str());
+  if (dir == nullptr) {
+    throw cannot_open_file(dirname);
+  }
+
+  struct dirent* entry;
+  while ((entry = readdir(dir))) {
+    if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
+      continue;
+    }
+    files.emplace_back(entry->d_name);
+  }
+
+  closedir(dir);
+
+  sort(files.begin(), files.end());
+  return files;
+}
+
 string getcwd() {
   string ret(MAXPATHLEN, '\0');
   if (!getcwd(ret.data(), ret.size())) {

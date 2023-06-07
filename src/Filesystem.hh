@@ -24,6 +24,7 @@ std::string basename(const std::string& filename);
 std::string dirname(const std::string& filename);
 
 std::unordered_set<std::string> list_directory(const std::string& dirname);
+std::vector<std::string> list_directory_sorted(const std::string& dirname);
 
 std::string getcwd();
 
