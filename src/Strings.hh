@@ -259,8 +259,11 @@ enum PrintDataFlags {
   OFFSET_64_BITS = 0x0800, // Always use 16 hex digits in offset column
   BIG_ENDIAN_FLOATS = 0x1000, // Floats/doubles are explicitly big-endian
   LITTLE_ENDIAN_FLOATS = 0x2000, // Floats/doubles are explicitly little-endian
+};
 
-  DEFAULT = PRINT_ASCII,
+enum FormatDataFlags {
+  SKIP_STRINGS = 0x0001,
+  HEX_ONLY = 0x0001,
 };
 
 void print_data(
@@ -270,34 +273,34 @@ void print_data(
     uint64_t start_address = 0,
     const struct iovec* prev_iovs = nullptr,
     size_t num_prev_iovs = 0,
-    uint64_t flags = PrintDataFlags::DEFAULT);
+    uint64_t flags = PrintDataFlags::PRINT_ASCII);
 void print_data(
     FILE* stream,
     const std::vector<struct iovec>& iovs,
     uint64_t start_address = 0,
     const std::vector<struct iovec>* prev_iovs = nullptr,
-    uint64_t flags = PrintDataFlags::DEFAULT);
+    uint64_t flags = PrintDataFlags::PRINT_ASCII);
 void print_data(
     FILE* stream,
     const void* _data,
     uint64_t size,
     uint64_t address = 0,
     const void* _prev = nullptr,
-    uint64_t flags = PrintDataFlags::DEFAULT);
+    uint64_t flags = PrintDataFlags::PRINT_ASCII);
 void print_data(
     FILE* stream,
     const std::string& data,
     uint64_t address = 0,
     const void* prev = nullptr,
-    uint64_t flags = PrintDataFlags::DEFAULT);
+    uint64_t flags = PrintDataFlags::PRINT_ASCII);
 
 enum ParseDataFlags {
   ALLOW_FILES = 1,
 };
 
 std::string parse_data_string(const std::string& s, std::string* mask = nullptr, uint64_t flags = 0);
-std::string format_data_string(const std::string& data, const std::string* mask = nullptr);
-std::string format_data_string(const void* data, size_t size, const void* mask = nullptr);
+std::string format_data_string(const std::string& data, const std::string* mask = nullptr, uint64_t flags = 0);
+std::string format_data_string(const void* data, size_t size, const void* mask = nullptr, uint64_t flags = 0);
 
 std::string format_size(size_t size, bool include_bytes = false);
 size_t parse_size(const char* str);

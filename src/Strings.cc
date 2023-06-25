@@ -980,22 +980,24 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
   return data;
 }
 
-string format_data_string(const string& data, const string* mask) {
+string format_data_string(const string& data, const string* mask, uint64_t flags) {
   if (mask && (mask->size() != data.size())) {
     throw logic_error("data and mask sizes do not match");
   }
-  return format_data_string(data.data(), data.size(), mask ? mask->data() : nullptr);
+  return format_data_string(data.data(), data.size(), mask ? mask->data() : nullptr, flags);
 }
 
-string format_data_string(const void* vdata, size_t size, const void* vmask) {
+string format_data_string(const void* vdata, size_t size, const void* vmask, uint64_t flags) {
   const uint8_t* data = reinterpret_cast<const uint8_t*>(vdata);
   const uint8_t* mask = reinterpret_cast<const uint8_t*>(vmask);
 
   // If all bytes are ASCII-printable, render as a string instead
-  bool is_printable = true;
-  for (size_t z = 0; z < size && is_printable; z++) {
-    if (data[z] != '\r' && data[z] != '\n' && data[z] != '\t' && (data[z] < 0x20 || data[z] > 0x7E)) {
-      is_printable = false;
+  bool is_printable = !(flags & FormatDataFlags::SKIP_STRINGS);
+  if (is_printable) {
+    for (size_t z = 0; z < size && is_printable; z++) {
+      if (data[z] != '\r' && data[z] != '\n' && data[z] != '\t' && (data[z] < 0x20 || data[z] > 0x7E)) {
+        is_printable = false;
+      }
     }
   }
 

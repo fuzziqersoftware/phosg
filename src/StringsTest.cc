@@ -612,9 +612,13 @@ int main(int, char** argv) {
   {
     string input("this is printable\nand it is sort of a haiku\nwith some control bytes\t\r\n");
     string expected_formatted("\"this is printable\\nand it is sort of a haiku\\nwith some control bytes\\t\\r\\n\"");
+    string expected_formatted_hex("74686973206973207072696E7461626C650A616E6420697420697320736F7274206F662061206861696B750A7769746820736F6D6520636F6E74726F6C206279746573090D0A");
     string formatted = format_data_string(input);
     expect_eq(expected_formatted, formatted);
     expect_eq(input, parse_data_string(formatted));
+    string formatted_hex = format_data_string(input, nullptr, FormatDataFlags::HEX_ONLY);
+    expect_eq(expected_formatted_hex, formatted_hex);
+    expect_eq(input, parse_data_string(formatted_hex));
   }
 
   fprintf(stderr, "-- format_size\n");
