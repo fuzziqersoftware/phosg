@@ -164,6 +164,7 @@ std::shared_ptr<JSONObject> make_json_str(std::string&& s);
 std::shared_ptr<JSONObject> make_json_list(JSONObject::list_type&& values);
 std::shared_ptr<JSONObject> make_json_list(
     std::initializer_list<std::shared_ptr<JSONObject>> values);
+std::shared_ptr<JSONObject> make_json_dict(JSONObject::dict_type&& values);
 std::shared_ptr<JSONObject> make_json_dict(
     std::initializer_list<std::pair<const char*, std::shared_ptr<JSONObject>>> values);
 

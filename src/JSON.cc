@@ -642,7 +642,7 @@ shared_ptr<JSONObject> make_json_str(string&& s) {
   return shared_ptr<JSONObject>(new JSONObject(std::move(s)));
 }
 
-shared_ptr<JSONObject> make_json_list(vector<shared_ptr<JSONObject>>&& values) {
+shared_ptr<JSONObject> make_json_list(JSONObject::list_type&& values) {
   return shared_ptr<JSONObject>(new JSONObject(std::move(values)));
 }
 
@@ -650,6 +650,10 @@ shared_ptr<JSONObject> make_json_list(
     initializer_list<shared_ptr<JSONObject>> values) {
   vector<shared_ptr<JSONObject>> vec(values);
   return shared_ptr<JSONObject>(new JSONObject(std::move(vec)));
+}
+
+shared_ptr<JSONObject> make_json_dict(JSONObject::dict_type&& values) {
+  return shared_ptr<JSONObject>(new JSONObject(std::move(values)));
 }
 
 shared_ptr<JSONObject> make_json_dict(
