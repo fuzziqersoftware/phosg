@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <map>
+
 #include "Filesystem.hh"
 #include "Strings.hh"
 
@@ -586,6 +588,7 @@ string JSONObject::serialize(uint32_t options, size_t indent_level) const {
 
     case 6: { // dict_type
       bool format = options & SerializeOption::FORMAT;
+      bool sort_keys = options & SerializeOption::SORT_DICT_KEYS;
 
       const auto& dict = this->as_dict();
       if (dict.empty()) {
@@ -593,7 +596,7 @@ string JSONObject::serialize(uint32_t options, size_t indent_level) const {
       }
 
       string ret = "{";
-      for (const auto& o : dict) {
+      auto add_key = [&](const pair<string, shared_ptr<JSONObject>>& o) -> void {
         if (ret.size() > 1) {
           ret += ',';
         }
@@ -601,6 +604,20 @@ string JSONObject::serialize(uint32_t options, size_t indent_level) const {
           ret += '\n' + string(indent_level + 2, ' ') + "\"" + escape_json_string(o.first) + "\": " + o.second->serialize(options, indent_level + 2);
         } else {
           ret += "\"" + escape_json_string(o.first) + "\":" + o.second->serialize(options);
+        }
+      };
+
+      if (sort_keys) {
+        map<string, shared_ptr<JSONObject>> sorted;
+        for (const auto& o : dict) {
+          sorted.emplace(o.first, o.second);
+        }
+        for (const auto& o : sorted) {
+          add_key(o);
+        }
+      } else {
+        for (const auto& o : dict) {
+          add_key(o);
         }
       }
       if (format) {

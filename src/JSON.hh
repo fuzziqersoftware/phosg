@@ -139,6 +139,12 @@ public:
     // can parse output generated with this option if disable_extensions is
     // false (the default).
     ONE_CHARACTER_TRIVIAL_CONSTANTS = 2,
+    // If this is enabled, keys in dictionaries are sorted. If not enabled,
+    // keys are serialized in the order they're stored, which is arbitrary.
+    // Sorting takes a bit of extra time and memory, so if the resulting JSON
+    // isn't expected to be read by a human, it's often not worth it. When this
+    // is enabled, the output is still standard-compliant.
+    SORT_DICT_KEYS = 8,
   };
   std::string serialize(uint32_t options = 0, size_t indent_level = 0) const;
 
