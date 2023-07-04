@@ -266,6 +266,15 @@ enum FormatDataFlags {
   HEX_ONLY = 0x0001,
 };
 
+void format_data(
+    std::function<void(const void*, size_t)> write_data,
+    const struct iovec* iovs,
+    size_t num_iovs,
+    uint64_t start_address,
+    const struct iovec* prev_iovs,
+    size_t num_prev_iovs,
+    uint64_t flags);
+
 void print_data(
     FILE* stream,
     const struct iovec* iovs,
@@ -289,6 +298,30 @@ void print_data(
     uint64_t flags = PrintDataFlags::PRINT_ASCII);
 void print_data(
     FILE* stream,
+    const std::string& data,
+    uint64_t address = 0,
+    const void* prev = nullptr,
+    uint64_t flags = PrintDataFlags::PRINT_ASCII);
+
+std::string format_data(
+    const struct iovec* iovs,
+    size_t num_iovs,
+    uint64_t start_address = 0,
+    const struct iovec* prev_iovs = nullptr,
+    size_t num_prev_iovs = 0,
+    uint64_t flags = PrintDataFlags::PRINT_ASCII);
+std::string format_data(
+    const std::vector<struct iovec>& iovs,
+    uint64_t start_address,
+    const std::vector<struct iovec>* prev_iovs = nullptr,
+    uint64_t flags = PrintDataFlags::PRINT_ASCII);
+std::string format_data(
+    const void* data,
+    uint64_t size,
+    uint64_t start_address = 0,
+    const void* prev = nullptr,
+    uint64_t flags = PrintDataFlags::PRINT_ASCII);
+std::string format_data(
     const std::string& data,
     uint64_t address = 0,
     const void* prev = nullptr,

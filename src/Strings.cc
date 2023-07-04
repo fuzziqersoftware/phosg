@@ -433,45 +433,51 @@ void print_indent(FILE* stream, int indent_level) {
 // TODO: generalize these classes
 class RedBoldTerminalGuard {
 public:
-  RedBoldTerminalGuard(FILE* f, bool active = true) : f(f),
-                                                      active(active) {
+  RedBoldTerminalGuard(std::function<void(const void*, size_t)> write_data, bool active = true)
+      : write_data(write_data),
+        active(active) {
     if (this->active) {
-      print_color_escape(this->f, TerminalFormat::BOLD, TerminalFormat::FG_RED,
-          TerminalFormat::END);
+      string e = format_color_escape(
+          TerminalFormat::BOLD, TerminalFormat::FG_RED, TerminalFormat::END);
+      this->write_data(e.data(), e.size());
     }
   }
   ~RedBoldTerminalGuard() {
     if (this->active) {
-      print_color_escape(this->f, TerminalFormat::NORMAL, TerminalFormat::END);
+      string e = format_color_escape(TerminalFormat::NORMAL, TerminalFormat::END);
+      this->write_data(e.data(), e.size());
     }
   }
 
 private:
-  FILE* f;
+  std::function<void(const void*, size_t)> write_data;
   bool active;
 };
 
 class InverseTerminalGuard {
 public:
-  InverseTerminalGuard(FILE* f, bool active = true) : f(f),
-                                                      active(active) {
+  InverseTerminalGuard(std::function<void(const void*, size_t)> write_data, bool active = true)
+      : write_data(write_data),
+        active(active) {
     if (this->active) {
-      print_color_escape(this->f, TerminalFormat::INVERSE, TerminalFormat::END);
+      string e = format_color_escape(TerminalFormat::INVERSE, TerminalFormat::END);
+      this->write_data(e.data(), e.size());
     }
   }
   ~InverseTerminalGuard() {
     if (this->active) {
-      print_color_escape(this->f, TerminalFormat::NORMAL, TerminalFormat::END);
+      string e = format_color_escape(TerminalFormat::NORMAL, TerminalFormat::END);
+      this->write_data(e.data(), e.size());
     }
   }
 
 private:
-  FILE* f;
+  std::function<void(const void*, size_t)> write_data;
   bool active;
 };
 
-void print_data(
-    FILE* stream,
+void format_data(
+    std::function<void(const void*, size_t)> write_data,
     const struct iovec* iovs,
     size_t num_iovs,
     uint64_t start_address,
@@ -521,14 +527,7 @@ void print_data(
     width_digits = 2;
   }
 
-  bool use_color;
-  if (flags & PrintDataFlags::USE_COLOR) {
-    use_color = true;
-  } else if (flags & PrintDataFlags::DISABLE_COLOR) {
-    use_color = false;
-  } else {
-    use_color = isatty(fileno(stream));
-  }
+  bool use_color = flags & PrintDataFlags::USE_COLOR;
   bool print_ascii = flags & PrintDataFlags::PRINT_ASCII;
   bool print_float = flags & PrintDataFlags::PRINT_FLOAT;
   bool print_double = flags & PrintDataFlags::PRINT_DOUBLE;
@@ -566,8 +565,9 @@ void print_data(
 
     auto print_fields_column = [&]<typename LoadedDataT, typename StoredDataT>(
                                    const char* field_format,
-                                   const char* blank_format) -> void {
-      fputs(skip_separator ? " " : " |", stream);
+                                   const void* blank_format,
+                                   size_t blank_format_len) -> void {
+      write_data(" |", skip_separator ? 1 : 2);
 
       const auto* line_fields = reinterpret_cast<const StoredDataT*>(line_buf);
       const auto* prev_line_fields = reinterpret_cast<const StoredDataT*>(prev_line_data);
@@ -577,17 +577,18 @@ void print_data(
       constexpr size_t field_count = 0x10 / sizeof(StoredDataT);
       size_t x = 0;
       for (; x < line_invalid_start_fields; x++) {
-        fputs(blank_format, stream);
+        write_data(blank_format, blank_format_len);
       }
       for (; x < static_cast<size_t>(field_count - line_invalid_end_fields); x++) {
         LoadedDataT current_value = line_fields[x];
         LoadedDataT previous_value = prev_line_fields[x];
 
-        RedBoldTerminalGuard g1(stream, use_color && (previous_value != current_value));
-        fprintf(stream, field_format, current_value);
+        RedBoldTerminalGuard g1(write_data, use_color && (previous_value != current_value));
+        string field = string_printf(field_format, current_value);
+        write_data(field.data(), field.size());
       }
       for (; x < field_count; x++) {
-        fputs(blank_format, stream);
+        write_data(blank_format, blank_format_len);
       }
     };
 
@@ -625,75 +626,98 @@ void print_data(
       continue;
     }
 
-    fprintf(stream, skip_separator ? "%0*" PRIX64 : "%0*" PRIX64 " |",
+    string line = string_printf(skip_separator ? "%0*" PRIX64 : "%0*" PRIX64 " |",
         width_digits, line_start_address);
+    write_data(line.data(), line.size());
 
     {
       size_t x = 0;
       for (; x < line_invalid_start_bytes; x++) {
-        fputs("   ", stream);
+        write_data("   ", 3);
       }
       for (; x < static_cast<size_t>(0x10 - line_invalid_end_bytes); x++) {
         uint8_t current_value = line_buf[x];
         uint8_t previous_value = prev_line_data[x];
 
-        RedBoldTerminalGuard g(stream, use_color && (previous_value != current_value));
-        fprintf(stream, " %02" PRIX8, current_value);
+        RedBoldTerminalGuard g(write_data, use_color && (previous_value != current_value));
+        string field = string_printf(" %02" PRIX8, current_value);
+        write_data(field.data(), field.size());
       }
       for (; x < 0x10; x++) {
-        fputs("   ", stream);
+        write_data("   ", 3);
       }
     }
 
     if (print_ascii) {
-      fputs(skip_separator ? " " : " | ", stream);
+      write_data(" | ", skip_separator ? 1 : 3);
 
       size_t x = 0;
       for (; x < line_invalid_start_bytes; x++) {
-        fputc(' ', stream);
+        write_data(" ", 1);
       }
       for (; x < static_cast<size_t>(0x10 - line_invalid_end_bytes); x++) {
         uint8_t current_value = line_buf[x];
         uint8_t previous_value = prev_line_data[x];
 
-        RedBoldTerminalGuard g1(stream, use_color && (previous_value != current_value));
+        RedBoldTerminalGuard g1(write_data, use_color && (previous_value != current_value));
         if ((current_value < 0x20) || (current_value >= 0x7F)) {
-          InverseTerminalGuard g2(stream, use_color);
-          fputc(' ', stream);
+          InverseTerminalGuard g2(write_data, use_color);
+          write_data(" ", 1);
         } else {
-          fputc(current_value, stream);
+          write_data(&current_value, 1);
         }
       }
       for (; x < 0x10; x++) {
-        fputc(' ', stream);
+        write_data(" ", 1);
       }
     }
 
     if (print_float) {
       if (reverse_endian) {
-        print_fields_column.operator()<float, re_float>(" %12.5g", "             ");
+        print_fields_column.operator()<float, re_float>(" %12.5g", "             ", 13);
       } else if (big_endian) {
-        print_fields_column.operator()<float, be_float>(" %12.5g", "             ");
+        print_fields_column.operator()<float, be_float>(" %12.5g", "             ", 13);
       } else if (little_endian) {
-        print_fields_column.operator()<float, le_float>(" %12.5g", "             ");
+        print_fields_column.operator()<float, le_float>(" %12.5g", "             ", 13);
       } else {
-        print_fields_column.operator()<float, float>(" %12.5g", "             ");
+        print_fields_column.operator()<float, float>(" %12.5g", "             ", 13);
       }
     }
     if (print_double) {
       if (reverse_endian) {
-        print_fields_column.operator()<double, re_double>(" %12.5lg", "             ");
+        print_fields_column.operator()<double, re_double>(" %12.5lg", "             ", 13);
       } else if (big_endian) {
-        print_fields_column.operator()<double, be_double>(" %12.5lg", "             ");
+        print_fields_column.operator()<double, be_double>(" %12.5lg", "             ", 13);
       } else if (little_endian) {
-        print_fields_column.operator()<double, le_double>(" %12.5lg", "             ");
+        print_fields_column.operator()<double, le_double>(" %12.5lg", "             ", 13);
       } else {
-        print_fields_column.operator()<double, double>(" %12.5lg", "             ");
+        print_fields_column.operator()<double, double>(" %12.5lg", "             ", 13);
       }
     }
 
-    fputc('\n', stream);
+    write_data("\n", 1);
   }
+}
+
+void print_data(
+    FILE* stream,
+    const struct iovec* iovs,
+    size_t num_iovs,
+    uint64_t start_address,
+    const struct iovec* prev_iovs,
+    size_t num_prev_iovs,
+    uint64_t flags) {
+  if (!(flags & (PrintDataFlags::USE_COLOR | PrintDataFlags::DISABLE_COLOR))) {
+    if (isatty(fileno(stream))) {
+      flags |= PrintDataFlags::USE_COLOR;
+    } else {
+      flags |= PrintDataFlags::DISABLE_COLOR;
+    }
+  }
+  auto write_data = [&](const void* data, size_t size) -> void {
+    fwrite(data, size, 1, stream);
+  };
+  format_data(write_data, iovs, num_iovs, start_address, prev_iovs, num_prev_iovs, flags);
 }
 
 void print_data(
@@ -729,6 +753,53 @@ void print_data(FILE* stream, const void* data, uint64_t size,
 void print_data(FILE* stream, const std::string& data, uint64_t address,
     const void* prev, uint64_t flags) {
   print_data(stream, data.data(), data.size(), address, prev, flags);
+}
+
+string format_data(
+    const struct iovec* iovs,
+    size_t num_iovs,
+    uint64_t start_address,
+    const struct iovec* prev_iovs,
+    size_t num_prev_iovs,
+    uint64_t flags) {
+  StringWriter w;
+  // StringWriter::write is overloaded, so we have to static_cast here to
+  // specify which variant should be used
+  auto write_data = bind(
+      static_cast<void (StringWriter::*)(const void*, size_t)>(&StringWriter::write),
+      &w, placeholders::_1, placeholders::_2);
+  format_data(write_data, iovs, num_iovs, start_address, prev_iovs, num_prev_iovs, flags);
+  return std::move(w.str());
+}
+
+string format_data(
+    const vector<struct iovec>& iovs,
+    uint64_t start_address,
+    const vector<struct iovec>* prev_iovs,
+    uint64_t flags) {
+  if (prev_iovs) {
+    return format_data(iovs.data(), iovs.size(), start_address, prev_iovs->data(), prev_iovs->size(), flags);
+  } else {
+    return format_data(iovs.data(), iovs.size(), start_address, nullptr, 0, flags);
+  }
+}
+
+string format_data(const void* data, uint64_t size, uint64_t start_address, const void* prev, uint64_t flags) {
+  iovec iov;
+  iov.iov_base = const_cast<void*>(data);
+  iov.iov_len = size;
+  if (prev) {
+    iovec prev_iov;
+    prev_iov.iov_base = const_cast<void*>(prev);
+    prev_iov.iov_len = size;
+    return format_data(&iov, 1, start_address, &prev_iov, 1, flags);
+  } else {
+    return format_data(&iov, 1, start_address, nullptr, 0, flags);
+  }
+}
+
+string format_data(const std::string& data, uint64_t address, const void* prev, uint64_t flags) {
+  return format_data(data.data(), data.size(), address, prev, flags);
 }
 
 static inline void add_mask_bits(string* mask, bool mask_enabled, size_t num_bytes) {

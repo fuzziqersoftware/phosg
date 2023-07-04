@@ -12,8 +12,8 @@ using namespace std;
 template <typename... ArgTs>
 void print_data_test_case(const string& expected_output, ArgTs... args) {
 
-  // osx doesn't have fmemopen, so we just write to a file because I'm too lazy
-  // to use funopen()
+  // macOS doesn't have fmemopen, so we just write to a file because I'm too
+  // lazy to use funopen()
   {
     auto f = fopen_unique("StringsTest-data", "w");
     print_data(f.get(), args...);
@@ -21,13 +21,22 @@ void print_data_test_case(const string& expected_output, ArgTs... args) {
   string output_data = load_file("StringsTest-data");
 
   if (expected_output != output_data) {
-    fputs("expected:\n", stderr);
+    fputs("(print_data) Expected:\n", stderr);
     fwrite(expected_output.data(), 1, expected_output.size(), stderr);
-    fputs("actual:\n", stderr);
+    fputs("(print_data) Actual:\n", stderr);
     fwrite(output_data.data(), 1, output_data.size(), stderr);
+    expect(false);
   }
 
-  expect_eq(expected_output, output_data);
+  // Also test format_data - it should produce the same result
+  output_data = format_data(args...);
+  if (expected_output != output_data) {
+    fputs("(format_data) Expected:\n", stderr);
+    fwrite(expected_output.data(), 1, expected_output.size(), stderr);
+    fputs("(format_data) Actual:\n", stderr);
+    fwrite(output_data.data(), 1, output_data.size(), stderr);
+    expect(false);
+  }
 }
 
 void print_data_test() {
