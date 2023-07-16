@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/uio.h>
 
+#include <deque>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -712,6 +713,28 @@ public:
 
 private:
   std::string data;
+};
+
+class BlockStringWriter {
+public:
+  BlockStringWriter() = default;
+  ~BlockStringWriter() = default;
+
+  void write(const void* data, size_t size);
+  void write(const std::string& data);
+  void write(std::string&& data);
+  void write_printf(const char* fmt, ...) ATTR_PRINTF(2, 3);
+  void write_vprintf(const char* fmt, va_list va);
+
+  template <typename T>
+  void put(const T& v) {
+    this->write(&v, sizeof(v));
+  }
+
+  std::string close(const char* separator = "");
+
+private:
+  std::deque<std::string> blocks;
 };
 
 template <typename T>

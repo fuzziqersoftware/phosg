@@ -1647,3 +1647,30 @@ size_t count_zeroes(const void* vdata, size_t size, size_t stride) {
   }
   return zero_count;
 }
+
+void BlockStringWriter::write(const void* data, size_t size) {
+  this->blocks.emplace_back(reinterpret_cast<const char*>(data), size);
+}
+
+void BlockStringWriter::write(const std::string& data) {
+  this->blocks.emplace_back(data);
+}
+
+void BlockStringWriter::write(std::string&& data) {
+  this->blocks.emplace_back(std::move(data));
+}
+
+void BlockStringWriter::write_printf(const char* fmt, ...) {
+  va_list va;
+  va_start(va, fmt);
+  this->write_vprintf(fmt, va);
+  va_end(va);
+}
+
+void BlockStringWriter::write_vprintf(const char* fmt, va_list va) {
+  this->blocks.emplace_back(string_vprintf(fmt, va));
+}
+
+std::string BlockStringWriter::close(const char* separator) {
+  return join(this->blocks, separator);
+}
