@@ -24,7 +24,7 @@ std::string toupper(const std::string& s);
 std::string tolower(const std::string& s);
 
 template <typename StrT>
-StrT str_replace(const StrT& s, const char* target, const char* replacement) {
+StrT str_replace_all(const StrT& s, const char* target, const char* replacement) {
   size_t target_size = strlen(target);
   size_t replacement_size = strlen(replacement);
 

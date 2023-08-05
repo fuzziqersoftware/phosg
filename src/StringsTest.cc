@@ -437,14 +437,14 @@ int main(int, char** argv) {
   expect(!ends_with("abcdef", "fef"));
 
   {
-    fprintf(stderr, "-- str_replace\n");
-    expect_eq("", str_replace(string(""), "def", "xyz"));
-    expect_eq("abcdef", str_replace(string("abcdef"), "efg", "xyz"));
-    expect_eq("abcxyz", str_replace(string("abcdef"), "def", "xyz"));
-    expect_eq("abcxyzabc", str_replace(string("abcdefabc"), "def", "xyz"));
-    expect_eq("abcxyzabcxyz", str_replace(string("abcdefabcdef"), "def", "xyz"));
-    expect_eq("abcxyzabcxyzabc", str_replace(string("abcdefabcdefabc"), "def", "xyz"));
-    expect_eq("xyzabcxyzabcxyzabc", str_replace(string("defabcdefabcdefabc"), "def", "xyz"));
+    fprintf(stderr, "-- str_replace_all\n");
+    expect_eq("", str_replace_all(string(""), "def", "xyz"));
+    expect_eq("abcdef", str_replace_all(string("abcdef"), "efg", "xyz"));
+    expect_eq("abcxyz", str_replace_all(string("abcdef"), "def", "xyz"));
+    expect_eq("abcxyzabc", str_replace_all(string("abcdefabc"), "def", "xyz"));
+    expect_eq("abcxyzabcxyz", str_replace_all(string("abcdefabcdef"), "def", "xyz"));
+    expect_eq("abcxyzabcxyzabc", str_replace_all(string("abcdefabcdefabc"), "def", "xyz"));
+    expect_eq("xyzabcxyzabcxyzabc", str_replace_all(string("defabcdefabcdefabc"), "def", "xyz"));
   }
 
   {
