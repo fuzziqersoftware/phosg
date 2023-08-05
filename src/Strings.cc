@@ -40,8 +40,8 @@ bool ends_with(const string& s, const string& end) {
   return false;
 }
 
-std::string toupper(const std::string& s) {
-  std::string ret;
+string toupper(const string& s) {
+  string ret;
   ret.reserve(s.size());
   for (char ch : s) {
     ret.push_back(toupper(ch));
@@ -49,11 +49,30 @@ std::string toupper(const std::string& s) {
   return ret;
 }
 
-std::string tolower(const std::string& s) {
-  std::string ret;
+string tolower(const string& s) {
+  string ret;
   ret.reserve(s.size());
   for (char ch : s) {
     ret.push_back(tolower(ch));
+  }
+  return ret;
+}
+
+string str_replace_all(const string& s, const char* target, const char* replacement) {
+  size_t target_size = strlen(target);
+  size_t replacement_size = strlen(replacement);
+
+  string ret;
+  for (size_t read_offset = 0; read_offset < s.size();) {
+    size_t find_offset = s.find(target, read_offset, target_size);
+    if (find_offset == string::npos) {
+      ret.append(s.data() + read_offset, s.size() - read_offset);
+      read_offset = s.size();
+    } else {
+      ret.append(s.data() + read_offset, find_offset - read_offset);
+      ret.append(replacement, replacement_size);
+      read_offset = find_offset + target_size;
+    }
   }
   return ret;
 }
@@ -205,7 +224,7 @@ __attribute__((format(printf, 1, 2))) void log_error(const char* fmt, ...) { LOG
 
 #undef LOG_HELPER_BODY
 
-PrefixedLogger::PrefixedLogger(const std::string& prefix, LogLevel min_level)
+PrefixedLogger::PrefixedLogger(const string& prefix, LogLevel min_level)
     : prefix(prefix),
       min_level(min_level) {}
 
@@ -388,7 +407,7 @@ size_t skip_word(const char* s, size_t offset) {
   return skip_whitespace(s, skip_non_whitespace(s, offset));
 }
 
-std::string string_for_error(int error) {
+string string_for_error(int error) {
   char buffer[1024] = "Unknown error";
   strerror_r(error, buffer, sizeof(buffer));
   return string_printf("%d (%s)", error, buffer);
@@ -433,7 +452,7 @@ void print_indent(FILE* stream, int indent_level) {
 // TODO: generalize these classes
 class RedBoldTerminalGuard {
 public:
-  RedBoldTerminalGuard(std::function<void(const void*, size_t)> write_data, bool active = true)
+  RedBoldTerminalGuard(function<void(const void*, size_t)> write_data, bool active = true)
       : write_data(write_data),
         active(active) {
     if (this->active) {
@@ -450,13 +469,13 @@ public:
   }
 
 private:
-  std::function<void(const void*, size_t)> write_data;
+  function<void(const void*, size_t)> write_data;
   bool active;
 };
 
 class InverseTerminalGuard {
 public:
-  InverseTerminalGuard(std::function<void(const void*, size_t)> write_data, bool active = true)
+  InverseTerminalGuard(function<void(const void*, size_t)> write_data, bool active = true)
       : write_data(write_data),
         active(active) {
     if (this->active) {
@@ -472,12 +491,12 @@ public:
   }
 
 private:
-  std::function<void(const void*, size_t)> write_data;
+  function<void(const void*, size_t)> write_data;
   bool active;
 };
 
 void format_data(
-    std::function<void(const void*, size_t)> write_data,
+    function<void(const void*, size_t)> write_data,
     const struct iovec* iovs,
     size_t num_iovs,
     uint64_t start_address,
@@ -750,7 +769,7 @@ void print_data(FILE* stream, const void* data, uint64_t size,
   }
 }
 
-void print_data(FILE* stream, const std::string& data, uint64_t address,
+void print_data(FILE* stream, const string& data, uint64_t address,
     const void* prev, uint64_t flags) {
   print_data(stream, data.data(), data.size(), address, prev, flags);
 }
@@ -798,7 +817,7 @@ string format_data(const void* data, uint64_t size, uint64_t start_address, cons
   }
 }
 
-string format_data(const std::string& data, uint64_t address, const void* prev, uint64_t flags) {
+string format_data(const string& data, uint64_t address, const void* prev, uint64_t flags) {
   return format_data(data.data(), data.size(), address, prev, flags);
 }
 
@@ -1633,7 +1652,7 @@ void StringWriter::write(const void* data, size_t size) {
   this->data.append(reinterpret_cast<const char*>(data), size);
 }
 
-void StringWriter::write(const std::string& data) {
+void StringWriter::write(const string& data) {
   this->data.append(data);
 }
 
@@ -1652,11 +1671,11 @@ void BlockStringWriter::write(const void* data, size_t size) {
   this->blocks.emplace_back(reinterpret_cast<const char*>(data), size);
 }
 
-void BlockStringWriter::write(const std::string& data) {
+void BlockStringWriter::write(const string& data) {
   this->blocks.emplace_back(data);
 }
 
-void BlockStringWriter::write(std::string&& data) {
+void BlockStringWriter::write(string&& data) {
   this->blocks.emplace_back(std::move(data));
 }
 
@@ -1671,6 +1690,6 @@ void BlockStringWriter::write_vprintf(const char* fmt, va_list va) {
   this->blocks.emplace_back(string_vprintf(fmt, va));
 }
 
-std::string BlockStringWriter::close(const char* separator) {
+string BlockStringWriter::close(const char* separator) {
   return join(this->blocks, separator);
 }
