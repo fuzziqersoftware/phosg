@@ -24,6 +24,26 @@ std::string toupper(const std::string& s);
 std::string tolower(const std::string& s);
 
 template <typename StrT>
+StrT str_replace(const StrT& s, const char* target, const char* replacement) {
+  size_t target_size = strlen(target);
+  size_t replacement_size = strlen(replacement);
+
+  StrT ret;
+  for (size_t read_offset = 0; read_offset < s.size();) {
+    size_t find_offset = s.find(target, read_offset, target_size);
+    if (find_offset == StrT::npos) {
+      ret.append(s.data() + read_offset, s.size() - read_offset);
+      read_offset = s.size();
+    } else {
+      ret.append(s.data() + read_offset, find_offset - read_offset);
+      ret.append(replacement, replacement_size);
+      read_offset = find_offset + target_size;
+    }
+  }
+  return ret;
+}
+
+template <typename StrT>
 void strip_trailing_zeroes(StrT& s) {
   size_t index = s.find_last_not_of('\0');
   if (index != StrT::npos) {
