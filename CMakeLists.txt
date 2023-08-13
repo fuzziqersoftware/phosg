@@ -44,6 +44,9 @@ target_link_libraries(jsonformat phosg)
 add_executable(parse-data src/ParseData.cc)
 target_link_libraries(parse-data phosg)
 
+add_executable(phosg-png-conv src/PhosgPNGConv.cc)
+target_link_libraries(phosg-png-conv phosg)
+
 
 
 # Test definitions
@@ -70,6 +73,7 @@ file(GLOB Headers ${CMAKE_SOURCE_DIR}/src/*.hh)
 install(TARGETS phosg EXPORT phosg DESTINATION lib)
 install(TARGETS jsonformat DESTINATION bin)
 install(TARGETS parse-data DESTINATION bin)
+install(TARGETS phosg-png-conv DESTINATION bin)
 install(FILES ${Headers} DESTINATION include/phosg)
 install(FILES phosg-config.cmake DESTINATION lib)
 install(EXPORT phosg DESTINATION lib)

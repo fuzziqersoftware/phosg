@@ -6,6 +6,7 @@
 libphosg.a
 jsonformat
 parse-data
+phosg-png-conv
 
 # CMake files
 CMakeCache.txt
