@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include <stdint.h>
+
 #define fnv1a32_start 0x811C9DC5
 
 uint32_t fnv1a32(const void* data, size_t size, uint32_t hash = fnv1a32_start);
