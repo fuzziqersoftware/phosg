@@ -11,10 +11,8 @@
 
 using namespace std;
 
-JSONObject::parse_error::parse_error(const string& what) : runtime_error(what) {}
-JSONObject::type_error::type_error(const string& what) : runtime_error(what) {}
-JSONObject::key_error::key_error(const string& what) : runtime_error(what) {}
-JSONObject::index_error::index_error(const string& what) : runtime_error(what) {}
+JSON::parse_error::parse_error(const string& what) : runtime_error(what) {}
+JSON::type_error::type_error(const string& what) : runtime_error(what) {}
 
 static void skip_whitespace_and_comments(StringReader& r, bool disable_extensions) {
   bool reading_comment = false;
@@ -35,10 +33,10 @@ static void skip_whitespace_and_comments(StringReader& r, bool disable_extension
   }
 }
 
-shared_ptr<JSONObject> JSONObject::parse(StringReader& r, bool disable_extensions) {
+JSON JSON::parse(StringReader& r, bool disable_extensions) {
   skip_whitespace_and_comments(r, disable_extensions);
 
-  shared_ptr<JSONObject> ret(new JSONObject());
+  JSON ret;
   char root_type_ch = r.get_s8(false);
   if (root_type_ch == '{') {
 
@@ -57,7 +55,7 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r, bool disable_extension
         break;
       }
 
-      shared_ptr<JSONObject> key = JSONObject::parse(r, disable_extensions);
+      JSON key = JSON::parse(r, disable_extensions);
       skip_whitespace_and_comments(r, disable_extensions);
 
       if (r.get_s8() != ':') {
@@ -65,12 +63,12 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r, bool disable_extension
       }
       skip_whitespace_and_comments(r, disable_extensions);
 
-      data.emplace(key->as_string(), JSONObject::parse(r, disable_extensions));
+      data.emplace(std::move(key.as_string()), JSON::parse(r, disable_extensions));
       skip_whitespace_and_comments(r, disable_extensions);
       separator = r.get_s8();
     }
 
-    ret->value = std::move(data);
+    ret.value = std::move(data);
 
   } else if (root_type_ch == '[') {
     list_type data;
@@ -88,12 +86,12 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r, bool disable_extension
         break;
       }
 
-      data.emplace_back(JSONObject::parse(r, disable_extensions));
+      data.emplace_back(JSON::parse(r, disable_extensions));
       skip_whitespace_and_comments(r, disable_extensions);
       separator = r.get_s8();
     }
 
-    ret->value = std::move(data);
+    ret.value = std::move(data);
 
   } else if (root_type_ch == '-' || root_type_ch == '+' || isdigit(root_type_ch)) {
     int64_t int_data;
@@ -168,9 +166,9 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r, bool disable_extension
     }
 
     if (is_int) {
-      ret->value = int_data;
+      ret.value = int_data;
     } else {
-      ret->value = float_data;
+      ret.value = float_data;
     }
 
   } else if (root_type_ch == '\"') {
@@ -220,16 +218,16 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r, bool disable_extension
     }
     r.get_s8();
 
-    ret->value = std::move(data);
+    ret.value = std::move(data);
 
   } else if (r.skip_if("null", 4) || (!disable_extensions && r.skip_if("n", 1))) {
-    ret->value = nullptr;
+    ret.value = nullptr;
 
   } else if (r.skip_if("true", 4) || (!disable_extensions && r.skip_if("t", 1))) {
-    ret->value = true;
+    ret.value = true;
 
   } else if (r.skip_if("false", 5) || (!disable_extensions && r.skip_if("f", 1))) {
-    ret->value = false;
+    ret.value = false;
 
   } else {
     throw parse_error("unknown root sentinel; pos=" + to_string(r.where()));
@@ -238,269 +236,18 @@ shared_ptr<JSONObject> JSONObject::parse(StringReader& r, bool disable_extension
   return ret;
 }
 
-shared_ptr<JSONObject> JSONObject::parse(const char* s, size_t size, bool disable_extensions) {
+JSON JSON::parse(const char* s, size_t size, bool disable_extensions) {
   StringReader r(s, size);
-  auto ret = JSONObject::parse(r, disable_extensions);
+  auto ret = JSON::parse(r, disable_extensions);
   skip_whitespace_and_comments(r, disable_extensions);
   if (!r.eof()) {
-    throw JSONObject::parse_error("unparsed data remains after value");
+    throw parse_error("unparsed data remains after value");
   }
   return ret;
 }
 
-shared_ptr<JSONObject> JSONObject::parse(const string& s, bool disable_extensions) {
-  return JSONObject::parse(s.data(), s.size(), disable_extensions);
-}
-
-JSONObject::JSONObject() : value(nullptr) {}
-JSONObject::JSONObject(bool x) : value(x) {}
-JSONObject::JSONObject(const char* x) {
-  string s(x);
-  this->value = std::move(s);
-}
-JSONObject::JSONObject(const char* x, size_t size) {
-  string s(x, size);
-  this->value = std::move(s);
-}
-JSONObject::JSONObject(const string& x) : value(x) {}
-JSONObject::JSONObject(string&& x) : value(std::move(x)) {}
-JSONObject::JSONObject(int64_t x) : value(x) {}
-JSONObject::JSONObject(double x) : value(x) {}
-JSONObject::JSONObject(const list_type& x) : value(x) {}
-JSONObject::JSONObject(list_type&& x) : value(std::move(x)) {}
-JSONObject::JSONObject(const dict_type& x) : value(x) {}
-JSONObject::JSONObject(dict_type&& x) : value(std::move(x)) {}
-
-// non-shared_ptr constructors
-JSONObject::JSONObject(const vector<JSONObject>& x) {
-  list_type data;
-  for (const auto& it : x) {
-    data.emplace_back(new JSONObject(it));
-  }
-  this->value = std::move(data);
-}
-
-JSONObject::JSONObject(vector<JSONObject>&& x) {
-  list_type data;
-  for (auto& it : x) {
-    data.emplace_back(new JSONObject(std::move(it)));
-  }
-  this->value = std::move(data);
-}
-
-JSONObject::JSONObject(const unordered_map<string, JSONObject>& x) {
-  dict_type data;
-  for (auto& it : x) {
-    data.emplace(it.first, shared_ptr<JSONObject>(new JSONObject(it.second)));
-  }
-  this->value = std::move(data);
-}
-
-JSONObject::JSONObject(unordered_map<string, JSONObject>&& x) {
-  dict_type data;
-  for (auto& it : x) {
-    data.emplace(
-        it.first, shared_ptr<JSONObject>(new JSONObject(std::move(it.second))));
-  }
-  this->value = std::move(data);
-}
-
-bool JSONObject::operator==(const JSONObject& other) const {
-  size_t this_index = this->value.index();
-  size_t other_index = other.value.index();
-
-  // Allow cross-type int/float comparisons
-  if (this_index == 2 && other_index == 3) {
-    return get<2>(this->value) == get<3>(other.value);
-  } else if (this_index == 3 && other_index == 2) {
-    return get<3>(this->value) == get<2>(other.value);
-  }
-
-  if (this_index != other_index) {
-    return false;
-  }
-  switch (this_index) {
-    case 0: // nullptr_t
-      return true; // no data to compare
-    case 1: // bool
-    case 2: // int64_t
-    case 3: // double
-    case 4: // string
-      return this->value == other.value;
-
-      // Unlike the above types, we can't just compare the variant objects
-      // directly for list_type and dict_type because the default equality
-      // function compares the shared_ptrs, but we want to compare the values
-      // pointed to by them.
-
-    case 5: { // list_type
-      const auto& this_list = this->as_list();
-      const auto& other_list = other.as_list();
-      if (this_list.size() != other_list.size()) {
-        return false;
-      }
-      for (size_t x = 0; x < this_list.size(); x++) {
-        if (*this_list[x] != *other_list[x]) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    case 6: { // dict_type
-      const auto& this_dict = this->as_dict();
-      const auto& other_dict = other.as_dict();
-      if (this_dict.size() != other_dict.size()) {
-        return false;
-      }
-      for (const auto& it : this_dict) {
-        try {
-          if (*other_dict.at(it.first) != *it.second) {
-            return false;
-          }
-        } catch (const out_of_range& e) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    default:
-      throw type_error("unknown type in operator==");
-  }
-}
-
-bool JSONObject::operator!=(const JSONObject& other) const {
-  return !(this->operator==(other));
-}
-
-shared_ptr<JSONObject> JSONObject::at(const string& key) {
-  try {
-    return this->as_dict().at(key);
-  } catch (const out_of_range& e) {
-    throw key_error("key not present: " + key);
-  }
-}
-
-const shared_ptr<JSONObject> JSONObject::at(const string& key) const {
-  try {
-    return this->as_dict().at(key);
-  } catch (const out_of_range& e) {
-    throw key_error("key not present: " + key);
-  }
-}
-
-shared_ptr<JSONObject> JSONObject::at(size_t index) {
-  const auto& list = this->as_list();
-  if (index >= list.size()) {
-    throw index_error("array index too large");
-  }
-  return list[index];
-}
-
-const shared_ptr<JSONObject> JSONObject::at(size_t index) const {
-  const auto& list = this->as_list();
-  if (index >= list.size()) {
-    throw index_error("array index too large");
-  }
-  return list[index];
-}
-
-unordered_map<string, shared_ptr<JSONObject>>& JSONObject::as_dict() {
-  if (!this->is_dict()) {
-    throw type_error("object cannot be accessed as a dict");
-  }
-  return get<dict_type>(this->value);
-}
-
-const unordered_map<string, shared_ptr<JSONObject>>& JSONObject::as_dict() const {
-  if (!this->is_dict()) {
-    throw type_error("object cannot be accessed as a dict");
-  }
-  return get<dict_type>(this->value);
-}
-
-vector<shared_ptr<JSONObject>>& JSONObject::as_list() {
-  if (!this->is_list()) {
-    throw type_error("object cannot be accessed as a list");
-  }
-  return get<list_type>(this->value);
-}
-
-const vector<shared_ptr<JSONObject>>& JSONObject::as_list() const {
-  if (!this->is_list()) {
-    throw type_error("object cannot be accessed as a list");
-  }
-  return get<list_type>(this->value);
-}
-
-int64_t JSONObject::as_int() const {
-  if (this->is_int()) {
-    return get<int64_t>(this->value);
-  } else if (this->is_float()) {
-    return get<double>(this->value);
-  } else {
-    throw type_error("object cannot be accessed as an int");
-  }
-}
-
-double JSONObject::as_float() const {
-  if (this->is_int()) {
-    return get<int64_t>(this->value);
-  } else if (this->is_float()) {
-    return get<double>(this->value);
-  } else {
-    throw type_error("object cannot be accessed as a float");
-  }
-}
-
-string& JSONObject::as_string() {
-  if (!this->is_string()) {
-    throw type_error("object cannot be accessed as a string");
-  }
-  return get<string>(this->value);
-}
-
-const string& JSONObject::as_string() const {
-  if (!this->is_string()) {
-    throw type_error("object cannot be accessed as a string");
-  }
-  return get<string>(this->value);
-}
-
-bool JSONObject::as_bool() const {
-  if (!this->is_bool()) {
-    throw type_error("object cannot be accessed as a bool");
-  }
-  return get<bool>(this->value);
-}
-
-bool JSONObject::is_dict() const {
-  return holds_alternative<dict_type>(this->value);
-}
-
-bool JSONObject::is_list() const {
-  return holds_alternative<list_type>(this->value);
-}
-
-bool JSONObject::is_int() const {
-  return holds_alternative<int64_t>(this->value);
-}
-
-bool JSONObject::is_float() const {
-  return holds_alternative<double>(this->value);
-}
-
-bool JSONObject::is_string() const {
-  return holds_alternative<string>(this->value);
-}
-
-bool JSONObject::is_bool() const {
-  return holds_alternative<bool>(this->value);
-}
-
-bool JSONObject::is_null() const {
-  return holds_alternative<nullptr_t>(this->value);
+JSON JSON::parse(const string& s, bool disable_extensions) {
+  return JSON::parse(s.data(), s.size(), disable_extensions);
 }
 
 string escape_json_string(const string& s) {
@@ -527,7 +274,7 @@ string escape_json_string(const string& s) {
   return ret;
 }
 
-string JSONObject::serialize(uint32_t options, size_t indent_level) const {
+string JSON::serialize(uint32_t options, size_t indent_level) const {
   size_t type_index = this->value.index();
   switch (type_index) {
     case 0: // nullptr_t
@@ -569,14 +316,14 @@ string JSONObject::serialize(uint32_t options, size_t indent_level) const {
       }
 
       string ret = "[";
-      for (const shared_ptr<JSONObject>& o : list) {
+      for (const JSON& o : list) {
         if (ret.size() > 1) {
           ret += ',';
         }
         if (format) {
-          ret += '\n' + string(indent_level + 2, ' ') + o->serialize(options, indent_level + 2);
+          ret += '\n' + string(indent_level + 2, ' ') + o.serialize(options, indent_level + 2);
         } else {
-          ret += o->serialize(options);
+          ret += o.serialize(options);
         }
       }
       if (format) {
@@ -596,19 +343,19 @@ string JSONObject::serialize(uint32_t options, size_t indent_level) const {
       }
 
       string ret = "{";
-      auto add_key = [&](const pair<string, shared_ptr<JSONObject>>& o) -> void {
+      auto add_key = [&](const pair<string, JSON>& o) -> void {
         if (ret.size() > 1) {
           ret += ',';
         }
         if (format) {
-          ret += '\n' + string(indent_level + 2, ' ') + "\"" + escape_json_string(o.first) + "\": " + o.second->serialize(options, indent_level + 2);
+          ret += '\n' + string(indent_level + 2, ' ') + "\"" + escape_json_string(o.first) + "\": " + o.second.serialize(options, indent_level + 2);
         } else {
-          ret += "\"" + escape_json_string(o.first) + "\":" + o.second->serialize(options);
+          ret += "\"" + escape_json_string(o.first) + "\":" + o.second.serialize(options);
         }
       };
 
       if (sort_keys) {
-        map<string, shared_ptr<JSONObject>> sorted;
+        map<string, JSON> sorted;
         for (const auto& o : dict) {
           sorted.emplace(o.first, o.second);
         }
@@ -628,65 +375,365 @@ string JSONObject::serialize(uint32_t options, size_t indent_level) const {
     }
 
     default:
-      throw JSONObject::parse_error("unknown object type");
+      throw parse_error("unknown object type");
   }
 }
 
-shared_ptr<JSONObject> make_json_null() {
-  return shared_ptr<JSONObject>(new JSONObject());
+JSON::JSON() : value(nullptr) {}
+
+JSON::JSON(nullptr_t) : value(nullptr) {}
+
+JSON::JSON(bool x) : value(x) {}
+
+JSON::JSON(const char* s) {
+  this->value = string(s);
 }
 
-shared_ptr<JSONObject> make_json_bool(bool x) {
-  return shared_ptr<JSONObject>(new JSONObject(x));
+JSON::JSON(const char* s, size_t size) {
+  this->value = string(s, size);
 }
 
-shared_ptr<JSONObject> make_json_num(double x) {
-  return shared_ptr<JSONObject>(new JSONObject(x));
-}
+JSON::JSON(const string& x) : value(x) {}
 
-shared_ptr<JSONObject> make_json_int(int64_t x) {
-  return shared_ptr<JSONObject>(new JSONObject(x));
-}
+JSON::JSON(string&& x) : value(std::move(x)) {}
 
-shared_ptr<JSONObject> make_json_str(const char* s) {
-  return shared_ptr<JSONObject>(new JSONObject(s));
-}
+JSON::JSON(int64_t x) : value(x) {}
 
-shared_ptr<JSONObject> make_json_str(const string& s) {
-  return shared_ptr<JSONObject>(new JSONObject(s));
-}
-shared_ptr<JSONObject> make_json_str(string&& s) {
-  return shared_ptr<JSONObject>(new JSONObject(std::move(s)));
-}
+JSON::JSON(double x) : value(x) {}
 
-shared_ptr<JSONObject> make_json_list(JSONObject::list_type&& values) {
-  return shared_ptr<JSONObject>(new JSONObject(std::move(values)));
-}
+JSON::JSON(const list_type& x) : value(x) {}
 
-shared_ptr<JSONObject> make_json_list(
-    initializer_list<shared_ptr<JSONObject>> values) {
-  vector<shared_ptr<JSONObject>> vec(values);
-  return shared_ptr<JSONObject>(new JSONObject(std::move(vec)));
-}
+JSON::JSON(list_type&& x) : value(std::move(x)) {}
 
-shared_ptr<JSONObject> make_json_dict(JSONObject::dict_type&& values) {
-  return shared_ptr<JSONObject>(new JSONObject(std::move(values)));
-}
+JSON::JSON(const dict_type& x) : value(x) {}
 
-shared_ptr<JSONObject> make_json_dict(
-    initializer_list<pair<const char*, shared_ptr<JSONObject>>> values) {
-  unordered_map<string, shared_ptr<JSONObject>> dict;
-  for (const auto& i : values) {
-    dict.emplace(i.first, i.second);
+JSON::JSON(dict_type&& x) : value(std::move(x)) {}
+
+bool JSON::operator==(const JSON& other) const {
+  size_t this_index = this->value.index();
+  size_t other_index = other.value.index();
+
+  // Allow cross-type int/float comparisons
+  if (this_index == 2 && other_index == 3) {
+    return ::get<2>(this->value) == ::get<3>(other.value);
+  } else if (this_index == 3 && other_index == 2) {
+    return ::get<3>(this->value) == ::get<2>(other.value);
   }
-  return shared_ptr<JSONObject>(new JSONObject(std::move(dict)));
+
+  if (this_index != other_index) {
+    return false;
+  }
+  if (this_index == 0) {
+    return true;
+  }
+  return this->value == other.value;
 }
 
-shared_ptr<JSONObject> make_json_dict(
-    initializer_list<pair<string, shared_ptr<JSONObject>>> values) {
-  unordered_map<string, shared_ptr<JSONObject>> dict;
-  for (const auto& i : values) {
-    dict.emplace(i.first, i.second);
+bool JSON::operator!=(const JSON& other) const {
+  return !(this->operator==(other));
+}
+
+bool JSON::operator<(const JSON& other) const {
+  size_t other_index = other.value.index();
+  switch (this->value.index()) {
+    case 0:
+      return false;
+    case 1:
+      return (other_index == 1) && ::get<1>(this->value) < ::get<1>(other.value);
+    case 2:
+      if (other_index == 3) {
+        return ::get<2>(this->value) < ::get<3>(other.value);
+      }
+      return (other_index == 2) && ::get<2>(this->value) < ::get<2>(other.value);
+    case 3:
+      if (other_index == 2) {
+        return ::get<3>(this->value) < ::get<2>(other.value);
+      }
+      return (other_index == 3) && ::get<3>(this->value) < ::get<3>(other.value);
+    case 4:
+      return (other_index == 4) && ::get<4>(this->value) < ::get<4>(other.value);
+    case 5: {
+      if (other_index != 5) {
+        return false;
+      }
+      auto this_v = ::get<5>(this->value);
+      auto other_v = ::get<5>(other.value);
+      for (size_t z = 0; z < min<size_t>(this_v.size(), other_v.size()); z++) {
+        if (this_v[z] != other_v[z]) {
+          if (this_v[z] < other_v[z]) {
+            return true;
+          }
+          if (this_v[z] > other_v[z]) {
+            return false;
+          }
+          return false;
+        }
+      }
+      return (this_v.size() < other_v.size());
+    }
+    case 6:
+      return false;
+    default:
+      throw logic_error("invalid type state");
   }
-  return shared_ptr<JSONObject>(new JSONObject(std::move(dict)));
+}
+
+bool JSON::operator<=(const JSON& other) const {
+  size_t other_index = other.value.index();
+  switch (this->value.index()) {
+    case 0:
+      return (other_index == 0);
+    case 1:
+      return (other_index == 1) && ::get<1>(this->value) <= ::get<1>(other.value);
+    case 2:
+      if (other_index == 3) {
+        return ::get<2>(this->value) <= ::get<3>(other.value);
+      }
+      return (other_index == 2) && ::get<2>(this->value) <= ::get<2>(other.value);
+    case 3:
+      if (other_index == 2) {
+        return ::get<3>(this->value) <= ::get<2>(other.value);
+      }
+      return (other_index == 3) && ::get<3>(this->value) <= ::get<3>(other.value);
+    case 4:
+      return (other_index == 4) && ::get<4>(this->value) <= ::get<4>(other.value);
+    case 5: {
+      if (other_index != 5) {
+        return false;
+      }
+      auto this_v = ::get<5>(this->value);
+      auto other_v = ::get<5>(other.value);
+      for (size_t z = 0; z < min<size_t>(this_v.size(), other_v.size()); z++) {
+        if (this_v[z] != other_v[z]) {
+          if (this_v[z] < other_v[z]) {
+            return true;
+          }
+          if (this_v[z] > other_v[z]) {
+            return false;
+          }
+          return false;
+        }
+      }
+      return (this_v.size() <= other_v.size());
+    }
+    case 6:
+      return false;
+    default:
+      throw logic_error("invalid type state");
+  }
+}
+
+bool JSON::operator>(const JSON& other) const {
+  size_t other_index = other.value.index();
+  switch (this->value.index()) {
+    case 0:
+      return false;
+    case 1:
+      return (other_index == 1) && ::get<1>(this->value) > ::get<1>(other.value);
+    case 2:
+      if (other_index == 3) {
+        return ::get<2>(this->value) > ::get<3>(other.value);
+      }
+      return (other_index == 2) && ::get<2>(this->value) > ::get<2>(other.value);
+    case 3:
+      if (other_index == 2) {
+        return ::get<3>(this->value) > ::get<2>(other.value);
+      }
+      return (other_index == 3) && ::get<3>(this->value) > ::get<3>(other.value);
+    case 4:
+      return (other_index == 4) && ::get<4>(this->value) > ::get<4>(other.value);
+    case 5: {
+      if (other_index != 5) {
+        return false;
+      }
+      auto this_v = ::get<5>(this->value);
+      auto other_v = ::get<5>(other.value);
+      for (size_t z = 0; z < min<size_t>(this_v.size(), other_v.size()); z++) {
+        if (this_v[z] != other_v[z]) {
+          if (this_v[z] < other_v[z]) {
+            return false;
+          }
+          if (this_v[z] > other_v[z]) {
+            return true;
+          }
+          return false;
+        }
+      }
+      return (this_v.size() > other_v.size());
+    }
+    case 6:
+      return false;
+    default:
+      throw logic_error("invalid type state");
+  }
+}
+
+bool JSON::operator>=(const JSON& other) const {
+  size_t other_index = other.value.index();
+  switch (this->value.index()) {
+    case 0:
+      return (other_index == 0);
+    case 1:
+      return (other_index == 1) && ::get<1>(this->value) >= ::get<1>(other.value);
+    case 2:
+      if (other_index == 3) {
+        return ::get<2>(this->value) >= ::get<3>(other.value);
+      }
+      return (other_index == 2) && ::get<2>(this->value) >= ::get<2>(other.value);
+    case 3:
+      if (other_index == 2) {
+        return ::get<3>(this->value) >= ::get<2>(other.value);
+      }
+      return (other_index == 3) && ::get<3>(this->value) >= ::get<3>(other.value);
+    case 4:
+      return (other_index == 4) && ::get<4>(this->value) >= ::get<4>(other.value);
+    case 5: {
+      if (other_index != 5) {
+        return false;
+      }
+      auto this_v = ::get<5>(this->value);
+      auto other_v = ::get<5>(other.value);
+      for (size_t z = 0; z < min<size_t>(this_v.size(), other_v.size()); z++) {
+        if (this_v[z] != other_v[z]) {
+          if (this_v[z] < other_v[z]) {
+            return false;
+          }
+          if (this_v[z] > other_v[z]) {
+            return true;
+          }
+          return false;
+        }
+      }
+      return (this_v.size() >= other_v.size());
+    }
+    case 6:
+      return false;
+    default:
+      throw logic_error("invalid type state");
+  }
+}
+
+JSON& JSON::at(const string& key) {
+  try {
+    return this->as_dict().at(key);
+  } catch (const out_of_range& e) {
+    throw out_of_range("JSON key not present: " + key);
+  }
+}
+
+const JSON& JSON::at(const string& key) const {
+  try {
+    return this->as_dict().at(key);
+  } catch (const out_of_range& e) {
+    throw out_of_range("JSON key not present: " + key);
+  }
+}
+
+JSON& JSON::at(size_t index) {
+  auto& list = this->as_list();
+  if (index >= list.size()) {
+    throw out_of_range("JSON array index out of bounds");
+  }
+  return list[index];
+}
+
+const JSON& JSON::at(size_t index) const {
+  const auto& list = this->as_list();
+  if (index >= list.size()) {
+    throw out_of_range("JSON array index out of bounds");
+  }
+  return list[index];
+}
+
+unordered_map<string, JSON>& JSON::as_dict() {
+  if (!this->is_dict()) {
+    throw type_error("JSON value cannot be accessed as a dict");
+  }
+  return ::get<dict_type>(this->value);
+}
+
+const unordered_map<string, JSON>& JSON::as_dict() const {
+  if (!this->is_dict()) {
+    throw type_error("JSON value cannot be accessed as a dict");
+  }
+  return ::get<dict_type>(this->value);
+}
+
+vector<JSON>& JSON::as_list() {
+  if (!this->is_list()) {
+    throw type_error("JSON value cannot be accessed as a list");
+  }
+  return ::get<list_type>(this->value);
+}
+
+const vector<JSON>& JSON::as_list() const {
+  if (!this->is_list()) {
+    throw type_error("JSON value cannot be accessed as a list");
+  }
+  return ::get<list_type>(this->value);
+}
+
+int64_t JSON::as_int() const {
+  if (this->is_int()) {
+    return ::get<int64_t>(this->value);
+  } else if (this->is_float()) {
+    return ::get<double>(this->value);
+  } else {
+    throw type_error("JSON value cannot be accessed as an int");
+  }
+}
+
+double JSON::as_float() const {
+  if (this->is_int()) {
+    return ::get<int64_t>(this->value);
+  } else if (this->is_float()) {
+    return ::get<double>(this->value);
+  } else {
+    throw type_error("JSON value cannot be accessed as a float");
+  }
+}
+
+string& JSON::as_string() {
+  if (!this->is_string()) {
+    throw type_error("JSON value cannot be accessed as a string");
+  }
+  return ::get<string>(this->value);
+}
+
+const string& JSON::as_string() const {
+  if (!this->is_string()) {
+    throw type_error("JSON value cannot be accessed as a string");
+  }
+  return ::get<string>(this->value);
+}
+
+bool JSON::as_bool() const {
+  if (!this->is_bool()) {
+    throw type_error("JSON value cannot be accessed as a bool");
+  }
+  return ::get<bool>(this->value);
+}
+
+size_t JSON::size() const {
+  switch (this->value.index()) {
+    case 5:
+      return ::get<5>(this->value).size();
+    case 6:
+      return ::get<6>(this->value).size();
+    default:
+      throw type_error("cannot get size of primitive JSON value");
+  }
+}
+
+void JSON::clear() {
+  switch (this->value.index()) {
+    case 5:
+      ::get<5>(this->value).clear();
+      break;
+    case 6:
+      ::get<6>(this->value).clear();
+      break;
+    default:
+      throw type_error("cannot clear primitive JSON value");
+  }
 }

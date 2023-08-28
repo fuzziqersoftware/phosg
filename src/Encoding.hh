@@ -6,11 +6,7 @@
 #include <string>
 
 #include "Platform.hh"
-
-template <typename...>
-struct always_false {
-  static constexpr bool v = false;
-};
+#include "Types.hh"
 
 template <typename T>
 constexpr uint8_t bits_for_type = sizeof(T) << 3;
