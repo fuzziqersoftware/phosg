@@ -76,11 +76,6 @@ enum class LogLevel : int {
   DISABLED = 4,
 };
 
-template <>
-LogLevel enum_for_name<LogLevel>(const char* name);
-template <>
-const char* name_for_enum<LogLevel>(LogLevel level);
-
 LogLevel log_level();
 void set_log_level(LogLevel new_level);
 

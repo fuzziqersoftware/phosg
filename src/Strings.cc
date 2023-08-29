@@ -177,45 +177,6 @@ uint8_t value_for_hex_char(char x) {
   throw out_of_range(string_printf("invalid hex char: %c", x));
 }
 
-template <>
-LogLevel enum_for_name<LogLevel>(const char* name) {
-  if (!strcmp(name, "USE_DEFAULT")) {
-    return LogLevel::USE_DEFAULT;
-  } else if (!strcmp(name, "DEBUG")) {
-    return LogLevel::DEBUG;
-  } else if (!strcmp(name, "INFO")) {
-    return LogLevel::INFO;
-  } else if (!strcmp(name, "WARNING")) {
-    return LogLevel::WARNING;
-  } else if (!strcmp(name, "ERROR")) {
-    return LogLevel::ERROR;
-  } else if (!strcmp(name, "DISABLED")) {
-    return LogLevel::DISABLED;
-  } else {
-    throw invalid_argument("invalid LogLevel name");
-  }
-}
-
-template <>
-const char* name_for_enum<LogLevel>(LogLevel level) {
-  switch (level) {
-    case LogLevel::USE_DEFAULT:
-      return "USE_DEFAULT";
-    case LogLevel::DEBUG:
-      return "DEBUG";
-    case LogLevel::INFO:
-      return "INFO";
-    case LogLevel::WARNING:
-      return "WARNING";
-    case LogLevel::ERROR:
-      return "ERROR";
-    case LogLevel::DISABLED:
-      return "DISABLED";
-    default:
-      throw invalid_argument("invalid LogLevel value");
-  }
-}
-
 static LogLevel current_log_level = LogLevel::INFO;
 
 LogLevel log_level() {

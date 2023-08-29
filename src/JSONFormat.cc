@@ -36,11 +36,11 @@ int main(int argc, char** argv) {
         print_usage(argv[0]);
         return 1;
       } else if (!strcmp(argv[x], "--format")) {
-        options |= JSON::SerializeOption::FORMAT;
+        options |= JSONObject::SerializeOption::FORMAT;
       } else if (!strcmp(argv[x], "--compress")) {
-        options &= ~JSON::SerializeOption::FORMAT;
+        options &= ~JSONObject::SerializeOption::FORMAT;
       } else if (!strcmp(argv[x], "--hex-integers")) {
-        options |= JSON::SerializeOption::HEX_INTEGERS;
+        options |= JSONObject::SerializeOption::HEX_INTEGERS;
       } else {
         fprintf(stderr, "unknown argument: %s\n", argv[x]);
         return 1;
@@ -62,15 +62,15 @@ int main(int argc, char** argv) {
     src_data = load_file(src_filename);
   }
 
-  JSON json;
+  shared_ptr<JSONObject> json;
   try {
-    json = JSON::parse(src_data);
+    json = JSONObject::parse(src_data);
   } catch (const exception& e) {
     fprintf(stderr, "cannot parse input: %s\n", e.what());
     return 2;
   }
 
-  string result = json.serialize(options);
+  string result = json->serialize(options);
 
   if (!dst_filename || !strcmp(dst_filename, "-")) {
     fwritex(stdout, result);
