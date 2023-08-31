@@ -206,6 +206,9 @@ public:
   inline bool get_bool(const std::string& key) const {
     return this->at(key).as_bool();
   }
+  inline bool get_bool(size_t index) const {
+    return this->at(index).as_bool();
+  }
   inline bool get_bool(const std::string& key, bool default_value) const {
     try {
       return this->at(key).as_bool();
@@ -213,8 +216,19 @@ public:
       return default_value;
     }
   }
+  inline bool get_bool(size_t index, bool default_value) const {
+    try {
+      return this->at(index).as_bool();
+    } catch (const std::out_of_range&) {
+      return default_value;
+    }
+  }
+
   int64_t get_int(const std::string& key) const {
     return this->at(key).as_int();
+  }
+  int64_t get_int(size_t index) const {
+    return this->at(index).as_int();
   }
   int64_t get_int(const std::string& key, int64_t default_value) const {
     try {
@@ -223,8 +237,19 @@ public:
       return default_value;
     }
   }
+  int64_t get_int(size_t index, int64_t default_value) const {
+    try {
+      return this->at(index).as_int();
+    } catch (const std::out_of_range&) {
+      return default_value;
+    }
+  }
+
   double get_float(const std::string& key) const {
     return this->at(key).as_float();
+  }
+  double get_float(size_t index) const {
+    return this->at(index).as_float();
   }
   double get_float(const std::string& key, double default_value) const {
     try {
@@ -233,11 +258,25 @@ public:
       return default_value;
     }
   }
+  double get_float(size_t index, double default_value) const {
+    try {
+      return this->at(index).as_float();
+    } catch (const std::out_of_range&) {
+      return default_value;
+    }
+  }
+
   template <
       typename T,
       typename = std::enable_if_t<std::is_enum_v<T>>>
   T get_enum(const std::string& key) const {
     return enum_for_name<T>(this->at(key).as_string().c_str());
+  }
+  template <
+      typename T,
+      typename = std::enable_if_t<std::is_enum_v<T>>>
+  T get_enum(size_t index) const {
+    return enum_for_name<T>(this->at(index).as_string().c_str());
   }
   template <
       typename T,
@@ -249,15 +288,48 @@ public:
       return default_value;
     }
   }
-  inline const std::string& get_str(const std::string& key) const {
+  template <
+      typename T,
+      typename = std::enable_if_t<std::is_enum_v<T>>>
+  T get_enum(size_t index, T default_value) const {
+    try {
+      return enum_for_name<T>(this->at(index).as_string().c_str());
+    } catch (const std::out_of_range&) {
+      return default_value;
+    }
+  }
+
+  inline const std::string& get_string(const std::string& key) const {
     return this->at(key).as_string();
   }
-  inline const std::string& get_str(const std::string& key, const std::string& default_value) const {
+  inline const std::string& get_string(size_t index) const {
+    return this->at(index).as_string();
+  }
+  inline const std::string& get_string(const std::string& key, const std::string& default_value) const {
     try {
       return this->at(key).as_string();
     } catch (const std::out_of_range&) {
       return default_value;
     }
+  }
+  inline const std::string& get_string(size_t index, const std::string& default_value) const {
+    try {
+      return this->at(index).as_string();
+    } catch (const std::out_of_range&) {
+      return default_value;
+    }
+  }
+  inline const list_type& get_list(const std::string& key) const {
+    return this->at(key).as_list();
+  }
+  inline const list_type& get_list(size_t index) const {
+    return this->at(index).as_list();
+  }
+  inline const dict_type& get_dict(const std::string& key) const {
+    return this->at(key).as_dict();
+  }
+  inline const dict_type& get_dict(size_t index) const {
+    return this->at(index).as_dict();
   }
   inline const JSON& get(const std::string& key, const JSON& default_value) const {
     try {
@@ -314,6 +386,7 @@ public:
   // or dict; otherwise, they behave like the corresponding functions on
   // std::vector or std::unordered_map.
   size_t size() const;
+  bool empty() const;
   void clear();
 
   inline void swap(JSON& other) {

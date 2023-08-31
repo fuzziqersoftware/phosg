@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <string>
@@ -125,8 +126,8 @@ int main(int, char** argv) {
   fprintf(stderr, "-- get_* with default value\n");
   expect_eq(root.get_bool("true", false), true);
   expect_eq(root.get_bool("missing", false), false);
-  expect_eq(root.get_str("string0", "def"), "");
-  expect_eq(root.get_str("missing", "def"), "def");
+  expect_eq(root.get_string("string0", "def"), "");
+  expect_eq(root.get_string("missing", "def"), "def");
   expect_eq(root.get_int("int1", 246), 134);
   expect_eq(root.get_int("missing", 246), 246);
   expect_eq(root.get_float("float1", 3.0), 1.4);
@@ -137,9 +138,9 @@ int main(int, char** argv) {
   expect_raises<out_of_range>([&]() {
     root.get_bool("missing");
   });
-  expect_eq(root.get_str("string0"), "");
+  expect_eq(root.get_string("string0"), "");
   expect_raises<out_of_range>([&]() {
-    root.get_str("missing");
+    root.get_string("missing");
   });
   expect_eq(root.at("int1"), 134);
   expect_raises<out_of_range>([&]() {

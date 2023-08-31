@@ -687,6 +687,17 @@ size_t JSON::size() const {
   }
 }
 
+bool JSON::empty() const {
+  switch (this->value.index()) {
+    case 5:
+      return ::get<5>(this->value).empty();
+    case 6:
+      return ::get<6>(this->value).empty();
+    default:
+      throw type_error("cannot get empty property of primitive JSON value");
+  }
+}
+
 void JSON::clear() {
   switch (this->value.index()) {
     case 5:
