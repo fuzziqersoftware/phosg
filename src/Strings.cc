@@ -267,6 +267,10 @@ PrefixedLogger::PrefixedLogger(const string& prefix, LogLevel min_level)
     : prefix(prefix),
       min_level(min_level) {}
 
+PrefixedLogger PrefixedLogger::sub(const std::string& prefix, LogLevel min_level) const {
+  return PrefixedLogger(this->prefix + prefix, min_level == LogLevel::USE_DEFAULT ? this->min_level : min_level);
+}
+
 vector<string> split(const string& s, char delim, size_t max_splits) {
   vector<string> ret;
 
