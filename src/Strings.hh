@@ -136,6 +136,7 @@ struct PrefixedLogger {
       const std::string& prefix, LogLevel min_level = LogLevel::USE_DEFAULT);
 
   PrefixedLogger sub(const std::string& prefix, LogLevel min_level = LogLevel::USE_DEFAULT) const;
+  PrefixedLogger subf(const char* fmt, ...) const ATTR_PRINTF(2, 3);
 
   inline LogLevel effective_level() const {
     return this->min_level == LogLevel::USE_DEFAULT ? log_level() : this->min_level;
