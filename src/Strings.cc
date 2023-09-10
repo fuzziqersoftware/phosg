@@ -939,6 +939,10 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
           data += '\r';
         } else if (in[1] == 't') {
           data += '\t';
+        } else if (in[1] == '\"') {
+          data += '\"';
+        } else if (in[1] == '\'') {
+          data += '\'';
         } else {
           data += in[1];
         }
@@ -1157,6 +1161,10 @@ string format_data_string(const void* vdata, size_t size, const void* vmask, uin
         ret += "\\t";
       } else if (data[x] == '\n') {
         ret += "\\n";
+      } else if (data[x] == '\"') {
+        ret += "\\\"";
+      } else if (data[x] == '\'') {
+        ret += "\\\'";
       } else {
         ret.push_back(data[x]);
       }

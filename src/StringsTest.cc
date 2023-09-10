@@ -641,6 +641,15 @@ int main(int, char** argv) {
     expect_eq(input, parse_data_string(formatted_hex));
   }
 
+  fprintf(stderr, "-- parse_data_string/format_data_string with quotes in printable data\n");
+  {
+    string input("this string has \"some\" \'quotes\'.");
+    string expected_formatted("\"this string has \\\"some\\\" \\\'quotes\\\'.\"");
+    string formatted = format_data_string(input);
+    expect_eq(expected_formatted, formatted);
+    expect_eq(input, parse_data_string(formatted));
+  }
+
   fprintf(stderr, "-- format_size\n");
   {
     expect_eq("0 bytes", format_size(0));
