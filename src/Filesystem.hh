@@ -170,15 +170,14 @@ void fwritex(FILE* f, const T& t) {
 template <typename T>
 T load_object_file(const std::string& filename, bool allow_oversize = false) {
   scoped_fd fd(filename, O_RDONLY);
-  size_t file_size = fstat(fd).st_size;
-  if (!allow_oversize && (file_size != sizeof(T))) {
-    char buf[0x100];
-    snprintf(buf, sizeof(buf), "size of %s is incorrect (expect 0x%zX bytes, have 0x%zX bytes)", filename.c_str(), sizeof(T), file_size);
-    throw std::runtime_error(buf);
-  }
-
   T ret;
   readx(fd, &ret, sizeof(ret));
+  if (!allow_oversize) {
+    std::string extra = read(fd, 1);
+    if (!extra.empty()) {
+      throw std::runtime_error("file " + filename + " is too large");
+    }
+  }
   return ret;
 }
 
