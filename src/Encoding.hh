@@ -423,6 +423,39 @@ using be_int64_t = big_endian<int64_t>;
 using be_float = big_endian<float, uint32_t>;
 using be_double = big_endian<double, uint64_t>;
 
+template <typename T>
+constexpr bool is_converted_endian_int_sc_v =
+    std::is_same_v<T, le_uint16_t> ||
+    std::is_same_v<T, le_uint32_t> ||
+    std::is_same_v<T, le_uint64_t> ||
+    std::is_same_v<T, le_int16_t> ||
+    std::is_same_v<T, le_int32_t> ||
+    std::is_same_v<T, le_int64_t> ||
+    std::is_same_v<T, be_uint16_t> ||
+    std::is_same_v<T, be_uint32_t> ||
+    std::is_same_v<T, be_uint64_t> ||
+    std::is_same_v<T, be_int16_t> ||
+    std::is_same_v<T, be_int32_t> ||
+    std::is_same_v<T, be_int64_t> ||
+    std::is_same_v<T, re_uint16_t> ||
+    std::is_same_v<T, re_uint32_t> ||
+    std::is_same_v<T, re_uint64_t> ||
+    std::is_same_v<T, re_int16_t> ||
+    std::is_same_v<T, re_int32_t> ||
+    std::is_same_v<T, re_int64_t>;
+
+template <typename T>
+constexpr bool is_converted_endian_float_sc_v =
+    std::is_same_v<T, le_float> ||
+    std::is_same_v<T, le_double> ||
+    std::is_same_v<T, be_float> ||
+    std::is_same_v<T, be_double> ||
+    std::is_same_v<T, re_float> ||
+    std::is_same_v<T, re_double>;
+
+template <typename T>
+constexpr bool is_converted_endian_sc_v = is_converted_endian_int_sc_v<T> || is_converted_endian_float_sc_v<T>;
+
 extern const char* DEFAULT_ALPHABET;
 extern const char* URLSAFE_ALPHABET;
 
