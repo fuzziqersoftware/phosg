@@ -88,6 +88,7 @@ public:
   void save(const char* filename, Format format) const;
   void save(const std::string& filename, Format format) const;
   std::string save(Format format) const;
+  std::string png_data_url() const;
 
   // read/write functions
   void clear(uint64_t r, uint64_t g, uint64_t b, uint64_t a = 0xFF);

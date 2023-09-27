@@ -745,17 +745,15 @@ void Image::save_helper(Format format, Writer&& writer) const {
 
 // save the image to an already-open file
 void Image::save(FILE* f, Format format) const {
-
-  save_helper(format, [f](const void* data, size_t size) {
+  this->save_helper(format, [f](const void* data, size_t size) {
     fwritex(f, data, size);
   });
 }
 
 // save the image to a string in memory
 string Image::save(Format format) const {
-
   string result;
-  save_helper(format, [&result](const void* data, size_t size) {
+  this->save_helper(format, [&result](const void* data, size_t size) {
     result.append(reinterpret_cast<const char*>(data), size);
   });
   return result;
@@ -771,13 +769,17 @@ void Image::save(const char* filename, Format format) const {
   }
 }
 
-// saves the Image
 void Image::save(const string& filename, Format format) const {
   auto f = fopen_unique(filename, "wb");
   this->save(f.get(), format);
 }
 
-// fill the entire image with this color
+string Image::png_data_url() const {
+  string png_data = this->save(Format::PNG);
+  string base64_data = base64_encode(png_data);
+  return "data:image/png;base64," + base64_data;
+}
+
 void Image::clear(uint64_t r, uint64_t g, uint64_t b, uint64_t a) {
   for (ssize_t y = 0; y < this->height; y++) {
     for (ssize_t x = 0; x < this->width; x++) {
