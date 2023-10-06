@@ -222,14 +222,14 @@ int main(int, char** argv) {
     expect_eq(0, WEXITSTATUS(exit_status));
   }
 
-  printf("%s: all tests passed\n", argv[0]);
+  printf("ProcessTest: all tests passed\n");
   return 0;
 }
 
 #else // PHOSG_WINDOWS
 
 int main(int, char** argv) {
-  printf("%s: tests do not run on Windows\n", argv[0]);
+  printf("ProcessTest: tests do not run on Windows\n");
   return 0;
 }
 

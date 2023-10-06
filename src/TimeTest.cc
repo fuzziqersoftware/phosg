@@ -6,7 +6,7 @@
 
 using namespace std;
 
-int main(int, char** argv) {
+int main(int, char**) {
 
   fprintf(stderr, "-- usleep\n");
   uint64_t start_time = now();
@@ -42,6 +42,6 @@ int main(int, char** argv) {
     expect_eq("0.438294", format_duration(438294, 6));
   }
 
-  printf("%s: all tests passed\n", argv[0]);
+  printf("TimeTest: all tests passed\n");
   return 0;
 }

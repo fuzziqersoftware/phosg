@@ -29,7 +29,22 @@ link_directories("/usr/local/lib")
 
 # Library and executable definitions
 
-add_library(phosg src/Encoding.cc src/Filesystem.cc src/Hash.cc src/Image.cc src/JSON.cc src/Network.cc src/Process.cc src/Random.cc src/Strings.cc src/Time.cc src/Tools.cc src/UnitTest.cc)
+add_library(
+    phosg
+    src/Arguments.cc
+    src/Encoding.cc
+    src/Filesystem.cc
+    src/Hash.cc
+    src/Image.cc
+    src/JSON.cc
+    src/Network.cc
+    src/Process.cc
+    src/Random.cc
+    src/Strings.cc
+    src/Time.cc
+    src/Tools.cc
+    src/UnitTest.cc
+)
 target_link_libraries(phosg pthread z)
 
 # It seems that on some Linux variants (e.g. Raspbian) we also need -latomic,
@@ -61,7 +76,7 @@ enable_testing()
 add_executable(ToolsTest src/ToolsTest.cc)
 target_link_libraries(ToolsTest phosg)
 
-foreach(TestName IN ITEMS EncodingTest FilesystemTest HashTest ImageTest JSONTest KDTreeTest LRUSetTest LRUMapTest ProcessTest StringsTest TimeTest UnitTestTest)
+foreach(TestName IN ITEMS ArgumentsTest EncodingTest FilesystemTest HashTest ImageTest JSONTest KDTreeTest LRUMapTest LRUSetTest ProcessTest StringsTest TimeTest UnitTestTest)
   add_executable(${TestName} src/${TestName}.cc)
   target_link_libraries(${TestName} phosg)
   add_test(NAME ${TestName} COMMAND ${TestName})

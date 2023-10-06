@@ -29,7 +29,7 @@ JSONTestEnum enum_for_name<JSONTestEnum>(const char* name) {
   }
 }
 
-int main(int, char** argv) {
+int main(int, char**) {
   uint32_t hex_option = JSON::SerializeOption::HEX_INTEGERS;
   uint32_t format_option = JSON::SerializeOption::FORMAT;
   uint32_t one_char_trivial_option = JSON::SerializeOption::ONE_CHARACTER_TRIVIAL_CONSTANTS;
@@ -689,6 +689,6 @@ int main(int, char** argv) {
     JSON::parse("// this is null\nnull", 20, true);
   });
 
-  printf("%s: all tests passed\n", argv[0]);
+  printf("JSONTest: all tests passed\n");
   return 0;
 }

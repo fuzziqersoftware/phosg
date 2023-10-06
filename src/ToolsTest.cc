@@ -5,7 +5,7 @@
 
 using namespace std;
 
-int main(int, char** argv) {
+int main(int, char**) {
   printf("-- on_close_scope\n");
   bool called = false;
   {
@@ -54,6 +54,6 @@ int main(int, char** argv) {
   target_value = 0xCC349; // > end_value; should not be found
   expect_eq((parallel_range<uint64_t>(is_equal, 0, 0x10000, num_threads, nullptr)), 0x10000);
 
-  printf("%s: all tests passed\n", argv[0]);
+  printf("ToolsTest: all tests passed\n");
   return 0;
 }

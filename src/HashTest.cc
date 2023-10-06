@@ -7,7 +7,7 @@
 
 using namespace std;
 
-int main(int, char** argv) {
+int main(int, char**) {
   {
     printf("-- fnv1a64\n");
     expect_eq(0xCBF29CE484222325, fnv1a64(nullptr, 0)); // technically undefined, but should work
@@ -73,6 +73,6 @@ int main(int, char** argv) {
     expect_eq(0x414FA339, crc32("The quick brown fox jumps over the lazy dog", 43));
   }
 
-  printf("%s: all tests passed\n", argv[0]);
+  printf("HashTest: all tests passed\n");
   return 0;
 }

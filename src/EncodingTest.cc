@@ -4,7 +4,7 @@
 #include "Encoding.hh"
 #include "UnitTest.hh"
 
-int main(int, char** argv) {
+int main(int, char**) {
   expect_eq(0x0000, (sign_extend<uint16_t, uint8_t>(0x00)));
   expect_eq(0x0001, (sign_extend<uint16_t, uint8_t>(0x01)));
   expect_eq(0x007F, (sign_extend<uint16_t, uint8_t>(0x7F)));
@@ -35,6 +35,37 @@ int main(int, char** argv) {
   expect_eq(0x000000007FFFFFFF, (sign_extend<uint64_t, uint32_t>(0x7FFFFFFF)));
   expect_eq(0xFFFFFFFF80000000, (sign_extend<uint64_t, uint32_t>(0x80000000)));
   expect_eq(0xFFFFFFFFFFFFFFFF, (sign_extend<uint64_t, uint32_t>(0xFFFFFFFF)));
+
+  expect_eq(0, (sign_extend<int16_t, uint8_t>(0x00)));
+  expect_eq(1, (sign_extend<int16_t, uint8_t>(0x01)));
+  expect_eq(127, (sign_extend<int16_t, uint8_t>(0x7F)));
+  expect_eq(-128, (sign_extend<int16_t, uint8_t>(0x80)));
+  expect_eq(-1, (sign_extend<int16_t, uint8_t>(0xFF)));
+  expect_eq(0, (sign_extend<int32_t, uint8_t>(0x00)));
+  expect_eq(1, (sign_extend<int32_t, uint8_t>(0x01)));
+  expect_eq(127, (sign_extend<int32_t, uint8_t>(0x7F)));
+  expect_eq(-128, (sign_extend<int32_t, uint8_t>(0x80)));
+  expect_eq(-1, (sign_extend<int32_t, uint8_t>(0xFF)));
+  expect_eq(0, (sign_extend<int64_t, uint8_t>(0x00)));
+  expect_eq(1, (sign_extend<int64_t, uint8_t>(0x01)));
+  expect_eq(127, (sign_extend<int64_t, uint8_t>(0x7F)));
+  expect_eq(-128, (sign_extend<int64_t, uint8_t>(0x80)));
+  expect_eq(-1, (sign_extend<int64_t, uint8_t>(0xFF)));
+  expect_eq(0, (sign_extend<int32_t, uint16_t>(0x0000)));
+  expect_eq(1, (sign_extend<int32_t, uint16_t>(0x0001)));
+  expect_eq(32767, (sign_extend<int32_t, uint16_t>(0x7FFF)));
+  expect_eq(-32768, (sign_extend<int32_t, uint16_t>(0x8000)));
+  expect_eq(-1, (sign_extend<int32_t, uint16_t>(0xFFFF)));
+  expect_eq(0, (sign_extend<int64_t, uint16_t>(0x0000)));
+  expect_eq(1, (sign_extend<int64_t, uint16_t>(0x0001)));
+  expect_eq(32767, (sign_extend<int64_t, uint16_t>(0x7FFF)));
+  expect_eq(-32768, (sign_extend<int64_t, uint16_t>(0x8000)));
+  expect_eq(-1, (sign_extend<int64_t, uint16_t>(0xFFFF)));
+  expect_eq(0, (sign_extend<int64_t, uint32_t>(0x00000000)));
+  expect_eq(1, (sign_extend<int64_t, uint32_t>(0x00000001)));
+  expect_eq(2147483647, (sign_extend<int64_t, uint32_t>(0x7FFFFFFF)));
+  expect_eq(-2147483648, (sign_extend<int64_t, uint32_t>(0x80000000)));
+  expect_eq(-1, (sign_extend<int64_t, uint32_t>(0xFFFFFFFF)));
 
   expect_eq(0x2301, bswap16(0x0123));
   expect_eq(0x452301, bswap24(0x012345));
@@ -109,8 +140,8 @@ int main(int, char** argv) {
   expect_eq("11122", base64_decode("MTExMjI=", 8));
   expect_eq("111222", base64_decode("MTExMjIy", 8));
 
-  expect_eq("Ab znggre ubj uneq lbh gel...", rot13("No matter how hard you try...", 29));
+  expect_eq("The brick quown jox fumps over the dazy log", rot13("Gur oevpx dhbja wbk shzcf bire gur qnml ybt", 43));
 
-  printf("%s: all tests passed\n", argv[0]);
+  printf("EncodingTest: all tests passed\n");
   return 0;
 }

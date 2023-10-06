@@ -420,7 +420,7 @@ void test_string_reader() {
   expect_eq(r.pget_cstr(0x3A), "and this is a cstring");
 }
 
-int main(int, char** argv) {
+int main(int, char**) {
 
   fprintf(stderr, "-- starts_with\n");
   expect(starts_with("abcdef", "abc"));
@@ -699,6 +699,6 @@ int main(int, char** argv) {
 
   unlink("StringsTest-data");
 
-  printf("%s: all tests passed\n", argv[0]);
+  printf("StringsTest: all tests passed\n");
   return 0;
 }

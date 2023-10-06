@@ -9,9 +9,9 @@
 
 using namespace std;
 
-void print_usage(const char* argv0) {
+void print_usage() {
   fprintf(stderr, "\
-Usage: %s [options] infile outfile\n\
+Usage: jsonformat [options] infile outfile\n\
 \n\
 If infile is - or not specified, read from standard input.\n\
 If outfile is - or not specified, write to standard output.\n\
@@ -22,8 +22,7 @@ Options:\n\
       size of the resulting data.\n\
   --hex-integers: Write integers in hexadecimal format. This is a nonstandard\n\
       extension to JSON and most parsers won\'t accept it.\n\
-\n",
-      argv0);
+\n");
 }
 
 int main(int argc, char** argv) {
@@ -33,7 +32,7 @@ int main(int argc, char** argv) {
   for (int x = 1; x < argc; x++) {
     if (argv[x][0] == '-') {
       if (!strcmp(argv[x], "--help")) {
-        print_usage(argv[0]);
+        print_usage();
         return 1;
       } else if (!strcmp(argv[x], "--format")) {
         options |= JSON::SerializeOption::FORMAT;

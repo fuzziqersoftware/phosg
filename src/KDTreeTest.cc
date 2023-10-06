@@ -205,9 +205,9 @@ void run_basic_test() {
   }
 }
 
-int main(int, char** argv) {
+int main(int, char**) {
   run_basic_test();
   run_randomized_test();
-  printf("%s: all tests passed\n", argv[0]);
+  printf("KDTreeTest: all tests passed\n");
   return 0;
 }

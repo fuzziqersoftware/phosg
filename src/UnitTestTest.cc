@@ -15,7 +15,7 @@ using namespace std;
     }                                                                         \
   } while (false);
 
-int main(int, char** argv) {
+int main(int, char**) {
 
   // make sure expect_msg works, since we depend on it for expect_fails later
   expect_msg(true, "omg wut");
@@ -61,6 +61,6 @@ int main(int, char** argv) {
     throw runtime_error("omg hax");
   });
 
-  printf("%s: all tests passed\n", argv[0]);
+  printf("UnitTestTest: all tests passed\n");
   return 0;
 }

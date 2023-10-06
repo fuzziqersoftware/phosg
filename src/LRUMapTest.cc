@@ -7,7 +7,7 @@
 
 using namespace std;
 
-int main(int, char** argv) {
+int main(int, char**) {
   LRUMap<string, string> c;
 
   expect_eq(c.size(), 0);
@@ -95,7 +95,7 @@ int main(int, char** argv) {
   expect_eq(d.size(), 0);
   expect_eq(d.count(), 0);
 
-  printf("%s: all tests passed\n", argv[0]);
+  printf("LRUMapTest: all tests passed\n");
 
   return 0;
 }

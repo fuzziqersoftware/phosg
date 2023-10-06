@@ -7,7 +7,7 @@
 
 using namespace std;
 
-int main(int, char* argv[]) {
+int main(int, char**) {
   {
     auto results = list_directory(".");
 #ifdef PHOSG_WINDOWS
@@ -83,6 +83,6 @@ int main(int, char* argv[]) {
 
   // TODO: test get_user_home_directory
 
-  printf("%s: all tests passed\n", argv[0]);
+  printf("FilesystemTest: all tests passed\n");
   return 0;
 }

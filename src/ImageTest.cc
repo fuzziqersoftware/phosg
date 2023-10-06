@@ -35,7 +35,7 @@ static const vector<Color> colors({
     Color(0xFF, 0xFF, 0xFF, 0xC0),
 });
 
-int main(int, char** argv) {
+int main(int, char**) {
 
   for (uint8_t has_alpha = 0; has_alpha < 2; has_alpha++) {
     for (uint8_t channel_width = 8; channel_width <= 64; channel_width <<= 1) {
@@ -165,6 +165,6 @@ int main(int, char** argv) {
     }
   }
 
-  printf("%s: all tests passed\n", argv[0]);
+  printf("ImageTest: all tests passed\n");
   return 0;
 }
