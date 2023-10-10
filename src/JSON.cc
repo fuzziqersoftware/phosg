@@ -262,6 +262,8 @@ string escape_json_string(const string& s) {
       ret += "\\r";
     } else if (ch == '\t') {
       ret += "\\t";
+    } else if ((ch < 0x20) || (ch > 0x7E)) {
+      ret += string_printf("\\u%04hhX", ch);
     } else {
       ret += ch;
     }
