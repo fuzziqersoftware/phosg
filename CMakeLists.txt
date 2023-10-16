@@ -55,6 +55,9 @@ if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "aarch64" OR ${IS_LINUX_ARMV} GREATER
   target_link_libraries(phosg atomic)
 endif()
 
+add_executable(bindiff src/BinDiff.cc)
+target_link_libraries(bindiff phosg)
+
 add_executable(jsonformat src/JSONFormat.cc)
 target_link_libraries(jsonformat phosg)
 
@@ -88,6 +91,7 @@ endforeach()
 
 file(GLOB Headers ${CMAKE_SOURCE_DIR}/src/*.hh)
 install(TARGETS phosg EXPORT phosg DESTINATION lib)
+install(TARGETS bindiff DESTINATION bin)
 install(TARGETS jsonformat DESTINATION bin)
 install(TARGETS parse-data DESTINATION bin)
 install(TARGETS phosg-png-conv DESTINATION bin)
