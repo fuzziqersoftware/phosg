@@ -92,8 +92,13 @@ public:
   JSON(int64_t x);
   JSON(double x);
 
-  template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+  template <typename T>
+    requires(std::is_integral_v<T>)
   JSON(T x) : JSON(static_cast<int64_t>(x)) {}
+
+  template <typename T>
+    requires(std::is_enum_v<T>)
+  JSON(T x) : JSON(name_for_enum<T>(x)) {}
 
   // List constructors
   template <typename T>
@@ -109,7 +114,8 @@ public:
   // Dict constructors
   JSON(std::initializer_list<std::pair<const char*, JSON>> values);
   JSON(std::initializer_list<std::pair<const std::string, JSON>> values);
-  template <typename T, typename = std::enable_if_t<is_primitive_v<T>>>
+  template <typename T>
+    requires(is_primitive_v<T>)
   JSON(const std::unordered_map<std::string, T>& x) {
     dict_type v;
     for (const auto& item : x) {
@@ -157,7 +163,8 @@ public:
   std::partial_ordering operator<=>(bool v) const;
   std::partial_ordering operator<=>(const char* v) const;
   std::partial_ordering operator<=>(const std::string& v) const;
-  template <typename T, typename = std::enable_if_t<std::is_integral_v<T> || std::is_floating_point_v<T>>>
+  template <typename T>
+    requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
   std::partial_ordering operator<=>(T v) const {
     const int64_t* stored_vi = std::get_if<2>(&this->value);
     if (stored_vi != nullptr) {
@@ -266,21 +273,18 @@ public:
     }
   }
 
-  template <
-      typename T,
-      typename = std::enable_if_t<std::is_enum_v<T>>>
+  template <typename T>
+    requires(std::is_enum_v<T>)
   T get_enum(const std::string& key) const {
     return enum_for_name<T>(this->at(key).as_string().c_str());
   }
-  template <
-      typename T,
-      typename = std::enable_if_t<std::is_enum_v<T>>>
+  template <typename T>
+    requires(std::is_enum_v<T>)
   T get_enum(size_t index) const {
     return enum_for_name<T>(this->at(index).as_string().c_str());
   }
-  template <
-      typename T,
-      typename = std::enable_if_t<std::is_enum_v<T>>>
+  template <typename T>
+    requires(std::is_enum_v<T>)
   T get_enum(const std::string& key, T default_value) const {
     try {
       return enum_for_name<T>(this->at(key).as_string().c_str());
@@ -288,9 +292,8 @@ public:
       return default_value;
     }
   }
-  template <
-      typename T,
-      typename = std::enable_if_t<std::is_enum_v<T>>>
+  template <typename T>
+    requires(std::is_enum_v<T>)
   T get_enum(size_t index, T default_value) const {
     try {
       return enum_for_name<T>(this->at(index).as_string().c_str());

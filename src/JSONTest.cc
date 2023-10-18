@@ -29,6 +29,20 @@ JSONTestEnum enum_for_name<JSONTestEnum>(const char* name) {
   }
 }
 
+template <>
+const char* name_for_enum<JSONTestEnum>(JSONTestEnum v) {
+  switch (v) {
+    case JSONTestEnum::ONE:
+      return "ONE";
+    case JSONTestEnum::TWO:
+      return "TWO";
+    case JSONTestEnum::THREE:
+      return "THREE";
+    default:
+      throw invalid_argument("invalid JSONTestEnum value");
+  }
+}
+
 int main(int, char**) {
   uint32_t hex_option = JSON::SerializeOption::HEX_INTEGERS;
   uint32_t format_option = JSON::SerializeOption::FORMAT;
@@ -49,6 +63,7 @@ int main(int, char**) {
       {"float0", 0.0},
       {"float1", 1.4},
       {"float2", -10.5},
+      {"enum", JSONTestEnum::TWO},
       {"list0", JSON::list({})},
       {"list1", JSON::list({1})},
       {"dict0", JSON::dict()},
@@ -68,6 +83,7 @@ int main(int, char**) {
       {"float0", 0.0},
       {"float1", 1.4},
       {"float2", -10.5},
+      {"enum", JSONTestEnum::TWO},
       {"list0", JSON::list()},
       {"list1", JSON::list({1})},
       {"dict0", JSON::dict()},
