@@ -228,7 +228,7 @@ int main(int, char** argv) {
 
 #else // PHOSG_WINDOWS
 
-int main(int, char** argv) {
+int main(int, char**) {
   printf("ProcessTest: tests do not run on Windows\n");
   return 0;
 }
