@@ -182,7 +182,7 @@ T load_object_file(const std::string& filename, bool allow_oversize = false) {
 }
 
 template <typename T>
-T save_object_file(const std::string& filename, const T& obj) {
+void save_object_file(const std::string& filename, const T& obj) {
   save_file(filename, &obj, sizeof(obj));
 }
 
@@ -199,7 +199,7 @@ std::vector<T> load_vector_file(const std::string& filename) {
 }
 
 template <typename T>
-T save_vector_file(const std::string& filename, const std::vector<T>& v) {
+void save_vector_file(const std::string& filename, const std::vector<T>& v) {
   save_file(filename, v.data(), v.size() * sizeof(T));
 }
 
