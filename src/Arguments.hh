@@ -18,15 +18,46 @@ struct Arguments {
   void assert_none_unused() const;
 
   // Strings
-  const std::string& get(const string& name, const std::string* default_value = nullptr);
-  const std::string& get(size_t position, const std::string* default_value = nullptr);
+  static const std::string empty_string;
+
+  template <typename RetT>
+    requires(std::is_same_v<RetT, std::string>)
+  const RetT& get(const string& name, bool throw_if_missing = false) {
+    try {
+      auto& arg = this->named.at(name);
+      arg.used = true;
+      return arg.text;
+    } catch (const out_of_range&) {
+      if (throw_if_missing) {
+        throw out_of_range(Arguments::exc_prefix(name) + "argument is missing");
+      } else {
+        return empty_string;
+      }
+    }
+  }
+
+  template <typename RetT>
+    requires(std::is_same_v<RetT, std::string>)
+  const RetT& get(size_t position, bool throw_if_missing = true) {
+    try {
+      auto& arg = this->positional.at(position);
+      arg.used = true;
+      return arg.text;
+    } catch (const out_of_range&) {
+      if (throw_if_missing) {
+        throw out_of_range(Arguments::exc_prefix(position) + "argument is missing");
+      } else {
+        return empty_string;
+      }
+    }
+  }
 
   // Booleans (named only)
   template <typename RetT>
     requires(std::is_same_v<RetT, bool>)
   RetT get(const char* id) {
     try {
-      this->get(id);
+      this->get<std::string>(id, true);
       return true;
     } catch (const std::out_of_range&) {
       return false;
@@ -44,7 +75,7 @@ struct Arguments {
   template <typename RetT, typename IdentT>
     requires(std::is_integral_v<RetT>)
   RetT get(const IdentT& id, IntFormat format = IntFormat::DEFAULT) {
-    return this->parse_int<RetT>(id, this->get(id), format);
+    return this->parse_int<RetT>(id, this->get<std::string>(id, true), format);
   }
 
   template <typename RetT, typename IdentT>
@@ -63,7 +94,7 @@ struct Arguments {
   RetT get(const IdentT& id, std::optional<RetT> default_value = std::nullopt) {
     const std::string* text;
     try {
-      text = &this->get(id);
+      text = &this->get<std::string>(id);
     } catch (const std::out_of_range&) {
       if (default_value.has_value()) {
         return *default_value;

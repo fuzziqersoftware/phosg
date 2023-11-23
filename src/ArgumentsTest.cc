@@ -13,8 +13,8 @@ int main(int, char**) {
   });
 
   // Positional arguments
-  expect_eq("pos0", string(a.get(0)));
-  expect_eq("300", string(a.get(1)));
+  expect_eq("pos0", a.get<string>(0));
+  expect_eq("300", a.get<string>(1));
   expect_eq(300, a.get<int16_t>(1));
   expect_eq(300, a.get<uint16_t>(1));
   expect_raises<invalid_argument>([&]() {
@@ -26,7 +26,7 @@ int main(int, char**) {
   expect_eq(4.0f, a.get<float>(2));
   expect_eq(4.0, a.get<double>(2));
   expect_raises<out_of_range>([&]() {
-    a.get(3);
+    a.get<string>(3);
   });
 
   expect_raises<invalid_argument>([&]() {
@@ -39,7 +39,7 @@ int main(int, char**) {
   });
   expect_eq(true, a.get<bool>("named1"));
   expect_eq(false, a.get<bool>("missing"));
-  expect_eq("value2", string(a.get("named2")));
+  expect_eq("value2", a.get<string>("named2"));
   expect_eq(40000, a.get<int32_t>("int3"));
   expect_eq(40000, a.get<uint16_t>("int3"));
   expect_raises<invalid_argument>([&]() {

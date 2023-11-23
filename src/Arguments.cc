@@ -60,30 +60,4 @@ void Arguments::parse(vector<string>&& args) {
   }
 }
 
-const string& Arguments::get(const string& name, const string* default_value) {
-  try {
-    auto& arg = this->named.at(name);
-    arg.used = true;
-    return arg.text;
-  } catch (const out_of_range&) {
-    if (default_value) {
-      return *default_value;
-    } else {
-      throw out_of_range(exc_prefix(name) + "argument is missing");
-    }
-  }
-}
-
-const string& Arguments::get(size_t position, const string* default_value) {
-  try {
-    auto& arg = this->positional.at(position);
-    arg.used = true;
-    return arg.text;
-  } catch (const out_of_range&) {
-    if (default_value) {
-      return *default_value;
-    } else {
-      throw out_of_range(exc_prefix(position) + "argument is missing");
-    }
-  }
-}
+const string Arguments::empty_string;
