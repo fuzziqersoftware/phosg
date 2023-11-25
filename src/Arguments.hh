@@ -218,7 +218,7 @@ private:
       }
       return uv;
     } else {
-      if (((uv & (~mask_for_type<RetT>)) != 0) && ((uv & (~mask_for_type<RetT>)) != (~mask_for_type<RetT>))) {
+      if (((uv & (~(mask_for_type<RetT> >> 1))) != 0) && ((uv & (~(mask_for_type<RetT> >> 1))) != (~(mask_for_type<RetT> >> 1)))) {
         throw std::invalid_argument(exc_prefix(id) + "signed value out of range");
       }
       return v;
