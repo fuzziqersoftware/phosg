@@ -23,7 +23,7 @@ private:
   template <typename T>
   inline static constexpr bool is_non_null_trivial_primitive_v = std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_same_v<T, bool>;
   template <typename T>
-  inline static constexpr bool is_primitive_v = std::is_same_v<T, nullptr_t> || std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_same_v<T, bool> || std::is_same_v<T, std::string>;
+  inline static constexpr bool is_primitive_v = std::is_same_v<T, std::nullptr_t> || std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_same_v<T, bool> || std::is_same_v<T, std::string>;
   template <typename T>
   inline static constexpr bool is_non_null_primitive_v = std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_same_v<T, bool> || std::is_same_v<T, std::string>;
 
@@ -83,7 +83,7 @@ public:
 
   // Primitive type constructors
   JSON(); // null
-  JSON(nullptr_t);
+  JSON(std::nullptr_t);
   JSON(bool x);
   JSON(const char* x);
   JSON(const char* x, size_t size);
@@ -159,7 +159,7 @@ public:
 
   // Comparison operators
   std::partial_ordering operator<=>(const JSON& other) const;
-  std::partial_ordering operator<=>(nullptr_t) const; // Same as is_null()
+  std::partial_ordering operator<=>(std::nullptr_t) const; // Same as is_null()
   std::partial_ordering operator<=>(bool v) const;
   std::partial_ordering operator<=>(const char* v) const;
   std::partial_ordering operator<=>(const std::string& v) const;
@@ -364,7 +364,7 @@ public:
 
   // Type inspectors
   inline bool is_null() const {
-    return holds_alternative<nullptr_t>(this->value);
+    return holds_alternative<std::nullptr_t>(this->value);
   }
   inline bool is_bool() const {
     return holds_alternative<bool>(this->value);
@@ -454,7 +454,7 @@ private:
   JSON(dict_type&& x);
 
   std::variant<
-      nullptr_t, // We use this type for JSON null
+      std::nullptr_t, // We use this type for JSON null
       bool,
       int64_t, // This is convertible to double implicitly in as_float()
       double, // This is convertible to int implicitly in as_int()
