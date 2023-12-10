@@ -326,28 +326,37 @@ vector<wstring> split(const wstring& s, wchar_t delim, size_t max_splits) {
 vector<string> split_context(const string& s, char delim, size_t max_splits) {
   vector<string> ret;
   vector<char> paren_stack;
+  bool char_is_escaped = false;
 
   size_t z, last_start = 0;
   for (z = 0; z < s.size(); z++) {
-    if (!paren_stack.empty() && (s[z] == paren_stack.back())) {
+    if (!char_is_escaped && !paren_stack.empty() && (s[z] == paren_stack.back())) {
       paren_stack.pop_back();
       continue;
     }
-    if (s[z] == '(') {
-      paren_stack.push_back(')');
-    } else if (s[z] == '[') {
-      paren_stack.push_back(']');
-    } else if (s[z] == '{') {
-      paren_stack.push_back('}');
-    } else if (s[z] == '<') {
-      paren_stack.push_back('>');
-    } else if (s[z] == '\'') {
-      paren_stack.push_back('\'');
-    } else if (s[z] == '\"') {
-      paren_stack.push_back('\"');
-    } else if (paren_stack.empty() && (s[z] == delim) && (!max_splits || (ret.size() < max_splits))) {
-      ret.push_back(s.substr(last_start, z - last_start));
-      last_start = z + 1;
+    bool in_quoted_string = (!paren_stack.empty() && ((paren_stack.back() == '\'') || (paren_stack.back() == '\"')));
+    if (char_is_escaped) {
+      char_is_escaped = false;
+    } else if (in_quoted_string && s[z] == '\\') {
+      char_is_escaped = true;
+    }
+    if (!in_quoted_string) {
+      if (s[z] == '(') {
+        paren_stack.push_back(')');
+      } else if (s[z] == '[') {
+        paren_stack.push_back(']');
+      } else if (s[z] == '{') {
+        paren_stack.push_back('}');
+      } else if (s[z] == '<') {
+        paren_stack.push_back('>');
+      } else if (s[z] == '\'') {
+        paren_stack.push_back('\'');
+      } else if (s[z] == '\"') {
+        paren_stack.push_back('\"');
+      } else if (paren_stack.empty() && (s[z] == delim) && (!max_splits || (ret.size() < max_splits))) {
+        ret.push_back(s.substr(last_start, z - last_start));
+        last_start = z + 1;
+      }
     }
   }
 
