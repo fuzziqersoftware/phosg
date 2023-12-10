@@ -510,6 +510,7 @@ int main(int, char**) {
     expect_eq(vector<string>({"12", "3(4,56)7", "ab[c,]d", "e{fg(h,),}"}),
         split_context("12,3(4,56)7,ab[c,]d,e{fg(h,),}", ','));
     expect_eq(vector<string>({"12", "(34,567)", "abc"}), split_context("12,(34,567),abc", ','));
+    expect_eq(vector<string>({"12(,(34),567)", "abc"}), split_context("12(,(34),567),abc", ','));
     expect_eq(vector<string>({"12", "(,567)", "abc"}), split_context("12,(,567),abc", ','));
     expect_eq(vector<string>({"12", "(34,)", "abc"}), split_context("12,(34,),abc", ','));
     expect_eq(vector<string>({"12", "(,)", "abc"}), split_context("12,(,),abc", ','));

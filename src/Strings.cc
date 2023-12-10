@@ -329,23 +329,25 @@ vector<string> split_context(const string& s, char delim, size_t max_splits) {
 
   size_t z, last_start = 0;
   for (z = 0; z < s.size(); z++) {
-    if (paren_stack.size() > 0) {
-      if (s[z] == paren_stack.back()) {
-        paren_stack.pop_back();
-      }
-    } else {
-      if (s[z] == '(') {
-        paren_stack.push_back(')');
-      } else if (s[z] == '[') {
-        paren_stack.push_back(']');
-      } else if (s[z] == '{') {
-        paren_stack.push_back('}');
-      } else if (s[z] == '<') {
-        paren_stack.push_back('>');
-      } else if ((s[z] == delim) && (!max_splits || (ret.size() < max_splits))) {
-        ret.push_back(s.substr(last_start, z - last_start));
-        last_start = z + 1;
-      }
+    if (!paren_stack.empty() && (s[z] == paren_stack.back())) {
+      paren_stack.pop_back();
+      continue;
+    }
+    if (s[z] == '(') {
+      paren_stack.push_back(')');
+    } else if (s[z] == '[') {
+      paren_stack.push_back(']');
+    } else if (s[z] == '{') {
+      paren_stack.push_back('}');
+    } else if (s[z] == '<') {
+      paren_stack.push_back('>');
+    } else if (s[z] == '\'') {
+      paren_stack.push_back('\'');
+    } else if (s[z] == '\"') {
+      paren_stack.push_back('\"');
+    } else if (paren_stack.empty() && (s[z] == delim) && (!max_splits || (ret.size() < max_splits))) {
+      ret.push_back(s.substr(last_start, z - last_start));
+      last_start = z + 1;
     }
   }
 
