@@ -108,7 +108,7 @@ public:
     for (const auto& item : x) {
       v.emplace_back(new JSON(item));
     }
-    this->value = v;
+    this->value = std::move(v);
   }
 
   // Dict constructors
@@ -121,7 +121,7 @@ public:
     for (const auto& item : x) {
       v.emplace(item.first, new JSON(item.second));
     }
-    this->value = v;
+    this->value = std::move(v);
   }
 
   // Copy/move constructors
