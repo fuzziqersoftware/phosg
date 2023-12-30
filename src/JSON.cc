@@ -190,6 +190,15 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
           data.push_back('\r');
         } else if (ch == 't') {
           data.push_back('\t');
+        } else if (ch == 'x') {
+          uint8_t value;
+          try {
+            value = value_for_hex_char(r.get_s8()) << 4;
+            value |= value_for_hex_char(r.get_s8());
+          } catch (const out_of_range&) {
+            throw parse_error("incomplete hex escape sequence in string; pos=" + to_string(r.where()));
+          }
+          data.push_back(value);
         } else if (ch == 'u') {
           uint16_t value;
           try {
@@ -204,6 +213,7 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
           if (value & 0xFF00) {
             throw parse_error("non-ascii unicode character sequence in string; pos=" + to_string(r.where()));
           }
+          data.push_back(value);
         } else {
           throw parse_error("invalid escape sequence in string; pos=" + to_string(r.where()));
         }
@@ -245,7 +255,7 @@ JSON JSON::parse(const string& s, bool disable_extensions) {
   return JSON::parse(s.data(), s.size(), disable_extensions);
 }
 
-string escape_json_string(const string& s) {
+string escape_json_string(const string& s, bool use_hex_escapes) {
   string ret;
   for (auto ch : s) {
     if (ch == '\"') {
@@ -263,7 +273,11 @@ string escape_json_string(const string& s) {
     } else if (ch == '\t') {
       ret += "\\t";
     } else if ((ch < 0x20) || (ch > 0x7E)) {
-      ret += string_printf("\\u%04hhX", ch);
+      if (use_hex_escapes) {
+        ret += string_printf("\\x%02hhX", ch);
+      } else {
+        ret += string_printf("\\u%04hhX", ch);
+      }
     } else {
       ret += ch;
     }
@@ -272,6 +286,8 @@ string escape_json_string(const string& s) {
 }
 
 string JSON::serialize(uint32_t options, size_t indent_level) const {
+  bool use_hex_escapes = options & SerializeOption::HEX_ESCAPE_CODES;
+
   size_t type_index = this->value.index();
   switch (type_index) {
     case 0: // nullptr_t
@@ -302,7 +318,7 @@ string JSON::serialize(uint32_t options, size_t indent_level) const {
     }
 
     case 4: // string
-      return "\"" + escape_json_string(this->as_string()) + "\"";
+      return "\"" + escape_json_string(this->as_string(), use_hex_escapes) + "\"";
 
     case 5: { // list_type
       bool format = options & SerializeOption::FORMAT;
@@ -345,9 +361,9 @@ string JSON::serialize(uint32_t options, size_t indent_level) const {
           ret += ',';
         }
         if (format) {
-          ret += '\n' + string(indent_level + 2, ' ') + "\"" + escape_json_string(key) + "\": " + value.serialize(options, indent_level + 2);
+          ret += '\n' + string(indent_level + 2, ' ') + "\"" + escape_json_string(key, use_hex_escapes) + "\": " + value.serialize(options, indent_level + 2);
         } else {
-          ret += "\"" + escape_json_string(key) + "\":" + value.serialize(options);
+          ret += "\"" + escape_json_string(key, use_hex_escapes) + "\":" + value.serialize(options);
         }
       };
 

@@ -12,7 +12,7 @@
 #include "Strings.hh"
 #include "Types.hh"
 
-std::string escape_json_string(const std::string& s);
+std::string escape_json_string(const std::string& s, bool use_hex_escapes = false);
 
 class JSON {
 public:
@@ -138,22 +138,26 @@ public:
 
     // This option adds whitespace and line breaks to the output to make it
     // easier for humans to read. The output is still standard-compliant.
-    FORMAT = 4,
+    FORMAT = 0x04,
     // If this is enabled, all integers are serialized in hexadecimal. This is
     // not standard-compliant, but JSON::parse can parse output generated with
     // this option if disable_extensions is false (the default).
-    HEX_INTEGERS = 1,
+    HEX_INTEGERS = 0x01,
     // If this is enabled, null, true, and false are serialized as single
     // characters (n, t, and f). This is not standard-compliant, but JSON::parse
     // can parse output generated with this option if disable_extensions is
     // false (the default).
-    ONE_CHARACTER_TRIVIAL_CONSTANTS = 2,
+    ONE_CHARACTER_TRIVIAL_CONSTANTS = 0x02,
     // If this is enabled, keys in dictionaries are sorted. If not enabled,
     // keys are serialized in the order they're stored, which is arbitrary.
     // Sorting takes a bit of extra time and memory, so if the resulting JSON
     // isn't expected to be read by a human, it's often not worth it. When this
     // is enabled, the output is still standard-compliant.
-    SORT_DICT_KEYS = 8,
+    SORT_DICT_KEYS = 0x08,
+    // If this is enabled, non-ASCII bytes in strings are encoded in a shorter
+    // form with the \x code rather than the \u code. This is not standard-
+    // compliant.
+    HEX_ESCAPE_CODES = 0x10,
   };
   std::string serialize(uint32_t options = 0, size_t indent_level = 0) const;
 
