@@ -12,10 +12,15 @@
 #include "Strings.hh"
 #include "Types.hh"
 
-std::string escape_json_string(const std::string& s, bool use_hex_escapes = false);
-
 class JSON {
 public:
+  enum class StringEscapeMode {
+    STANDARD = 0,
+    HEX,
+    CONTROL_ONLY,
+  };
+  static std::string escape_string(const std::string& s, StringEscapeMode mode = StringEscapeMode::STANDARD);
+
   using list_type = std::vector<std::unique_ptr<JSON>>;
   using dict_type = std::unordered_map<std::string, std::unique_ptr<JSON>>;
 
@@ -158,6 +163,11 @@ public:
     // form with the \x code rather than the \u code. This is not standard-
     // compliant.
     HEX_ESCAPE_CODES = 0x10,
+    // If this is enabled, non-ASCII bytes in strings are not encoded at all;
+    // only the double-quote (") character will be escaped. This is not
+    // standard-compliant, but makes non-English UTF-8 strings easier to work
+    // with manually.
+    ESCAPE_CONTROLS_ONLY = 0x20,
   };
   std::string serialize(uint32_t options = 0, size_t indent_level = 0) const;
 

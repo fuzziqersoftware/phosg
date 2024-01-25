@@ -255,7 +255,7 @@ JSON JSON::parse(const string& s, bool disable_extensions) {
   return JSON::parse(s.data(), s.size(), disable_extensions);
 }
 
-string escape_json_string(const string& s, bool use_hex_escapes) {
+string JSON::escape_string(const string& s, StringEscapeMode mode) {
   string ret;
   for (auto ch : s) {
     if (ch == '\"') {
@@ -272,8 +272,16 @@ string escape_json_string(const string& s, bool use_hex_escapes) {
       ret += "\\r";
     } else if (ch == '\t') {
       ret += "\\t";
-    } else if ((ch < 0x20) || (ch > 0x7E)) {
-      if (use_hex_escapes) {
+    } else if (static_cast<uint8_t>(ch) < 0x20) {
+      if (mode != StringEscapeMode::STANDARD) {
+        ret += string_printf("\\x%02hhX", ch);
+      } else {
+        ret += string_printf("\\u%04hhX", ch);
+      }
+    } else if (static_cast<uint8_t>(ch) > 0x7E) {
+      if (mode == StringEscapeMode::CONTROL_ONLY) {
+        ret += ch;
+      } else if (mode == StringEscapeMode::HEX) {
         ret += string_printf("\\x%02hhX", ch);
       } else {
         ret += string_printf("\\u%04hhX", ch);
@@ -286,7 +294,14 @@ string escape_json_string(const string& s, bool use_hex_escapes) {
 }
 
 string JSON::serialize(uint32_t options, size_t indent_level) const {
-  bool use_hex_escapes = options & SerializeOption::HEX_ESCAPE_CODES;
+  StringEscapeMode escape_mode;
+  if (options & SerializeOption::ESCAPE_CONTROLS_ONLY) {
+    escape_mode = StringEscapeMode::CONTROL_ONLY;
+  } else if (options & SerializeOption::HEX_ESCAPE_CODES) {
+    escape_mode = StringEscapeMode::HEX;
+  } else {
+    escape_mode = StringEscapeMode::STANDARD;
+  }
 
   size_t type_index = this->value.index();
   switch (type_index) {
@@ -318,7 +333,7 @@ string JSON::serialize(uint32_t options, size_t indent_level) const {
     }
 
     case 4: // string
-      return "\"" + escape_json_string(this->as_string(), use_hex_escapes) + "\"";
+      return "\"" + JSON::escape_string(this->as_string(), escape_mode) + "\"";
 
     case 5: { // list_type
       bool format = options & SerializeOption::FORMAT;
@@ -360,10 +375,11 @@ string JSON::serialize(uint32_t options, size_t indent_level) const {
         if (ret.size() > 1) {
           ret += ',';
         }
+        string escaped_key = JSON::escape_string(key, escape_mode);
         if (format) {
-          ret += '\n' + string(indent_level + 2, ' ') + "\"" + escape_json_string(key, use_hex_escapes) + "\": " + value.serialize(options, indent_level + 2);
+          ret += '\n' + string(indent_level + 2, ' ') + "\"" + escaped_key + "\": " + value.serialize(options, indent_level + 2);
         } else {
-          ret += "\"" + escape_json_string(key, use_hex_escapes) + "\":" + value.serialize(options);
+          ret += "\"" + escaped_key + "\":" + value.serialize(options);
         }
       };
 
