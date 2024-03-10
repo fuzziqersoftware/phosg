@@ -131,7 +131,7 @@ public:
   RetT get(const IdentT& id, std::optional<RetT> default_value = std::nullopt) {
     const std::string* text;
     try {
-      text = &this->get<std::string>(id);
+      text = &this->get<std::string>(id, true);
     } catch (const std::out_of_range&) {
       if (default_value.has_value()) {
         return *default_value;
