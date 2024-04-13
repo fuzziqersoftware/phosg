@@ -486,6 +486,35 @@ int main(int, char**) {
   }
 
   {
+    fprintf(stderr, "-- strip_whitespace\n");
+
+    string s = "abcdef";
+    strip_whitespace(s);
+    fprintf(stderr, "%s\n", s.c_str());
+    expect_eq(s, "abcdef");
+
+    s = "abcdef\r\n";
+    strip_whitespace(s);
+    expect_eq(s, "abcdef");
+
+    s = "  \nabc\tdef";
+    strip_whitespace(s);
+    expect_eq(s, "abc\tdef");
+
+    s = "  \nabc\tdef  \r\n";
+    strip_whitespace(s);
+    expect_eq(s, "abc\tdef");
+
+    s = "";
+    strip_whitespace(s);
+    expect_eq(s, "");
+
+    s = "   \t\r\n  ";
+    strip_whitespace(s);
+    expect_eq(s, "");
+  }
+
+  {
     fprintf(stderr, "-- string_printf\n");
     string result = string_printf("%s %" PRIu64 " 0x%04hX", "lolz",
         static_cast<uint64_t>(1000), static_cast<uint16_t>(0x4F));
