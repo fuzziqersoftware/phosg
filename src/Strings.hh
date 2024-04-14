@@ -61,7 +61,6 @@ template <typename StrT>
 void strip_whitespace(StrT& s) {
   size_t start_index = s.find_first_not_of(" \t\r\n");
   size_t end_index = s.find_last_not_of(" \t\r\n");
-  fprintf(stderr, "%zu %zu\n", start_index, end_index);
   if (start_index != StrT::npos && end_index != StrT::npos) {
     if (start_index) {
       s = s.substr(start_index, end_index - start_index + 1);
