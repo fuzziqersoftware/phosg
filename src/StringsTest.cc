@@ -490,7 +490,6 @@ int main(int, char**) {
 
     string s = "abcdef";
     strip_whitespace(s);
-    fprintf(stderr, "%s\n", s.c_str());
     expect_eq(s, "abcdef");
 
     s = "abcdef\r\n";
@@ -512,6 +511,22 @@ int main(int, char**) {
     s = "   \t\r\n  ";
     strip_whitespace(s);
     expect_eq(s, "");
+  }
+
+  {
+    fprintf(stderr, "-- strip_multiline_comments\n");
+
+    string s = "abc/*def*/ghi";
+    strip_multiline_comments(s);
+    expect_eq(s, "abcghi");
+
+    s = "/*abc*/def\r\n";
+    strip_multiline_comments(s);
+    expect_eq(s, "def\r\n");
+
+    s = "abc\n/*def\nghi*/\njkl";
+    strip_multiline_comments(s);
+    expect_eq(s, "abc\n\n\njkl");
   }
 
   {

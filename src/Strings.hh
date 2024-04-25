@@ -73,6 +73,36 @@ void strip_whitespace(StrT& s) {
   }
 }
 
+template <typename StrT>
+void strip_multiline_comments(StrT& s, bool allow_unterminated = false) {
+  bool is_in_comment = false;
+  size_t write_offset = 0;
+  for (size_t z = 0; z < s.size();) {
+    if (!is_in_comment) {
+      if ((s[z] == '/') && (z + 1 < s.size()) && (s[z + 1] == '*')) {
+        is_in_comment = true;
+        z += 2;
+      } else {
+        s[write_offset++] = s[z++];
+      }
+    } else {
+      if ((s[z] == '*') && (z + 1 < s.size()) && (s[z + 1] == '/')) {
+        is_in_comment = false;
+        z += 2;
+      } else {
+        if (s[z++] == '\n') {
+          s[write_offset++] = '\n';
+        }
+      }
+    }
+  }
+  s.resize(write_offset);
+
+  if (!allow_unterminated && is_in_comment) {
+    throw std::runtime_error("unterminated multiline comment");
+  }
+}
+
 std::string escape_quotes(const std::string& s);
 std::string escape_url(const std::string& s, bool escape_slash = false);
 
