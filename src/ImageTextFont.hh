@@ -1,5 +1,7 @@
 #pragma once
 
+namespace phosg {
+
 // clang-format off
 static uint8_t font[96][35] = {
   { 0,0,0,0,0,
@@ -676,3 +678,5 @@ static uint8_t font[96][35] = {
     1,1,1,1,1}, //0x7F
 };
 // clang-format on
+
+} // namespace phosg

@@ -9,6 +9,8 @@
 
 #include "Platform.hh"
 
+namespace phosg {
+
 // an Image represents a drawing canvas. this class is fairly simple; it
 // supports reading/writing individual pixels, drawing lines, and saving the
 // image as a PPM or Windows BMP file.
@@ -193,3 +195,5 @@ private:
   template <typename Writer>
   void save_helper(Format format, Writer&& writer) const;
 };
+
+} // namespace phosg

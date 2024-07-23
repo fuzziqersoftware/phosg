@@ -7,6 +7,8 @@
 
 #include "Strings.hh"
 
+namespace phosg {
+
 class expectation_failed : public std::logic_error {
 public:
   expectation_failed(const char* msg, const char* file, uint64_t line);
@@ -48,3 +50,5 @@ void expect_raises(std::function<void()> fn) {
 
 template <>
 void expect_raises<std::exception>(std::function<void()> fn);
+
+} // namespace phosg

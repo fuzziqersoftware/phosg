@@ -11,6 +11,7 @@
 #include "UnitTest.hh"
 
 using namespace std;
+using namespace phosg;
 
 struct Color {
   uint8_t r;

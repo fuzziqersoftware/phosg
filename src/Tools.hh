@@ -13,6 +13,8 @@
 #include "Strings.hh"
 #include "Time.hh"
 
+namespace phosg {
+
 class CallOnDestroy {
 public:
   CallOnDestroy(std::function<void()> f);
@@ -111,3 +113,5 @@ IntT parallel_range(
 
   return result_value;
 }
+
+} // namespace phosg

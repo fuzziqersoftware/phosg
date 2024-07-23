@@ -5,6 +5,9 @@
 #include "Encoding.hh"
 #include "UnitTest.hh"
 
+using namespace std;
+using namespace phosg;
+
 int main(int, char**) {
   Arguments a("pos0 --named1 300 --named2=value2 4.0 --int3=40000 --float4=2.0");
 

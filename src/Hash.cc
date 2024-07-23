@@ -11,6 +11,8 @@
 
 using namespace std;
 
+namespace phosg {
+
 uint32_t fnv1a32(const void* data, size_t size, uint32_t hash) {
   const uint8_t* data_ptr = reinterpret_cast<const uint8_t*>(data);
   const uint8_t* end_ptr = data_ptr + size;
@@ -366,3 +368,5 @@ uint32_t crc32(const void* vdata, size_t size, uint32_t cs) {
   }
   return ~cs;
 }
+
+} // namespace phosg

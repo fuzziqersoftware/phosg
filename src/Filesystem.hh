@@ -20,6 +20,8 @@
 #include <utility>
 #include <vector>
 
+namespace phosg {
+
 std::string basename(const std::string& filename);
 std::string dirname(const std::string& filename);
 
@@ -98,15 +100,6 @@ private:
   int fd;
 };
 
-namespace std {
-template <>
-struct hash<scoped_fd> {
-  size_t operator()(const scoped_fd& fd) const {
-    return std::hash<int>()(static_cast<int>(fd));
-  }
-};
-} // namespace std
-
 std::string read_all(int fd);
 std::string read_all(FILE* f);
 
@@ -167,6 +160,10 @@ void fwritex(FILE* f, const T& t) {
   fwritex(f, &t, sizeof(T));
 }
 
+std::string load_file(const std::string& filename);
+void save_file(const std::string& filename, const void* data, size_t size);
+void save_file(const std::string& filename, const std::string& data);
+
 template <typename T>
 T load_object_file(const std::string& filename, bool allow_oversize = false) {
   scoped_fd fd(filename, O_RDONLY);
@@ -203,10 +200,6 @@ void save_vector_file(const std::string& filename, const std::vector<T>& v) {
   save_file(filename, v.data(), v.size() * sizeof(T));
 }
 
-std::string load_file(const std::string& filename);
-void save_file(const std::string& filename, const void* data, size_t size);
-void save_file(const std::string& filename, const std::string& data);
-
 std::unique_ptr<FILE, void (*)(FILE*)> fopen_unique(const std::string& filename,
     const std::string& mode = "rb", FILE* dash_file = nullptr);
 std::unique_ptr<FILE, void (*)(FILE*)> fdopen_unique(int fd,
@@ -238,3 +231,5 @@ public:
 private:
   std::vector<struct pollfd> poll_fds;
 };
+
+} // namespace phosg

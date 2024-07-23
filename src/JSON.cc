@@ -11,6 +11,8 @@
 
 using namespace std;
 
+namespace phosg {
+
 JSON::parse_error::parse_error(const string& what) : runtime_error(what) {}
 JSON::type_error::type_error(const string& what) : runtime_error(what) {}
 
@@ -744,3 +746,5 @@ void JSON::clear() {
       throw type_error("cannot clear primitive JSON value");
   }
 }
+
+} // namespace phosg

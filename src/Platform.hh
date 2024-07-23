@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+namespace phosg {
+
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__) || defined(__CYGWIN__)
 #define PHOSG_WINDOWS
 
@@ -58,3 +60,5 @@
 
 // Define some useful shortcuts
 #define ATTR_PRINTF(x, y) __attribute__((format(printf, x, y)))
+
+} // namespace phosg

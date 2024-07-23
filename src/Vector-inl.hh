@@ -6,6 +6,8 @@
 
 #include "Strings.hh"
 
+namespace phosg {
+
 template <typename T>
 Vector2<T>::Vector2()
     : x(0),
@@ -811,3 +813,5 @@ std::string Matrix4<T>::str() const {
       this->m[0][2], this->m[1][2], this->m[2][2], this->m[3][2],
       this->m[0][3], this->m[1][3], this->m[2][3], this->m[3][3]);
 }
+
+} // namespace phosg

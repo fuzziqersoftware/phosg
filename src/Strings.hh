@@ -15,6 +15,8 @@
 #include "Filesystem.hh"
 #include "Platform.hh"
 
+namespace phosg {
+
 std::unique_ptr<void, void (*)(void*)> malloc_unique(size_t size);
 
 bool starts_with(const std::string& s, const std::string& start);
@@ -810,3 +812,5 @@ T* data_at(std::string& s, size_t offset = 0) {
 }
 
 size_t count_zeroes(const void* vdata, size_t size, size_t stride = 1);
+
+} // namespace phosg

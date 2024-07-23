@@ -3,6 +3,8 @@
 #include <compare>
 #include <stdexcept>
 
+namespace phosg {
+
 inline std::partial_ordering partial_order_for_strong_order(std::strong_ordering st_order) {
   if (st_order < 0) {
     return std::partial_ordering::less;
@@ -29,3 +31,5 @@ const char* name_for_enum(T) {
   static_assert(always_false<T>::v, "unspecialized name_for_enum should never be called");
   throw std::logic_error("unspecialized name_for_enum should never be called");
 }
+
+} // namespace phosg

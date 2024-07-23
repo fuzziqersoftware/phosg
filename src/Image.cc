@@ -23,6 +23,8 @@
 
 using namespace std;
 
+namespace phosg {
+
 Image::unknown_format::unknown_format(const std::string& what) : runtime_error(what) {}
 
 struct ExpandedColor {
@@ -1715,3 +1717,5 @@ void Image::resize_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
     }
   }
 }
+
+} // namespace phosg

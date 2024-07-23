@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <utility>
 
+namespace phosg {
+
 template <typename K>
 LRUSet<K>::Item::Item(size_t size)
     : prev(nullptr),
@@ -195,3 +197,5 @@ void LRUSet<K>::swap(LRUSet<K>& other) {
   other.tail = this_tail;
   other.total_size = this_total_size;
 }
+
+} // namespace phosg

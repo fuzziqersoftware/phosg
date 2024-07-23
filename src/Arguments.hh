@@ -7,7 +7,7 @@
 
 #include "Strings.hh"
 
-using namespace std;
+namespace phosg {
 
 class Arguments {
 public:
@@ -24,7 +24,7 @@ public:
 
   template <typename RetT>
     requires(std::is_same_v<RetT, std::string>)
-  std::vector<RetT> get_multi(const string& name) {
+  std::vector<RetT> get_multi(const std::string& name) {
     std::vector<std::string> ret;
     for (auto& value : this->get_values_multi(name)) {
       ret.emplace_back(value.text);
@@ -34,7 +34,7 @@ public:
   }
   template <typename RetT>
     requires(std::is_same_v<RetT, std::string>)
-  const RetT& get(const string& name, bool throw_if_missing = false) {
+  const RetT& get(const std::string& name, bool throw_if_missing = false) {
     try {
       auto& values = this->named.at(name);
       if (values.empty()) {
@@ -47,7 +47,7 @@ public:
       }
       values[0].used = true;
       return values[0].text;
-    } catch (const out_of_range&) {
+    } catch (const std::out_of_range&) {
       if (throw_if_missing) {
         throw std::out_of_range(Arguments::exc_prefix(name) + "argument is missing");
       } else {
@@ -62,7 +62,7 @@ public:
       auto& arg = this->positional.at(position);
       arg.used = true;
       return arg.text;
-    } catch (const out_of_range&) {
+    } catch (const std::out_of_range&) {
       if (throw_if_missing) {
         throw std::out_of_range(Arguments::exc_prefix(position) + "argument is missing");
       } else {
@@ -155,17 +155,17 @@ private:
 
   void parse(std::vector<std::string>&& args);
 
-  inline std::vector<ArgText>& get_values_multi(const string& name) {
+  inline std::vector<ArgText>& get_values_multi(const std::string& name) {
     try {
       return this->named.at(name);
-    } catch (const out_of_range&) {
+    } catch (const std::out_of_range&) {
       static std::vector<ArgText> empty_vec;
       return empty_vec;
     }
   }
 
   static inline std::string exc_prefix(const std::string& name) {
-    string ret = "(";
+    std::string ret = "(";
     ret += name;
     ret += ") ";
     return ret;
@@ -241,3 +241,5 @@ private:
 };
 
 std::vector<std::string> split_args(const std::string& s);
+
+} // namespace phosg

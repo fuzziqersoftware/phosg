@@ -8,6 +8,7 @@
 #include "Strings.hh"
 
 using namespace std;
+using namespace phosg;
 
 int main(int argc, char** argv) {
   const char* src_filename = (argc > 1) ? argv[1] : nullptr;

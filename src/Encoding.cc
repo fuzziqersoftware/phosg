@@ -4,6 +4,8 @@
 
 using namespace std;
 
+namespace phosg {
+
 const char* DEFAULT_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 const char* URLSAFE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
@@ -131,3 +133,5 @@ string rot13(const void* vdata, size_t size) {
   }
   return ret;
 }
+
+} // namespace phosg

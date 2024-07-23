@@ -16,6 +16,7 @@
 #include "UnitTest.hh"
 
 using namespace std;
+using namespace phosg;
 
 #ifndef PHOSG_WINDOWS
 

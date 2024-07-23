@@ -1,5 +1,7 @@
 #include <utility>
 
+namespace phosg {
+
 template <typename IntT>
 constexpr IntT gcd(IntT a, IntT b) {
   if (b == 0) {
@@ -18,3 +20,5 @@ template <typename IntT>
 constexpr IntT log2i(IntT v) {
   return (sizeof(IntT) << 3) - 1 - __builtin_clz(v);
 }
+
+} // namespace phosg

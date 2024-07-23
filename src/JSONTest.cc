@@ -9,6 +9,7 @@
 #include "UnitTest.hh"
 
 using namespace std;
+using namespace phosg;
 
 enum JSONTestEnum {
   ONE = 1,
@@ -17,7 +18,7 @@ enum JSONTestEnum {
 };
 
 template <>
-JSONTestEnum enum_for_name<JSONTestEnum>(const char* name) {
+JSONTestEnum phosg::enum_for_name<JSONTestEnum>(const char* name) {
   if (!strcmp(name, "ONE")) {
     return JSONTestEnum::ONE;
   } else if (!strcmp(name, "TWO")) {
@@ -30,7 +31,7 @@ JSONTestEnum enum_for_name<JSONTestEnum>(const char* name) {
 }
 
 template <>
-const char* name_for_enum<JSONTestEnum>(JSONTestEnum v) {
+const char* phosg::name_for_enum<JSONTestEnum>(JSONTestEnum v) {
   switch (v) {
     case JSONTestEnum::ONE:
       return "ONE";

@@ -22,6 +22,8 @@
 
 using namespace std;
 
+namespace phosg {
+
 unique_ptr<void, void (*)(void*)> malloc_unique(size_t size) {
   return unique_ptr<void, void (*)(void*)>(malloc(size), free);
 }
@@ -44,7 +46,7 @@ string toupper(const string& s) {
   string ret;
   ret.reserve(s.size());
   for (char ch : s) {
-    ret.push_back(toupper(ch));
+    ret.push_back(::toupper(ch));
   }
   return ret;
 }
@@ -53,7 +55,7 @@ string tolower(const string& s) {
   string ret;
   ret.reserve(s.size());
   for (char ch : s) {
-    ret.push_back(tolower(ch));
+    ret.push_back(::tolower(ch));
   }
   return ret;
 }
@@ -1763,3 +1765,5 @@ void BlockStringWriter::write_vprintf(const char* fmt, va_list va) {
 string BlockStringWriter::close(const char* separator) {
   return join(this->blocks, separator);
 }
+
+} // namespace phosg

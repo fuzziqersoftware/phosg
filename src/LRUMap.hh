@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <unordered_map>
 
+namespace phosg {
+
 template <typename KeyT, typename ValueT>
 class LRUMap {
 protected:
@@ -264,3 +266,5 @@ public:
     other.total_size = this_total_size;
   }
 };
+
+} // namespace phosg

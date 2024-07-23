@@ -6,6 +6,7 @@
 #include "UnitTest.hh"
 
 using namespace std;
+using namespace phosg;
 
 int main(int, char**) {
   LRUSet<string> c;

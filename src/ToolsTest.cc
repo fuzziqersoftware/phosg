@@ -4,6 +4,7 @@
 #include "UnitTest.hh"
 
 using namespace std;
+using namespace phosg;
 
 int main(int, char**) {
   printf("-- on_close_scope\n");

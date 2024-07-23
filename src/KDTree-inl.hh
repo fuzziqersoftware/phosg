@@ -9,6 +9,8 @@
 #include <utility>
 #include <vector>
 
+namespace phosg {
+
 template <typename CoordType, typename ValueType>
 KDTree<CoordType, ValueType>::KDTree()
     : root(nullptr),
@@ -530,3 +532,5 @@ typename KDTree<CoordType, ValueType>::Iterator
 KDTree<CoordType, ValueType>::end() const {
   return Iterator(nullptr);
 }
+
+} // namespace phosg

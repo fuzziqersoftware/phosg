@@ -5,6 +5,8 @@
 
 #include <string>
 
+namespace phosg {
+
 std::string random_data(size_t bytes);
 void random_data(void* data, size_t bytes);
 
@@ -16,3 +18,5 @@ T random_object() {
 }
 
 int64_t random_int(int64_t low, int64_t high);
+
+} // namespace phosg

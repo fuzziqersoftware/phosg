@@ -5,6 +5,8 @@
 
 #include <unordered_map>
 
+namespace phosg {
+
 template <typename K>
 class LRUSet {
 protected:
@@ -49,5 +51,7 @@ public:
 
   void swap(LRUSet<K>& other);
 };
+
+} // namespace phosg
 
 #include "LRUSet-inl.hh"

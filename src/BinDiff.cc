@@ -8,6 +8,7 @@
 #include "JSON.hh"
 
 using namespace std;
+using namespace phosg;
 
 void print_usage() {
   fprintf(stderr, "\

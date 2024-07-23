@@ -11,8 +11,9 @@
 #include <unordered_set>
 #include <vector>
 
-std::unique_ptr<FILE, void (*)(FILE*)> popen_unique(const std::string& command,
-    const std::string& mode);
+namespace phosg {
+
+std::unique_ptr<FILE, void (*)(FILE*)> popen_unique(const std::string& command, const std::string& mode);
 
 std::string name_for_pid(pid_t pid);
 pid_t pid_for_name(const std::string& name, bool search_commands = true, bool exclude_self = true);
@@ -89,3 +90,5 @@ SubprocessResult run_process(const std::vector<std::string>& cmd,
     const std::string* cwd = nullptr,
     const std::unordered_map<std::string, std::string>* env = nullptr,
     size_t timeout_secs = 0);
+
+} // namespace phosg

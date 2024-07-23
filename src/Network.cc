@@ -26,6 +26,8 @@
 
 using namespace std;
 
+namespace phosg {
+
 uint32_t resolve_ipv4(const string& addr) {
   struct addrinfo* res0;
   if (getaddrinfo(addr.c_str(), nullptr, nullptr, &res0)) {
@@ -184,7 +186,7 @@ int listen(const string& addr, int port, int backlog, bool nonblocking) {
   }
 
   // Only listen() on stream sockets
-  if (backlog && (listen(fd, backlog) != 0)) {
+  if (backlog && (::listen(fd, backlog) != 0)) {
     close(fd);
     throw runtime_error("can\'t listen on socket: " + string_for_error(errno));
   }
@@ -257,7 +259,7 @@ pair<string, uint16_t> parse_netloc(const string& netloc, int default_port) {
 
 string gethostname() {
   string buf(sysconf(_SC_HOST_NAME_MAX) + 1, '\0');
-  if (gethostname(buf.data(), buf.size())) {
+  if (::gethostname(buf.data(), buf.size())) {
     throw runtime_error("can\'t get hostname");
   }
   buf.resize(strlen(buf.c_str()));
@@ -266,7 +268,7 @@ string gethostname() {
 
 pair<int, int> socketpair(int domain, int type, int protocol) {
   int fds[2];
-  if (socketpair(domain, type, protocol, fds)) {
+  if (::socketpair(domain, type, protocol, fds)) {
     throw runtime_error("socketpair failed: " + string_for_error(errno));
   }
   return make_pair(fds[0], fds[1]);
@@ -289,3 +291,5 @@ unordered_map<string, struct sockaddr_storage> get_network_interfaces() {
 
   return ret;
 }
+
+} // namespace phosg

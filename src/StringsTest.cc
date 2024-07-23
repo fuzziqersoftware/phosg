@@ -8,6 +8,7 @@
 #include "UnitTest.hh"
 
 using namespace std;
+using namespace phosg;
 
 template <typename... ArgTs>
 void print_data_test_case(const string& expected_output, ArgTs... args) {

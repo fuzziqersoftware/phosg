@@ -5,9 +5,9 @@
 #include "UnitTest.hh"
 
 using namespace std;
+using namespace phosg;
 
 int main(int, char**) {
-
   fprintf(stderr, "-- usleep\n");
   uint64_t start_time = now();
   expect_ge(now(), start_time);

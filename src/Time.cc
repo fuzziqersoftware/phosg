@@ -10,6 +10,8 @@
 
 using namespace std;
 
+namespace phosg {
+
 uint64_t now() {
   timeval t;
   gettimeofday(&t, nullptr);
@@ -118,3 +120,5 @@ struct timeval usecs_to_timeval(uint64_t usecs) {
 uint64_t timeval_to_usecs(struct timeval& tv) {
   return (tv.tv_sec * 1000000) + tv.tv_usec;
 }
+
+} // namespace phosg

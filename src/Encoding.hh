@@ -8,6 +8,8 @@
 #include "Platform.hh"
 #include "Types.hh"
 
+namespace phosg {
+
 template <typename T>
 constexpr uint8_t bits_for_type = sizeof(T) << 3;
 
@@ -465,3 +467,5 @@ std::string base64_decode(const void* data, size_t size, const char* alphabet = 
 std::string base64_decode(const std::string& data, const char* alphabet = nullptr);
 
 std::string rot13(const void* data, size_t size);
+
+} // namespace phosg

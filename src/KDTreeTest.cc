@@ -11,6 +11,7 @@
 #include "Vector.hh"
 
 using namespace std;
+using namespace phosg;
 
 void run_randomized_test() {
   printf("-- randomized\n");

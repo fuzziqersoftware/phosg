@@ -8,6 +8,8 @@
 #include <unordered_map>
 #include <utility>
 
+namespace phosg {
+
 std::pair<struct sockaddr_storage, size_t> make_sockaddr_storage(
     const std::string& addr, uint16_t port);
 
@@ -66,3 +68,5 @@ std::pair<int, int> socketpair(
     int protocol = 0);
 
 std::unordered_map<std::string, struct sockaddr_storage> get_network_interfaces();
+
+} // namespace phosg

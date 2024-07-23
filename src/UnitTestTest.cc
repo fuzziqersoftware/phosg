@@ -3,6 +3,7 @@
 #include "UnitTest.hh"
 
 using namespace std;
+using namespace phosg;
 
 #define expect_fails(x)                                                       \
   do {                                                                        \

@@ -2,6 +2,8 @@
 
 using namespace std;
 
+namespace phosg {
+
 Arguments::ArgText::ArgText(std::string&& text)
     : text(std::move(text)),
       used(false) {}
@@ -71,3 +73,5 @@ void Arguments::parse(vector<string>&& args) {
 }
 
 const string Arguments::empty_string;
+
+} // namespace phosg

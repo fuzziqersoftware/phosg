@@ -12,6 +12,8 @@
 #include "Strings.hh"
 #include "Types.hh"
 
+namespace phosg {
+
 class JSON {
 public:
   enum class StringEscapeMode {
@@ -477,3 +479,5 @@ private:
       dict_type>
       value;
 };
+
+} // namespace phosg

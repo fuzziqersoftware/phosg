@@ -28,6 +28,8 @@
 
 using namespace std;
 
+namespace phosg {
+
 unique_ptr<FILE, void (*)(FILE*)> popen_unique(const string& command,
     const string& mode) {
   unique_ptr<FILE, void (*)(FILE*)> f(
@@ -508,8 +510,7 @@ SubprocessResult run_process(const vector<string>& cmd, const string* stdin_data
   struct Buffer {
     const string* buf;
     size_t offset;
-    Buffer(const string* buf) : buf(buf),
-                                offset(0) {}
+    Buffer(const string* buf) : buf(buf), offset(0) {}
   };
   unordered_map<int, Buffer> write_fd_to_buffer;
   unordered_map<int, string*> read_fd_to_buffer;
@@ -526,15 +527,14 @@ SubprocessResult run_process(const vector<string>& cmd, const string* stdin_data
   read_fd_to_buffer.emplace(sp.stderr_fd(), &ret.stderr_contents);
   p.add(sp.stderr_fd(), POLLIN);
 
-  // read/write to pipes as long as the process is running
+  // Read and write to pipes as long as the process is running
   while ((ret.exit_status = sp.wait(true)) == -1) {
     for (const auto& pfd : p.poll(1000)) {
       if (pfd.second & POLLIN) {
         string* buf = read_fd_to_buffer.at(pfd.first);
         size_t read_offset = buf->size();
         buf->resize(read_offset + READ_BLOCK_SIZE);
-        ssize_t bytes_read = read(pfd.first, buf->data() + read_offset,
-            READ_BLOCK_SIZE);
+        ssize_t bytes_read = ::read(pfd.first, buf->data() + read_offset, READ_BLOCK_SIZE);
         if (bytes_read > 0) {
           buf->resize(read_offset + bytes_read);
         } else if (bytes_read < 0) {
@@ -585,13 +585,12 @@ SubprocessResult run_process(const vector<string>& cmd, const string* stdin_data
   }
   ret.elapsed_time = now() - ret.elapsed_time;
 
-  // read any leftover data after termination
+  // Read any leftover data after termination
   for (auto& it : read_fd_to_buffer) {
     for (;;) {
       size_t read_offset = it.second->size();
       it.second->resize(read_offset + READ_BLOCK_SIZE);
-      ssize_t bytes_read = read(it.first, it.second->data() + read_offset,
-          READ_BLOCK_SIZE);
+      ssize_t bytes_read = ::read(it.first, it.second->data() + read_offset, READ_BLOCK_SIZE);
       if (bytes_read > 0) {
         it.second->resize(it.second->size() - READ_BLOCK_SIZE + bytes_read);
       } else if (bytes_read < 0) {
@@ -614,3 +613,5 @@ SubprocessResult run_process(const vector<string>& cmd, const string* stdin_data
 
   return ret;
 }
+
+} // namespace phosg

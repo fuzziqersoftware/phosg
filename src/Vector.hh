@@ -2,6 +2,8 @@
 
 #include <string>
 
+namespace phosg {
+
 template <typename T>
 struct Vector2 {
   union {
@@ -210,5 +212,7 @@ struct Matrix4 {
 
   std::string str() const;
 };
+
+} // namespace phosg
 
 #include "Vector-inl.hh"

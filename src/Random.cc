@@ -11,6 +11,8 @@
 
 using namespace std;
 
+namespace phosg {
+
 string random_data(size_t bytes) {
   string ret(bytes, '\0');
   random_data(ret.data(), ret.size());
@@ -46,3 +48,5 @@ int64_t random_int(int64_t low, int64_t high) {
     return low + (random_object<uint8_t>() % range);
   }
 }
+
+} // namespace phosg

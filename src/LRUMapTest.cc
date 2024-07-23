@@ -6,6 +6,7 @@
 #include "UnitTest.hh"
 
 using namespace std;
+using namespace phosg;
 
 int main(int, char**) {
   LRUMap<string, string> c;

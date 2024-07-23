@@ -6,6 +6,8 @@
 #include <unordered_set>
 #include <vector>
 
+namespace phosg {
+
 template <typename V>
 std::vector<V> set_to_vec(const std::set<V>& s) {
   std::vector<V> ret;
@@ -83,3 +85,5 @@ std::vector<K> map_values_to_vec(const std::unordered_map<K, V>& s) {
   }
   return ret;
 }
+
+} // namespace phosg

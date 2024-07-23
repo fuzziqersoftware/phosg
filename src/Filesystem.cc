@@ -27,6 +27,8 @@
 
 using namespace std;
 
+namespace phosg {
+
 std::string basename(const std::string& filename) {
   size_t slash_pos = filename.rfind('/');
   return (slash_pos == string::npos) ? filename : filename.substr(slash_pos + 1);
@@ -82,7 +84,7 @@ vector<string> list_directory_sorted(const string& dirname) {
 
 string getcwd() {
   string ret(MAXPATHLEN, '\0');
-  if (!getcwd(ret.data(), ret.size())) {
+  if (!::getcwd(ret.data(), ret.size())) {
     throw runtime_error("cannot get working directory");
   }
   ret.resize(strlen(ret.c_str()));
@@ -140,7 +142,7 @@ io_error::io_error(int fd, const string& what)
 
 struct stat stat(const string& filename) {
   struct stat st;
-  if (stat(filename.c_str(), &st)) {
+  if (::stat(filename.c_str(), &st)) {
     throw cannot_stat_file(filename);
   }
   return st;
@@ -148,7 +150,7 @@ struct stat stat(const string& filename) {
 
 struct stat lstat(const string& filename) {
   struct stat st;
-  if (lstat(filename.c_str(), &st)) {
+  if (::lstat(filename.c_str(), &st)) {
     throw cannot_stat_file(filename);
   }
   return st;
@@ -156,7 +158,7 @@ struct stat lstat(const string& filename) {
 
 struct stat fstat(int fd) {
   struct stat st;
-  if (fstat(fd, &st)) {
+  if (::fstat(fd, &st)) {
     throw cannot_stat_file(fd);
   }
   return st;
@@ -220,7 +222,7 @@ bool islink(const string& filename) {
 
 string readlink(const string& filename) {
   string data(1024, 0);
-  ssize_t length = readlink(filename.c_str(), data.data(), data.size());
+  ssize_t length = ::readlink(filename.c_str(), data.data(), data.size());
   if (length < 0) {
     throw cannot_stat_file(filename);
   }
@@ -231,7 +233,7 @@ string readlink(const string& filename) {
 
 string realpath(const string& path) {
   string data(PATH_MAX, 0);
-  if (!realpath(path.c_str(), data.data())) {
+  if (!::realpath(path.c_str(), data.data())) {
     throw cannot_stat_file(path);
   }
   data.resize(strlen(data.c_str()));
@@ -307,7 +309,7 @@ string read_all(int fd) {
   vector<string> buffers;
   for (;;) {
     buffers.emplace_back(read_size, 0);
-    ssize_t bytes_read = read(fd, buffers.back().data(), read_size);
+    ssize_t bytes_read = ::read(fd, buffers.back().data(), read_size);
     if (bytes_read < 0) {
       throw io_error(fd);
     }
@@ -339,7 +341,7 @@ string read_all(FILE* f) {
   vector<string> buffers;
   for (;;) {
     buffers.emplace_back(read_size, 0);
-    ssize_t bytes_read = fread(buffers.back().data(), 1, read_size, f);
+    ssize_t bytes_read = ::fread(buffers.back().data(), 1, read_size, f);
     if (bytes_read < 0) {
       throw io_error(fileno(f));
     }
@@ -366,7 +368,7 @@ string read_all(FILE* f) {
 
 string read(int fd, size_t size) {
   string data(size, '\0');
-  ssize_t ret_size = read(fd, data.data(), size);
+  ssize_t ret_size = ::read(fd, data.data(), size);
   if (ret_size < 0) {
     throw io_error(fd);
   } else if (ret_size != static_cast<ssize_t>(size)) {
@@ -377,7 +379,7 @@ string read(int fd, size_t size) {
 
 string fread(FILE* f, size_t size) {
   string data(size, '\0');
-  ssize_t ret_size = fread(data.data(), 1, size, f);
+  ssize_t ret_size = ::fread(data.data(), 1, size, f);
   if (ret_size < 0) {
     throw io_error(fileno(f));
   } else if (ret_size != static_cast<ssize_t>(size)) {
@@ -387,7 +389,7 @@ string fread(FILE* f, size_t size) {
 }
 
 void readx(int fd, void* data, size_t size) {
-  ssize_t ret_size = read(fd, data, size);
+  ssize_t ret_size = ::read(fd, data, size);
   if (ret_size < 0) {
     throw io_error(fd);
   } else if (ret_size != static_cast<ssize_t>(size)) {
@@ -415,7 +417,7 @@ void writex(int fd, const string& data) {
 }
 
 void preadx(int fd, void* data, size_t size, off_t offset) {
-  ssize_t ret_size = pread(fd, data, size, offset);
+  ssize_t ret_size = ::pread(fd, data, size, offset);
   if (ret_size < 0) {
     throw io_error(fd);
   } else if (ret_size != static_cast<ssize_t>(size)) {
@@ -424,7 +426,7 @@ void preadx(int fd, void* data, size_t size, off_t offset) {
 }
 
 void pwritex(int fd, const void* data, size_t size, off_t offset) {
-  ssize_t ret_size = pwrite(fd, data, size, offset);
+  ssize_t ret_size = ::pwrite(fd, data, size, offset);
   if (ret_size < 0) {
     throw io_error(fd);
   } else if (ret_size != static_cast<ssize_t>(size)) {
@@ -443,7 +445,7 @@ void pwritex(int fd, const string& data, off_t offset) {
 }
 
 void freadx(FILE* f, void* data, size_t size) {
-  ssize_t ret_size = fread(data, 1, size, f);
+  ssize_t ret_size = ::fread(data, 1, size, f);
   if (ret_size < 0) {
     throw io_error(fileno(f));
   } else if (ret_size != static_cast<ssize_t>(size)) {
@@ -452,7 +454,7 @@ void freadx(FILE* f, void* data, size_t size) {
 }
 
 void fwritex(FILE* f, const void* data, size_t size) {
-  ssize_t ret_size = fwrite(data, 1, size, f);
+  ssize_t ret_size = ::fwrite(data, 1, size, f);
   if (ret_size < 0) {
     throw io_error(fileno(f));
   } else if (ret_size != static_cast<ssize_t>(size)) {
@@ -471,7 +473,7 @@ void fwritex(FILE* f, const string& data) {
 }
 
 uint8_t fgetcx(FILE* f) {
-  int ret = fgetc(f);
+  int ret = ::fgetc(f);
   if (ret == EOF) {
     if (feof(f)) {
       throw io_error(fileno(f), "end of stream");
@@ -486,9 +488,9 @@ std::string fgets(FILE* f) {
   deque<std::string> blocks;
   for (;;) {
     std::string& block = blocks.emplace_back(0x100, '\0');
-    if (!fgets(block.data(), block.size(), f)) {
+    if (!::fgets(block.data(), block.size(), f)) {
       blocks.pop_back();
-      if (feof(f)) {
+      if (::feof(f)) {
         break;
       } else {
         throw io_error(fileno(f), "cannot read from stream");
@@ -513,7 +515,7 @@ string load_file(const string& filename) {
   ssize_t file_size = fstat(fd).st_size;
 
   string data(file_size, 0);
-  ssize_t bytes_read = read(fd, data.data(), data.size());
+  ssize_t bytes_read = ::read(fd, data.data(), data.size());
   if (bytes_read != file_size) {
     if (errno == 0) {
       throw runtime_error(string_printf("can\'t read from %s: %zd/%zd bytes read",
@@ -571,11 +573,9 @@ static void fclose_raw(FILE* f) {
   fclose(f);
 }
 
-unique_ptr<FILE, void (*)(FILE*)> fopen_unique(const string& filename,
-    const string& mode, FILE* dash_file) {
+unique_ptr<FILE, void (*)(FILE*)> fopen_unique(const string& filename, const string& mode, FILE* dash_file) {
   if (dash_file && (filename == "-")) {
-    return unique_ptr<FILE, void (*)(FILE*)>(
-        dash_file, +[](FILE*) {});
+    return unique_ptr<FILE, void (*)(FILE*)>(dash_file, +[](FILE*) {});
   }
   return unique_ptr<FILE, void (*)(FILE*)>(fopen_binary_raw(filename, mode), fclose_raw);
 }
@@ -585,13 +585,10 @@ unique_ptr<FILE, void (*)(FILE*)> fdopen_unique(int fd, const string& mode) {
 }
 
 unique_ptr<FILE, void (*)(FILE*)> fmemopen_unique(const void* buf, size_t size) {
-  return unique_ptr<FILE, void (*)(FILE*)>(fmemopen(
-                                               const_cast<void*>(buf), size, "rb"),
-      fclose_raw);
+  return unique_ptr<FILE, void (*)(FILE*)>(fmemopen(const_cast<void*>(buf), size, "rb"), fclose_raw);
 }
 
-shared_ptr<FILE> fopen_shared(const string& filename, const string& mode,
-    FILE* dash_file) {
+shared_ptr<FILE> fopen_shared(const string& filename, const string& mode, FILE* dash_file) {
   if (dash_file && (filename == "-")) {
     return shared_ptr<FILE>(dash_file, [](FILE*) {});
   }
@@ -603,7 +600,7 @@ shared_ptr<FILE> fdopen_shared(int fd, const string& mode) {
 }
 
 void rename(const std::string& old_filename, const std::string& new_filename) {
-  if (rename(old_filename.c_str(), new_filename.c_str()) != 0) {
+  if (::rename(old_filename.c_str(), new_filename.c_str()) != 0) {
     throw runtime_error("can\'t rename file " + old_filename + " to " + new_filename + ": " + string_for_error(errno));
   }
 }
@@ -614,7 +611,7 @@ void unlink(const string& filename, bool recursive) {
       for (const string& item : list_directory(filename)) {
         unlink(filename + "/" + item, true);
       }
-      if ((rmdir(filename.c_str()) != 0) && (errno != ENOENT)) {
+      if ((::rmdir(filename.c_str()) != 0) && (errno != ENOENT)) {
         throw runtime_error("can\'t delete directory " + filename + ": " + string_for_error(errno));
       }
     } else {
@@ -622,7 +619,7 @@ void unlink(const string& filename, bool recursive) {
     }
 
   } else {
-    if ((unlink(filename.c_str()) != 0) && (errno != ENOENT)) {
+    if ((::unlink(filename.c_str()) != 0) && (errno != ENOENT)) {
       throw runtime_error("can\'t delete file " + filename + ": " + string_for_error(errno));
     }
   }
@@ -640,7 +637,7 @@ void make_fd_nonblocking(int fd) {
 
 pair<int, int> pipe() {
   int fds[2];
-  if (pipe(fds)) {
+  if (::pipe(fds)) {
     throw runtime_error("pipe failed: " + string_for_error(errno));
   }
   return make_pair(fds[0], fds[1]);
@@ -700,3 +697,5 @@ unordered_map<int, short> Poll::poll(int timeout_ms) {
   }
   return ret;
 }
+
+} // namespace phosg

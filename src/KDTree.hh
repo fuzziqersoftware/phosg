@@ -7,6 +7,8 @@
 #include <memory>
 #include <vector>
 
+namespace phosg {
+
 template <typename CoordType, typename ValueType>
 class KDTree {
 private:
@@ -93,5 +95,7 @@ public:
   Iterator begin() const;
   Iterator end() const;
 };
+
+} // namespace phosg
 
 #include "KDTree-inl.hh"
