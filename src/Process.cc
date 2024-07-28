@@ -138,7 +138,7 @@ bool pid_is_zombie(pid_t pid) {
   try {
     string filename = string_printf("/proc/%d/status", pid);
     scoped_fd fd(filename, O_RDONLY);
-    ssize_t bytes_read = read(fd, status_data, 2047);
+    ssize_t bytes_read = ::read(fd, status_data, 2047);
     if (bytes_read < 0) {
       throw runtime_error("can\'t read stat file for pid " + to_string(pid));
     }
