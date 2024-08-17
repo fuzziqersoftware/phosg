@@ -16,4 +16,6 @@ Makefile
 CTestTestFile.cmake
 Testing
 cmake_install.cmake
+phosgConfig.cmake
+phosgConfigVersion.cmake
 install_manifest.txt
