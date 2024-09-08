@@ -106,7 +106,15 @@ void strip_multiline_comments(StrT& s, bool allow_unterminated = false) {
 }
 
 std::string escape_quotes(const std::string& s);
+std::string escape_controls(const std::string& s, bool escape_non_ascii);
 std::string escape_url(const std::string& s, bool escape_slash = false);
+
+inline std::string escape_controls_ascii(const std::string& s) {
+  return escape_controls(s, true);
+}
+inline std::string escape_controls_utf8(const std::string& s) {
+  return escape_controls(s, false);
+}
 
 std::string string_printf(const char* fmt, ...) ATTR_PRINTF(1, 2);
 std::wstring wstring_printf(const wchar_t* fmt, ...);

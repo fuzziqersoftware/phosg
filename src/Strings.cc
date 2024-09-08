@@ -94,6 +94,39 @@ string escape_quotes(const string& s) {
   return ret;
 }
 
+string escape_controls(const string& s, bool escape_non_ascii) {
+  string ret;
+  for (size_t x = 0; x < s.size(); x++) {
+    char ch = s[x];
+    if (ch == '\"') {
+      ret += "\\\"";
+    } else if (ch == '\'') {
+      ret += "\\\'";
+    } else if (ch == '\\') {
+      ret += "\\\\";
+    } else if (ch == '\t') {
+      ret += "\\t";
+    } else if (ch == '\r') {
+      ret += "\\r";
+    } else if (ch == '\n') {
+      ret += "\\n";
+    } else if (ch == '\f') {
+      ret += "\\f";
+    } else if (ch == '\b') {
+      ret += "\\b";
+    } else if (ch == '\a') {
+      ret += "\\a";
+    } else if (ch == '\v') {
+      ret += "\\v";
+    } else if (ch < 0x20 || (ch > 0x7E && escape_non_ascii)) {
+      ret += string_printf("\\x%02X", static_cast<uint8_t>(ch));
+    } else {
+      ret += ch;
+    }
+  }
+  return ret;
+}
+
 string escape_url(const string& s, bool escape_slash) {
   string ret;
   for (char ch : s) {
