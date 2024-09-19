@@ -118,7 +118,7 @@ string escape_controls(const string& s, bool escape_non_ascii) {
       ret += "\\a";
     } else if (ch == '\v') {
       ret += "\\v";
-    } else if (escape_non_ascii ? (ch < 0x20 || ch > 0x7E) : ((ch < 0x20 && ch >= 0x00) || ch == 0x7F)) {
+    } else if (escape_non_ascii ? (ch < 0x20 || ch > 0x7E) : (!(ch & 0x80) && ((ch < 0x20) || ch == 0x7F))) {
       ret += string_printf("\\x%02X", static_cast<uint8_t>(ch));
     } else {
       ret += ch;
