@@ -24,16 +24,24 @@ string format_time(uint64_t t) {
   gmtime_r(&t_secs, &t_parsed);
 
   string ret(128, 0);
-  size_t len = strftime(ret.data(), ret.size(),
-      "%Y-%m-%d %H:%M:%S", &t_parsed);
+  size_t len = strftime(ret.data(), ret.size(), "%Y-%m-%d %H:%M:%S", &t_parsed);
   if (len == 0) {
     throw runtime_error("format_time buffer too short");
   }
-  ret.resize(len);
+  int usecs_ret = snprintf(ret.data() + len, ret.size() - len, ".%06" PRIu32, static_cast<uint32_t>(t % 1000000));
+  if (usecs_ret < 0) {
+    throw runtime_error("cannot add microsecond field");
+  }
+  ret.resize(min<size_t>(len + usecs_ret, ret.size()));
   return ret;
 }
 
-string format_time(struct timeval* tv) {
+string format_time_natural(uint64_t t) {
+  struct timeval tv = usecs_to_timeval(t);
+  return format_time_natural(&tv);
+}
+
+string format_time_natural(struct timeval* tv) {
   struct timeval local_tv;
   if (!tv) {
     tv = &local_tv;
