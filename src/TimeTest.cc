@@ -15,19 +15,21 @@ int main(int, char**) {
   expect_ge(now(), start_time + 1000000);
 
   fprintf(stderr, "-- format_time\n");
-  expect_eq(format_time(static_cast<uint64_t>(0)), "1970-01-01 00:00:00");
-  expect_eq(format_time(1478915749908529), "2016-11-12 01:55:49");
+  expect_eq(format_time(static_cast<uint64_t>(0)), "1970-01-01 00:00:00.000000");
+  expect_eq(format_time(1478915749908529), "2016-11-12 01:55:49.908529");
+  expect_eq(format_time(1478915749000529), "2016-11-12 01:55:49.000529");
+  expect_eq(format_time(1478915749908000), "2016-11-12 01:55:49.908000");
 
   {
     fprintf(stderr, "-- format_duration\n");
-    expect_eq("0.00000", format_duration(0));
-    expect_eq("0.22222", format_duration(222222));
-    expect_eq("2.22222", format_duration(2222222));
-    expect_eq("12.2222", format_duration(12222222));
-    expect_eq("1:02.22", format_duration(62222222));
-    expect_eq("1:10.00", format_duration(69999999));
-    expect_eq("1:12.22", format_duration(72222222));
-    expect_eq("11:12.2", format_duration(672222222));
+    expect_eq("0.000000", format_duration(0));
+    expect_eq("0.222222", format_duration(222222));
+    expect_eq("2.222222", format_duration(2222222));
+    expect_eq("12.222222", format_duration(12222222));
+    expect_eq("1:02.222", format_duration(62222222));
+    expect_eq("1:10.000", format_duration(69999999));
+    expect_eq("1:12.222", format_duration(72222222));
+    expect_eq("11:12.222", format_duration(672222222));
     expect_eq("1:01:12", format_duration(3672222222));
     expect_eq("1:11:12", format_duration(4272222222));
     expect_eq("11:11:12", format_duration(40272222222));

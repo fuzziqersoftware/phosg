@@ -65,21 +65,21 @@ string format_time_natural(struct timeval* tv) {
 string format_duration(uint64_t usecs, int8_t subsecond_precision) {
   if (usecs < 1000000ULL) {
     if (subsecond_precision < 0) {
-      subsecond_precision = 5;
+      subsecond_precision = 6;
     }
     return string_printf("%.*lf", subsecond_precision,
         static_cast<double>(usecs) / 1000000ULL);
 
   } else if (usecs < 60 * 1000000ULL) {
     if (subsecond_precision < 0) {
-      subsecond_precision = (usecs < 10 * 1000000ULL) ? 5 : 4;
+      subsecond_precision = 6;
     }
     return string_printf("%.*lf", subsecond_precision,
         static_cast<double>(usecs) / 1000000ULL);
 
   } else if (usecs < 60 * 60 * 1000000ULL) {
     if (subsecond_precision < 0) {
-      subsecond_precision = (usecs < 10 * 60 * 1000000ULL) ? 2 : 1;
+      subsecond_precision = 3;
     }
     uint64_t minutes = usecs / (60 * 1000000ULL);
     uint64_t usecs_part = usecs - (minutes * 60 * 1000000ULL);
