@@ -29,22 +29,6 @@ inline CallOnDestroy on_close_scope(std::function<void()> f) {
 }
 
 template <typename IntT>
-void parallel_range_thread_fn(
-    std::function<bool(IntT, size_t thread_num)>& fn,
-    std::atomic<IntT>& current_value,
-    std::atomic<IntT>& result_value,
-    IntT end_value,
-    size_t thread_num) {
-  IntT v;
-  while ((v = current_value.fetch_add(1)) < end_value) {
-    if (fn(v, thread_num)) {
-      result_value = v;
-      current_value = end_value;
-    }
-  }
-}
-
-template <typename IntT>
 void parallel_range_default_progress_fn(IntT start_value, IntT end_value, IntT current_value, uint64_t start_time) {
   std::string format_str = "... %08";
   format_str += printf_hex_format_for_type<IntT>();
@@ -64,6 +48,22 @@ void parallel_range_default_progress_fn(IntT start_value, IntT end_value, IntT c
 
   fprintf(stderr, format_str.c_str(), current_value,
       elapsed_str.c_str(), remaining_str.c_str());
+}
+
+template <typename IntT>
+void parallel_range_thread_fn(
+    std::function<bool(IntT, size_t thread_num)>& fn,
+    std::atomic<IntT>& current_value,
+    std::atomic<IntT>& result_value,
+    IntT end_value,
+    size_t thread_num) {
+  IntT v;
+  while ((v = current_value.fetch_add(1)) < end_value) {
+    if (fn(v, thread_num)) {
+      result_value = v;
+      current_value = end_value;
+    }
+  }
 }
 
 // This function runs a function in parallel, using the specified number of
@@ -95,6 +95,81 @@ IntT parallel_range(
         std::ref(current_value),
         std::ref(result_value),
         end_value,
+        threads.size());
+  }
+
+  if (progress_fn != nullptr) {
+    uint64_t start_time = now();
+    IntT progress_current_value;
+    while ((progress_current_value = current_value.load()) < end_value) {
+      progress_fn(start_value, end_value, progress_current_value, start_time);
+      usleep(1000000);
+    }
+  }
+
+  for (auto& t : threads) {
+    t.join();
+  }
+
+  return result_value;
+}
+
+template <typename IntT>
+void parallel_range_blocks_thread_fn(
+    std::function<bool(IntT, size_t thread_num)>& fn,
+    std::atomic<IntT>& current_value,
+    std::atomic<IntT>& result_value,
+    IntT end_value,
+    IntT block_size,
+    size_t thread_num) {
+  IntT block_start;
+  while ((block_start = current_value.fetch_add(block_size)) < end_value) {
+    IntT block_end = block_start + block_size;
+    for (IntT z = block_start; z < block_end; z++) {
+      if (fn(z, thread_num)) {
+        result_value = z;
+        current_value = end_value;
+        break;
+      }
+    }
+  }
+}
+
+// Like parallel_range, but faster since due to fewer atomic memory operations.
+// block_size must evenly divide the input range, but it is not required that
+// start_value or end_value themselves be multiples of block_size. For example,
+// the following are both valid inputs:
+//   start_value = 0x00000000, end_value = 0x10000000, block_size = 0x1000
+//   start_value = 0x47F92AC2, end_value = 0x67F92AC2, block_size = 0x10000
+// However, this would be invalid:
+//   start_value = 0x0000004F, end_value = 0x10000059, block_size = 0x10000
+template <typename IntT = uint64_t>
+IntT parallel_range_blocks(
+    std::function<bool(IntT value, size_t thread_num)> fn,
+    IntT start_value,
+    IntT end_value,
+    IntT block_size,
+    size_t num_threads = 0,
+    std::function<void(IntT start_value, IntT end_value, IntT current_value, uint64_t start_time_usecs)> progress_fn = parallel_range_default_progress_fn<IntT>) {
+  if ((end_value - start_value) % block_size) {
+    throw std::logic_error("block_size must evenly divide the entire range");
+  }
+
+  if (num_threads == 0) {
+    num_threads = std::thread::hardware_concurrency();
+  }
+
+  std::atomic<IntT> current_value(start_value);
+  std::atomic<IntT> result_value(end_value);
+  std::vector<std::thread> threads;
+  while (threads.size() < num_threads) {
+    threads.emplace_back(
+        parallel_range_blocks_thread_fn<IntT>,
+        std::ref(fn),
+        std::ref(current_value),
+        std::ref(result_value),
+        end_value,
+        block_size,
         threads.size());
   }
 
