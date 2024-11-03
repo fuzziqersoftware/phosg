@@ -158,6 +158,9 @@ IntT parallel_range_blocks(
   if (num_threads == 0) {
     num_threads = std::thread::hardware_concurrency();
   }
+  if (num_threads < 1) {
+    throw std::logic_error("thread count must be at least 1");
+  }
 
   std::atomic<IntT> current_value(start_value);
   std::atomic<IntT> result_value(end_value);
@@ -187,6 +190,40 @@ IntT parallel_range_blocks(
   }
 
   return result_value;
+}
+
+// Like parallel_range_blocks, but returns all values for which fn returned
+// true. (Unlike the other parallel_range functions, this one does not return
+// early.)
+template <typename IntT = uint64_t, typename RetT = std::unordered_set<IntT>>
+std::unordered_set<IntT> parallel_range_blocks_multi(
+    std::function<bool(IntT value, size_t thread_num)> fn,
+    IntT start_value,
+    IntT end_value,
+    IntT block_size,
+    size_t num_threads = 0,
+    std::function<void(IntT start_value, IntT end_value, IntT current_value, uint64_t start_time_usecs)> progress_fn = parallel_range_default_progress_fn<IntT>) {
+
+  if (num_threads == 0) {
+    num_threads = std::thread::hardware_concurrency();
+  }
+
+  std::vector<RetT> thread_rets(num_threads);
+  parallel_range_blocks<IntT>([&](IntT z, size_t thread_num) {
+    if (fn(z, thread_num)) {
+      thread_rets[thread_num].emplace(z);
+    }
+    return false;
+  },
+      start_value, end_value, block_size, num_threads, progress_fn);
+
+  RetT ret = std::move(thread_rets[0]);
+  for (size_t z = 1; z < thread_rets.size(); z++) {
+    auto& thread_ret = thread_rets[z];
+    ret.insert(std::make_move_iterator(thread_ret.begin()), std::make_move_iterator(thread_ret.end()));
+  }
+
+  return ret;
 }
 
 } // namespace phosg
