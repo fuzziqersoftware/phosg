@@ -235,6 +235,7 @@ public:
   void clear(bool v);
   bool read_pixel(size_t x, size_t y) const;
   void write_pixel(size_t x, size_t y, bool v);
+  void write_row(size_t y, const void* in_data, size_t size);
 
   void invert();
 

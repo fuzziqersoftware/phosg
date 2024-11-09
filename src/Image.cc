@@ -1721,7 +1721,7 @@ void Image::resize_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
 }
 
 static inline constexpr size_t byte_count_for_bit_count(size_t bit_count) {
-  return (bit_count + 7) & (~7);
+  return (bit_count + 7) >> 3;
 }
 
 BitmapImage::BitmapImage() : width(0), height(0), row_bytes(0), data(nullptr) {}
@@ -1729,7 +1729,7 @@ BitmapImage::BitmapImage() : width(0), height(0), row_bytes(0), data(nullptr) {}
 BitmapImage::BitmapImage(size_t w, size_t h)
     : width(w),
       height(h),
-      row_bytes(byte_count_for_bit_count(this->height)),
+      row_bytes(byte_count_for_bit_count(this->width)),
       data(new uint8_t[this->get_data_size()]) {
   memset(this->data, 0, this->get_data_size());
 }
@@ -1737,7 +1737,7 @@ BitmapImage::BitmapImage(size_t w, size_t h)
 BitmapImage::BitmapImage(const BitmapImage& im)
     : width(im.width),
       height(im.height),
-      row_bytes(byte_count_for_bit_count(this->height)),
+      row_bytes(byte_count_for_bit_count(this->width)),
       data(new uint8_t[this->get_data_size()]) {
   memcpy(this->data, im.data, this->get_data_size());
 }
@@ -1820,7 +1820,7 @@ bool BitmapImage::read_pixel(size_t x, size_t y) const {
   if (x >= this->width || y >= this->height) {
     throw runtime_error("out of bounds");
   }
-  return !!(this->data[y * byte_count_for_bit_count(this->width) + (x >> 3)] & (0x80 >> (x & 7)));
+  return !!(this->data[y * this->row_bytes + (x >> 3)] & (0x80 >> (x & 7)));
 }
 
 void BitmapImage::write_pixel(size_t x, size_t y, bool v) {
@@ -1828,10 +1828,17 @@ void BitmapImage::write_pixel(size_t x, size_t y, bool v) {
     throw runtime_error("out of bounds");
   }
   if (v) {
-    this->data[y * byte_count_for_bit_count(this->width) + (x >> 3)] |= (0x80 >> (x & 7));
+    this->data[y * this->row_bytes + (x >> 3)] |= (0x80 >> (x & 7));
   } else {
-    this->data[y * byte_count_for_bit_count(this->width) + (x >> 3)] &= (0x7F7F >> (x & 7));
+    this->data[y * this->row_bytes + (x >> 3)] &= ~(0x80 >> (x & 7));
   }
+}
+
+void BitmapImage::write_row(size_t y, const void* in_data, size_t size_bits) {
+  if (y >= this->height) {
+    throw runtime_error("out of bounds");
+  }
+  memcpy(&this->data[y * this->row_bytes], in_data, min<size_t>(byte_count_for_bit_count(size_bits), row_bytes));
 }
 
 void BitmapImage::invert() {
@@ -1843,14 +1850,13 @@ void BitmapImage::invert() {
 
 Image BitmapImage::to_color(uint32_t false_color, uint32_t true_color, bool add_alpha) const {
   Image ret(this->width, this->height, add_alpha);
-  uint8_t pending_bits = 0;
   for (size_t y = 0; y < this->height; y++) {
-    for (size_t x = 0; x < this->width; x++) {
-      if (!(x & 7)) {
-        pending_bits = this->data[(y * this->row_bytes) + (x >> 3)];
+    for (size_t x = 0; x < this->width; x += 8) {
+      uint8_t pending_bits = this->data[(y * this->row_bytes) + (x >> 3)];
+      for (size_t z = 0; z < std::min<size_t>(this->width - x, 8); z++) {
+        ret.write_pixel(x + z, y, (pending_bits & 0x80) ? true_color : false_color);
+        pending_bits <<= 1;
       }
-      ret.write_pixel(x, y, (pending_bits & 0x80) ? true_color : false_color);
-      pending_bits <<= 1;
     }
   }
   return ret;

@@ -212,7 +212,7 @@ int main(int, char**) {
     }
 
     {
-      fprintf(stderr, "-- [BitmapImage] write pattern");
+      fprintf(stderr, "-- [BitmapImage] write pattern\n");
       for (size_t y = 0; y < bm.get_height(); y++) {
         for (size_t x = 0; x < bm.get_width(); x++) {
           bm.write_pixel(x, y, (x & y) & 1);
@@ -271,7 +271,7 @@ int main(int, char**) {
         expect_eq(ref, img);
       }
 
-      // unlink(temp_filename);
+      unlink(temp_filename);
     }
   }
 
