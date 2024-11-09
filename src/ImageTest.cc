@@ -44,7 +44,7 @@ int main(int, char**) {
       Image img(180, 190, has_alpha, channel_width);
 
       {
-        fprintf(stderr, "-- [%hhu-bit/%s] metadata\n", channel_width, has_alpha_tag);
+        fprintf(stderr, "-- [Image:%hhu-bit/%s] metadata\n", channel_width, has_alpha_tag);
         expect_eq(180, img.get_width());
         expect_eq(190, img.get_height());
         expect_eq(has_alpha, img.get_has_alpha());
@@ -52,12 +52,12 @@ int main(int, char**) {
       }
 
       {
-        fprintf(stderr, "-- [%hhu-bit/%s] clear\n", channel_width, has_alpha_tag);
+        fprintf(stderr, "-- [Image:%hhu-bit/%s] clear\n", channel_width, has_alpha_tag);
         img.clear(0x20, 0x20, 0x20, 0x20);
       }
 
       {
-        fprintf(stderr, "-- [%hhu-bit/%s] axis-aligned lines\n", channel_width, has_alpha_tag);
+        fprintf(stderr, "-- [Image:%hhu-bit/%s] axis-aligned lines\n", channel_width, has_alpha_tag);
         for (size_t x = 0; x < 8; x++) {
           const auto& c = colors[x];
           img.draw_horizontal_line(5, 175, 90 + x, x, c.r, c.g, c.b, c.a);
@@ -66,12 +66,12 @@ int main(int, char**) {
       }
 
       {
-        fprintf(stderr, "-- [%hhu-bit/%s] rectangles\n", channel_width, has_alpha_tag);
+        fprintf(stderr, "-- [Image:%hhu-bit/%s] rectangles\n", channel_width, has_alpha_tag);
         img.fill_rect(3, 98, 64, 64, 0xFF, 0xFF, 0xFF, 0x80);
       }
 
       {
-        fprintf(stderr, "-- [%hhu-bit/%s] non-axis-aligned lines\n", channel_width, has_alpha_tag);
+        fprintf(stderr, "-- [Image:%hhu-bit/%s] non-axis-aligned lines\n", channel_width, has_alpha_tag);
         const vector<pair<ssize_t, ssize_t>> points({
             pair<ssize_t, ssize_t>(0, 0),
             pair<ssize_t, ssize_t>(0, 20),
@@ -100,17 +100,17 @@ int main(int, char**) {
       }
 
       {
-        fprintf(stderr, "-- [%hhu-bit/%s] blit\n", channel_width, has_alpha_tag);
+        fprintf(stderr, "-- [Image:%hhu-bit/%s] blit\n", channel_width, has_alpha_tag);
         img.blit(img, 40, 105, 80, 80, 5, 5);
       }
 
       {
-        fprintf(stderr, "-- [%hhu-bit/%s] mask_blit with color mask\n", channel_width, has_alpha_tag);
+        fprintf(stderr, "-- [Image:%hhu-bit/%s] mask_blit with color mask\n", channel_width, has_alpha_tag);
         img.mask_blit(img, 80, 105, 80, 80, 5, 5, 0x20, 0x20, 0x20);
       }
 
       {
-        fprintf(stderr, "-- [%hhu-bit/%s] copy\n", channel_width, has_alpha_tag);
+        fprintf(stderr, "-- [Image:%hhu-bit/%s] copy\n", channel_width, has_alpha_tag);
         Image img2(img);
         expect_eq(img, img2);
       }
@@ -134,7 +134,7 @@ int main(int, char**) {
         }
 
         {
-          fprintf(stderr, "-- [%hhu-bit/%s/%s] save to disk\n", channel_width, has_alpha_tag, ext);
+          fprintf(stderr, "-- [Image:%hhu-bit/%s/%s] save to disk\n", channel_width, has_alpha_tag, ext);
           img.save(temp_filename.c_str(), format);
           if (!reference_data.empty()) {
             expect_eq(reference_data, load_file(temp_filename));
@@ -142,7 +142,7 @@ int main(int, char**) {
         }
 
         {
-          fprintf(stderr, "-- [%hhu-bit/%s/%s] save in memory\n", channel_width, has_alpha_tag, ext);
+          fprintf(stderr, "-- [Image:%hhu-bit/%s/%s] save in memory\n", channel_width, has_alpha_tag, ext);
           string data = img.save(format);
           if (!reference_data.empty()) {
             expect_eq(reference_data, data);
@@ -150,19 +150,128 @@ int main(int, char**) {
         }
 
         {
-          fprintf(stderr, "-- [%hhu-bit/%s/%s] compare with saved image\n", channel_width, has_alpha_tag, ext);
+          fprintf(stderr, "-- [Image:%hhu-bit/%s/%s] compare with saved image\n", channel_width, has_alpha_tag, ext);
           Image ref(temp_filename);
           expect_eq(ref, img);
         }
 
         if (!reference_data.empty()) {
-          fprintf(stderr, "-- [%hhu-bit/%s/%s] compare with reference\n", channel_width, has_alpha_tag, ext);
+          fprintf(stderr, "-- [Image:%hhu-bit/%s/%s] compare with reference\n", channel_width, has_alpha_tag, ext);
           Image ref(reference_filename);
           expect_eq(ref, img);
         }
 
         unlink(temp_filename);
       }
+    }
+  }
+
+  {
+    BitmapImage bm(202, 206);
+
+    {
+      fprintf(stderr, "-- [BitmapImage] metadata\n");
+      expect_eq(202, bm.get_width());
+      expect_eq(206, bm.get_height());
+    }
+
+    {
+      fprintf(stderr, "-- [BitmapImage] clear\n");
+      for (size_t y = 0; y < bm.get_height(); y++) {
+        for (size_t x = 0; x < bm.get_width(); x++) {
+          expect_eq(false, bm.read_pixel(x, y));
+        }
+      }
+      bm.clear(true);
+      for (size_t y = 0; y < bm.get_height(); y++) {
+        for (size_t x = 0; x < bm.get_width(); x++) {
+          expect_eq(true, bm.read_pixel(x, y));
+        }
+      }
+      bm.clear(false);
+      for (size_t y = 0; y < bm.get_height(); y++) {
+        for (size_t x = 0; x < bm.get_width(); x++) {
+          expect_eq(false, bm.read_pixel(x, y));
+        }
+      }
+    }
+
+    {
+      fprintf(stderr, "-- [BitmapImage] read/write pixels\n");
+      expect_eq(false, bm.read_pixel(0, 0));
+      expect_eq(false, bm.read_pixel(1, 1));
+      expect_eq(false, bm.read_pixel(101, 101));
+      bm.write_pixel(1, 1, true);
+      expect_eq(false, bm.read_pixel(0, 0));
+      expect_eq(true, bm.read_pixel(1, 1));
+      expect_eq(false, bm.read_pixel(101, 101));
+      bm.write_pixel(101, 101, true);
+      expect_eq(false, bm.read_pixel(0, 0));
+      expect_eq(true, bm.read_pixel(1, 1));
+      expect_eq(true, bm.read_pixel(101, 101));
+    }
+
+    {
+      fprintf(stderr, "-- [BitmapImage] write pattern");
+      for (size_t y = 0; y < bm.get_height(); y++) {
+        for (size_t x = 0; x < bm.get_width(); x++) {
+          bm.write_pixel(x, y, (x & y) & 1);
+        }
+      }
+      for (size_t y = 0; y < bm.get_height(); y++) {
+        for (size_t x = 0; x < bm.get_width(); x++) {
+          expect_eq((x & y) & 1, bm.read_pixel(x, y));
+        }
+      }
+    }
+
+    {
+      fprintf(stderr, "-- [BitmapImage] copy\n");
+      BitmapImage bm2(bm);
+      expect_eq(bm, bm2);
+    }
+
+    {
+      string reference_filename = "reference/BitmapImageTestReference.bmp";
+      string temp_filename = "BitmapImageTestImage.bmp";
+
+      string reference_data;
+      if (isfile(reference_filename)) {
+        reference_data = load_file(reference_filename);
+      } else {
+        fprintf(stderr, "warning: reference file %s not found; skipping verification\n", reference_filename.c_str());
+      }
+
+      Image img;
+      {
+        fprintf(stderr, "-- [BitmapImage] convert to Image\n");
+
+        img = bm.to_color(0x400000E0, 0x00C00080, false);
+        expect_eq(img.get_has_alpha(), false);
+        expect_eq(0x400000FF, img.read_pixel(0, 0));
+        expect_eq(0x00C000FF, img.read_pixel(1, 1));
+
+        img = bm.to_color(0x400000E0, 0x00C00080, true);
+        expect_eq(img.get_has_alpha(), true);
+        expect_eq(0x400000E0, img.read_pixel(0, 0));
+        expect_eq(0x00C00080, img.read_pixel(1, 1));
+      }
+
+      {
+        fprintf(stderr, "-- [BitmapImage] save\n");
+        img.save(temp_filename.c_str(), Image::Format::WINDOWS_BITMAP);
+        if (!reference_data.empty()) {
+          expect_eq(reference_data, load_file(temp_filename));
+        }
+      }
+
+      if (!reference_data.empty()) {
+        fprintf(stderr, "-- [BitmapImage] compare with reference\n");
+        Image ref(reference_filename);
+        expect_eq(ref, img);
+      }
+
+      // unlink(temp_filename);
     }
   }
 

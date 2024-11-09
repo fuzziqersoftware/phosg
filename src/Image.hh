@@ -11,7 +11,7 @@
 
 namespace phosg {
 
-// an Image represents a drawing canvas. this class is fairly simple; it
+// An Image represents a drawing canvas. This class is fairly simple; it
 // supports reading/writing individual pixels, drawing lines, and saving the
 // image as a PPM or Windows BMP file.
 class Image {
@@ -24,6 +24,8 @@ public:
   // copy/move from another image
   Image(const Image&);
   Image(Image&&);
+  const Image& operator=(const Image& other);
+  Image& operator=(Image&& other);
 
   // load a file (autodetect format)
   explicit Image(FILE* f);
@@ -41,9 +43,6 @@ public:
       uint64_t max_value = 0);
 
   ~Image();
-
-  const Image& operator=(const Image& other);
-  Image& operator=(Image&& other);
 
   bool operator==(const Image& other) const;
   bool operator!=(const Image& other) const;
@@ -194,6 +193,58 @@ private:
 
   template <typename Writer>
   void save_helper(Format format, Writer&& writer) const;
+};
+
+// A BitmapImage represents a monochrome (black and white) drawing canvas
+class BitmapImage {
+public:
+  BitmapImage();
+  BitmapImage(size_t w, size_t h);
+
+  BitmapImage(FILE* f, size_t width, size_t height);
+  BitmapImage(const char* filename, size_t width, size_t height);
+  BitmapImage(const std::string& filename, size_t width, size_t height);
+
+  BitmapImage(const BitmapImage&);
+  BitmapImage(BitmapImage&&);
+  const BitmapImage& operator=(const BitmapImage& other);
+  BitmapImage& operator=(BitmapImage&& other);
+
+  ~BitmapImage();
+
+  bool operator==(const BitmapImage& other) const;
+  bool operator!=(const BitmapImage& other) const;
+
+  inline size_t get_width() const {
+    return this->width;
+  }
+  inline size_t get_height() const {
+    return this->height;
+  }
+  inline const void* get_data() const {
+    return this->data;
+  }
+  inline size_t get_data_size() const {
+    return this->height * this->row_bytes;
+  }
+
+  inline bool empty() const {
+    return (this->data == nullptr);
+  }
+
+  void clear(bool v);
+  bool read_pixel(size_t x, size_t y) const;
+  void write_pixel(size_t x, size_t y, bool v);
+
+  void invert();
+
+  Image to_color(uint32_t false_color, uint32_t true_color, bool add_alpha) const;
+
+private:
+  size_t width;
+  size_t height;
+  size_t row_bytes;
+  uint8_t* data;
 };
 
 } // namespace phosg

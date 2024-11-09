@@ -559,7 +559,9 @@ Image::Image(const std::string& filename, ssize_t width, ssize_t height,
     bool has_alpha, uint8_t channel_width, uint64_t max_value) : Image(filename.c_str(), width, height, has_alpha, channel_width, max_value) {}
 
 Image::~Image() {
-  free(this->data.raw);
+  if (this->data.raw) {
+    free(this->data.raw);
+  }
 }
 
 bool Image::operator==(const Image& other) const {
@@ -1716,6 +1718,142 @@ void Image::resize_blit(const Image& source, ssize_t x, ssize_t y, ssize_t w,
       this->write_pixel(x + xx, y + yy, dr, dg, db, da);
     }
   }
+}
+
+static inline constexpr size_t byte_count_for_bit_count(size_t bit_count) {
+  return (bit_count + 7) & (~7);
+}
+
+BitmapImage::BitmapImage() : width(0), height(0), row_bytes(0), data(nullptr) {}
+
+BitmapImage::BitmapImage(size_t w, size_t h)
+    : width(w),
+      height(h),
+      row_bytes(byte_count_for_bit_count(this->height)),
+      data(new uint8_t[this->get_data_size()]) {
+  memset(this->data, 0, this->get_data_size());
+}
+
+BitmapImage::BitmapImage(const BitmapImage& im)
+    : width(im.width),
+      height(im.height),
+      row_bytes(byte_count_for_bit_count(this->height)),
+      data(new uint8_t[this->get_data_size()]) {
+  memcpy(this->data, im.data, this->get_data_size());
+}
+
+const BitmapImage& BitmapImage::operator=(const BitmapImage& im) {
+  this->width = im.width;
+  this->height = im.height;
+  this->row_bytes = im.row_bytes;
+  size_t num_bytes = this->get_data_size();
+  if (this->data) {
+    delete[] this->data;
+  }
+  this->data = new uint8_t[num_bytes];
+  memcpy(this->data, im.data, num_bytes);
+  return *this;
+}
+
+BitmapImage::BitmapImage(BitmapImage&& im) {
+  this->width = im.width;
+  this->height = im.height;
+  this->row_bytes = im.row_bytes;
+  this->data = im.data;
+  im.width = 0;
+  im.height = 0;
+  im.row_bytes = 0;
+  im.data = nullptr;
+}
+
+BitmapImage& BitmapImage::operator=(BitmapImage&& im) {
+  this->width = im.width;
+  this->height = im.height;
+  this->row_bytes = im.row_bytes;
+  if (this->data) {
+    delete[] this->data;
+  }
+  this->data = im.data;
+  im.width = 0;
+  im.height = 0;
+  im.row_bytes = 0;
+  im.data = nullptr;
+  return *this;
+}
+
+BitmapImage::BitmapImage(FILE* f, size_t width, size_t height)
+    : BitmapImage(width, height) {
+  freadx(f, this->data, this->get_data_size());
+}
+
+BitmapImage::BitmapImage(const char* filename, size_t width, size_t height)
+    : BitmapImage(width, height) {
+  auto f = fopen_unique(filename, "rb");
+  freadx(f.get(), this->data, this->get_data_size());
+}
+
+BitmapImage::BitmapImage(const std::string& filename, size_t width, size_t height)
+    : BitmapImage(filename.c_str(), width, height) {}
+
+BitmapImage::~BitmapImage() {
+  if (this->data) {
+    delete[] this->data;
+  }
+}
+
+bool BitmapImage::operator==(const BitmapImage& other) const {
+  if ((this->width != other.width) || (this->height != other.height) || (this->row_bytes != other.row_bytes)) {
+    return false;
+  }
+  return !memcmp(this->data, other.data, this->get_data_size());
+}
+
+bool BitmapImage::operator!=(const BitmapImage& other) const {
+  return !this->operator==(other);
+}
+
+void BitmapImage::clear(bool v) {
+  memset(this->data, v ? 0xFF : 0x00, this->get_data_size());
+}
+
+bool BitmapImage::read_pixel(size_t x, size_t y) const {
+  if (x >= this->width || y >= this->height) {
+    throw runtime_error("out of bounds");
+  }
+  return !!(this->data[y * byte_count_for_bit_count(this->width) + (x >> 3)] & (0x80 >> (x & 7)));
+}
+
+void BitmapImage::write_pixel(size_t x, size_t y, bool v) {
+  if (x >= this->width || y >= this->height) {
+    throw runtime_error("out of bounds");
+  }
+  if (v) {
+    this->data[y * byte_count_for_bit_count(this->width) + (x >> 3)] |= (0x80 >> (x & 7));
+  } else {
+    this->data[y * byte_count_for_bit_count(this->width) + (x >> 3)] &= (0x7F7F >> (x & 7));
+  }
+}
+
+void BitmapImage::invert() {
+  size_t num_bytes = this->get_data_size();
+  for (size_t z = 0; z < num_bytes; z++) {
+    this->data[z] = ~this->data[z];
+  }
+}
+
+Image BitmapImage::to_color(uint32_t false_color, uint32_t true_color, bool add_alpha) const {
+  Image ret(this->width, this->height, add_alpha);
+  uint8_t pending_bits = 0;
+  for (size_t y = 0; y < this->height; y++) {
+    for (size_t x = 0; x < this->width; x++) {
+      if (!(x & 7)) {
+        pending_bits = this->data[(y * this->row_bytes) + (x >> 3)];
+      }
+      ret.write_pixel(x, y, (pending_bits & 0x80) ? true_color : false_color);
+      pending_bits <<= 1;
+    }
+  }
+  return ret;
 }
 
 } // namespace phosg
