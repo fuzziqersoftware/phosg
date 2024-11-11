@@ -56,6 +56,9 @@ public:
   inline bool get_has_alpha() const {
     return this->has_alpha;
   }
+  inline void* get_data() {
+    return this->data.raw;
+  }
   inline const void* get_data() const {
     return this->data.raw;
   }
@@ -220,6 +223,9 @@ public:
   }
   inline size_t get_height() const {
     return this->height;
+  }
+  inline void* get_data() {
+    return this->data;
   }
   inline const void* get_data() const {
     return this->data;
