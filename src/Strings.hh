@@ -675,7 +675,7 @@ public:
     if (offset > this->data.size() - sizeof(T)) {
       this->data.resize(offset + sizeof(T), '\0');
     }
-    *reinterpret_cast<T*>(this->data.data() + offset) = v;
+    memcpy(this->data.data() + offset, &v, sizeof(v));
   }
 
   inline void put_u8(uint8_t v) { this->put<uint8_t>(v); }
@@ -690,6 +690,8 @@ public:
   inline void put_s48(int64_t v) { this->put<int64_t>(v); }
   inline void put_u64(uint64_t v) { this->put<uint64_t>(v); }
   inline void put_s64(int64_t v) { this->put<int64_t>(v); }
+  inline void put_f32(float v) { this->put<float>(v); }
+  inline void put_f64(double v) { this->put<double>(v); }
 
   inline void put_u16r(uint16_t v) { this->put<re_uint16_t>(v); }
   inline void put_s16r(int16_t v) { this->put<re_int16_t>(v); }
@@ -701,6 +703,8 @@ public:
   inline void put_s48r(int64_t v) { this->put<re_int64_t>(v); }
   inline void put_u64r(uint64_t v) { this->put<re_uint64_t>(v); }
   inline void put_s64r(int64_t v) { this->put<re_int64_t>(v); }
+  inline void put_f32r(float v) { this->put<re_float>(v); }
+  inline void put_f64r(double v) { this->put<re_double>(v); }
 
   inline void put_u16b(uint16_t v) { this->put<be_uint16_t>(v); }
   inline void put_s16b(int16_t v) { this->put<be_int16_t>(v); }
@@ -712,6 +716,8 @@ public:
   inline void put_s48b(int64_t v) { this->put<be_int64_t>(v); }
   inline void put_u64b(uint64_t v) { this->put<be_uint64_t>(v); }
   inline void put_s64b(int64_t v) { this->put<be_int64_t>(v); }
+  inline void put_f32b(float v) { this->put<be_float>(v); }
+  inline void put_f64b(double v) { this->put<be_double>(v); }
 
   inline void put_u16l(uint16_t v) { this->put<le_uint16_t>(v); }
   inline void put_s16l(int16_t v) { this->put<le_int16_t>(v); }
@@ -723,6 +729,8 @@ public:
   inline void put_s48l(int64_t v) { this->put<le_int64_t>(v); }
   inline void put_u64l(uint64_t v) { this->put<le_uint64_t>(v); }
   inline void put_s64l(int64_t v) { this->put<le_int64_t>(v); }
+  inline void put_f32l(float v) { this->put<le_float>(v); }
+  inline void put_f64l(double v) { this->put<le_double>(v); }
 
   inline void pput_u8(size_t offset, uint8_t v) { this->pput<uint8_t>(offset, v); }
   inline void pput_s8(size_t offset, int8_t v) { this->pput<int8_t>(offset, v); }
@@ -736,6 +744,8 @@ public:
   inline void pput_s48(size_t offset, int64_t v) { this->pput<int64_t>(offset, v); }
   inline void pput_u64(size_t offset, uint64_t v) { this->pput<uint64_t>(offset, v); }
   inline void pput_s64(size_t offset, int64_t v) { this->pput<int64_t>(offset, v); }
+  inline void pput_f32(size_t offset, float v) { this->pput<float>(offset, v); }
+  inline void pput_f64(size_t offset, double v) { this->pput<double>(offset, v); }
 
   inline void pput_u16r(size_t offset, uint16_t v) { this->pput<re_uint16_t>(offset, v); }
   inline void pput_s16r(size_t offset, int16_t v) { this->pput<re_int16_t>(offset, v); }
@@ -747,6 +757,8 @@ public:
   inline void pput_s48r(size_t offset, int64_t v) { this->pput<re_int64_t>(offset, v); }
   inline void pput_u64r(size_t offset, uint64_t v) { this->pput<re_uint64_t>(offset, v); }
   inline void pput_s64r(size_t offset, int64_t v) { this->pput<re_int64_t>(offset, v); }
+  inline void pput_f32r(size_t offset, float v) { this->pput<re_float>(offset, v); }
+  inline void pput_f64r(size_t offset, double v) { this->pput<re_double>(offset, v); }
 
   inline void pput_u16b(size_t offset, uint16_t v) { this->pput<be_uint16_t>(offset, v); }
   inline void pput_s16b(size_t offset, int16_t v) { this->pput<be_int16_t>(offset, v); }
@@ -758,6 +770,8 @@ public:
   inline void pput_s48b(size_t offset, int64_t v) { this->pput<be_int64_t>(offset, v); }
   inline void pput_u64b(size_t offset, uint64_t v) { this->pput<be_uint64_t>(offset, v); }
   inline void pput_s64b(size_t offset, int64_t v) { this->pput<be_int64_t>(offset, v); }
+  inline void pput_f32b(size_t offset, float v) { this->pput<be_float>(offset, v); }
+  inline void pput_f64b(size_t offset, double v) { this->pput<be_double>(offset, v); }
 
   inline void pput_u16l(size_t offset, uint16_t v) { this->pput<le_uint16_t>(offset, v); }
   inline void pput_s16l(size_t offset, int16_t v) { this->pput<le_int16_t>(offset, v); }
@@ -769,6 +783,8 @@ public:
   inline void pput_s48l(size_t offset, int64_t v) { this->pput<le_int64_t>(offset, v); }
   inline void pput_u64l(size_t offset, uint64_t v) { this->pput<le_uint64_t>(offset, v); }
   inline void pput_s64l(size_t offset, int64_t v) { this->pput<le_int64_t>(offset, v); }
+  inline void pput_f32l(size_t offset, float v) { this->pput<le_float>(offset, v); }
+  inline void pput_f64l(size_t offset, double v) { this->pput<le_double>(offset, v); }
 
   inline std::string& str() {
     return this->data;
