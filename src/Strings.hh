@@ -2,6 +2,7 @@
 
 #include <stdarg.h>
 #include <stdint.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/uio.h>
 
