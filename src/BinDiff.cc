@@ -18,17 +18,18 @@ void print_binary_diff(
     const void* data2v,
     size_t size2,
     bool use_color,
-    size_t context_lines) {
+    size_t context_lines,
+    uint64_t base_offset = 0) {
   const uint8_t* data1 = reinterpret_cast<const uint8_t*>(data1v);
   const uint8_t* data2 = reinterpret_cast<const uint8_t*>(data2v);
 
   size_t max_data_size = std::max<size_t>(size1, size2);
   int offset_width_digits;
-  if (max_data_size > 0x100000000) {
+  if (base_offset + max_data_size > 0x100000000) {
     offset_width_digits = 16;
-  } else if (max_data_size > 0x10000) {
+  } else if (base_offset + max_data_size > 0x10000) {
     offset_width_digits = 8;
-  } else if (max_data_size > 0x100) {
+  } else if (base_offset + max_data_size > 0x100) {
     offset_width_digits = 4;
   } else {
     offset_width_digits = 2;
@@ -44,7 +45,8 @@ void print_binary_diff(
     if (use_color) {
       print_color_escape(stream, color, TerminalFormat::END);
     }
-    fprintf(stream, "%c %0*zX |", left_ch, offset_width_digits, line_start_offset);
+    uint64_t address = base_offset + line_start_offset;
+    fprintf(stream, "%c %0*" PRIX64 " |", left_ch, offset_width_digits, address);
     for (size_t within_line_offset = 0; within_line_offset < 0x10; within_line_offset++) {
       size_t offset = (line_index * 0x10) + within_line_offset;
       if (offset < size) {
@@ -159,6 +161,7 @@ Options:\n\
       (Default 3)\n\
   --color: Highlight differing bytes even if the output is not a TTY.\n\
   --no-color: Don't highlight differing bytes even if the output is a TTY.\n\
+  --start-address=ADDR: Address the first byte as ADDR (hex) instead of 0.\n\
 \n");
 }
 
@@ -184,10 +187,11 @@ int main(int argc, char** argv) {
     use_color = isatty(fileno(stdout));
   }
   size_t context_lines = args.get<size_t>("context", 3);
+  uint64_t base_offset = args.get<uint64_t>("start-address", 0, phosg::Arguments::IntFormat::HEX);
 
   string data1 = (filename1 == "-") ? read_all(stdin) : load_file(filename1);
   string data2 = (filename2 == "-") ? read_all(stdin) : load_file(filename2);
 
-  print_binary_diff(stdout, data1.data(), data1.size(), data2.data(), data2.size(), use_color, context_lines);
+  print_binary_diff(stdout, data1.data(), data1.size(), data2.data(), data2.size(), use_color, context_lines, base_offset);
   return 0;
 }
