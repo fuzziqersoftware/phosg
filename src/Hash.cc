@@ -152,40 +152,24 @@ MD5::MD5(const void* data, size_t size) {
     this->d0 += d;
   };
 
-  // TODO: Remove debugging statements when failure that only happens in GitHub Actions is fixed
-  fprintf(stderr, "MD5(%p, 0x%zX)\n", data, size);
-  print_data(stderr, data, size);
-  fprintf(stderr, "abcd = %08" PRIX32 " %08" PRIX32 " %08" PRIX32 " %08" PRIX32 "\n", this->a0, this->b0, this->c0, this->d0);
-
-  size_t block_offset = 0;
-  for (; block_offset + 0x40 < size; block_offset += 0x40) {
-    fprintf(stderr, "process_block(%p) with block_offset=0x%zX\n", reinterpret_cast<const uint8_t*>(data) + block_offset, block_offset);
-    process_block(reinterpret_cast<const uint8_t*>(data) + block_offset);
-    fprintf(stderr, "abcd = %08" PRIX32 " %08" PRIX32 " %08" PRIX32 " %08" PRIX32 "\n", this->a0, this->b0, this->c0, this->d0);
+  // Process all possible blocks from the input until just before the end
+  size_t processed_offset;
+  for (processed_offset = 0; processed_offset + 0x3F < size; processed_offset += 0x40) {
+    process_block(reinterpret_cast<const uint8_t*>(data) + processed_offset);
   }
 
-  size_t remaining_bytes = size - block_offset;
-  uint8_t last_blocks[0x80];
-  fprintf(stderr, "memcpy(%p, %p, 0z%zX)\n", last_blocks, reinterpret_cast<const uint8_t*>(data) + block_offset, remaining_bytes);
-  memcpy(last_blocks, reinterpret_cast<const uint8_t*>(data) + block_offset, remaining_bytes);
-  last_blocks[remaining_bytes] = 0x80;
-
-  size_t blocks_remaining = 1 + (remaining_bytes > (0x40 - 9));
-  for (remaining_bytes++; remaining_bytes < (0x40 * blocks_remaining - 8); remaining_bytes++) {
-    last_blocks[remaining_bytes] = 0;
+  // Make a copy of the last (possibly incomplete) block, append the trailer,
+  // and process what remains. This could result in either one or two blocks.
+  StringWriter w;
+  w.write(reinterpret_cast<const char*>(data) + processed_offset, size - processed_offset);
+  {
+    w.put_u8(0x80);
+    w.extend_to((w.size() > 0x38) ? 0x80 : 0x40, '\0');
+    w.pput_u64l(w.size() - 8, size << 3);
   }
-  *reinterpret_cast<le_uint64_t*>(&last_blocks[0x40 * blocks_remaining - 8]) = size * 8;
-  // print_data(stderr, last_blocks, sizeof(last_blocks));
-  // fprintf(stderr, "process_block(%p) last\n", &last_blocks[0]);
-  process_block(&last_blocks[0]);
-  // fprintf(stderr, "abcd = %08" PRIX32 " %08" PRIX32 " %08" PRIX32 " %08" PRIX32 "\n", this->a0, this->b0, this->c0, this->d0);
-  if (blocks_remaining > 1) {
-    // fprintf(stderr, "process_block(%p) last2\n", &last_blocks[0]);
-    process_block(&last_blocks[0x40]);
-    // fprintf(stderr, "abcd = %08" PRIX32 " %08" PRIX32 " %08" PRIX32 " %08" PRIX32 "\n", this->a0, this->b0, this->c0, this->d0);
+  for (size_t z = 0; z < w.size(); z += 0x40) {
+    process_block(w.str().data() + z);
   }
-
-  // fprintf(stderr, "MD5 done\n");
 }
 
 MD5::MD5(const std::string& data) : MD5(data.data(), data.size()) {}
@@ -257,29 +241,23 @@ SHA1::SHA1(const void* data, size_t size) {
     this->h[4] += e;
   };
 
-  // process blocks from the message exactly as they are
-  size_t block_offset = 0;
-  for (; block_offset + 0x40 < size; block_offset += 0x40) {
-    process_block(reinterpret_cast<const uint8_t*>(data) + block_offset);
+  // Process all possible blocks from the input until just before the end
+  size_t processed_offset;
+  for (processed_offset = 0; processed_offset + 0x3F < size; processed_offset += 0x40) {
+    process_block(reinterpret_cast<const uint8_t*>(data) + processed_offset);
   }
 
-  // we're going to append at least 9 bytes to the end. first handle the case
-  // where doing so creates two new blocks.
-  size_t remaining_bytes = size - block_offset;
-  uint8_t last_blocks[0x80];
-  memcpy(last_blocks, reinterpret_cast<const uint8_t*>(data) + block_offset,
-      remaining_bytes);
-  last_blocks[remaining_bytes] = 0x80;
-
-  size_t blocks_remaining = 1 + (remaining_bytes > (0x40 - 9));
-  for (remaining_bytes++; remaining_bytes < (0x40 * blocks_remaining - 8);
-      remaining_bytes++) {
-    last_blocks[remaining_bytes] = 0;
+  // Make a copy of the last (possibly incomplete) block, append the trailer,
+  // and process what remains. This could result in either one or two blocks.
+  StringWriter w;
+  w.write(reinterpret_cast<const char*>(data) + processed_offset, size - processed_offset);
+  {
+    w.put_u8(0x80);
+    w.extend_to((w.size() > 0x38) ? 0x80 : 0x40, '\0');
+    w.pput_u64b(w.size() - 8, size << 3);
   }
-  *reinterpret_cast<be_uint64_t*>(&last_blocks[0x40 * blocks_remaining - 8]) = size * 8;
-  process_block(&last_blocks[0]);
-  if (blocks_remaining > 1) {
-    process_block(&last_blocks[0x40]);
+  for (size_t z = 0; z < w.size(); z += 0x40) {
+    process_block(w.str().data() + z);
   }
 }
 
@@ -304,7 +282,7 @@ static inline uint32_t rotate_right(uint32_t x, uint8_t bits) {
   return (x >> bits) | (x << (32 - bits));
 }
 
-SHA256::SHA256(const void* data, size_t orig_size) {
+SHA256::SHA256(const void* data, size_t size) {
   this->h[0] = 0x6A09E667;
   this->h[1] = 0xBB67AE85;
   this->h[2] = 0x3C6EF372;
@@ -369,25 +347,21 @@ SHA256::SHA256(const void* data, size_t orig_size) {
 
   // Process all possible blocks from the input until just before the end
   size_t processed_offset;
-  for (processed_offset = 0; processed_offset + 0x3F < orig_size; processed_offset += 0x40) {
+  for (processed_offset = 0; processed_offset + 0x3F < size; processed_offset += 0x40) {
     process_block(reinterpret_cast<const uint8_t*>(data) + processed_offset);
   }
 
   // Make a copy of the last (possibly incomplete) block, append the trailer,
   // and process what remains. This could result in either one or two blocks.
-  string end_data(reinterpret_cast<const char*>(data) + processed_offset, orig_size - processed_offset);
+  StringWriter w;
+  w.write(reinterpret_cast<const char*>(data) + processed_offset, size - processed_offset);
   {
-    end_data.push_back(0x80);
-    size_t num_zero_bytes = ((0x40 - ((end_data.size() + 8) & 0x3F)) & 0x3F);
-    end_data.resize(end_data.size() + num_zero_bytes, '\0');
-    be_uint64_t size_be = orig_size << 3;
-    end_data.append(reinterpret_cast<const char*>(&size_be), 8);
+    w.put_u8(0x80);
+    w.extend_to((w.size() > 0x38) ? 0x80 : 0x40, '\0');
+    w.pput_u64b(w.size() - 8, size << 3);
   }
-  if (end_data.size() & 0x3F) {
-    throw logic_error("padding did not result in correct length");
-  }
-  for (size_t z = 0; z < end_data.size(); z += 0x40) {
-    process_block(end_data.data() + z);
+  for (size_t z = 0; z < w.size(); z += 0x40) {
+    process_block(w.str().data() + z);
   }
 }
 
