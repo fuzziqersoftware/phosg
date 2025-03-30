@@ -43,16 +43,16 @@ uint64_t fnv1a64(const string& data, uint64_t hash) {
 
 static void sha1_process_block(const void* block, uint32_t& h0, uint32_t& h1,
     uint32_t& h2, uint32_t& h3, uint32_t& h4) {
-  const le_uint32_t* fields = reinterpret_cast<const le_uint32_t*>(block);
+  const be_uint32_t* fields = reinterpret_cast<const be_uint32_t*>(block);
 
   uint32_t extended_fields[80];
   for (size_t x = 0; x < 16; x++) {
     extended_fields[x] = fields[x];
   }
   for (size_t x = 16; x < 80; x++) {
-    uint32_t z = bswap32(extended_fields[x - 3] ^ extended_fields[x - 8] ^
-        extended_fields[x - 14] ^ extended_fields[x - 16]);
-    extended_fields[x] = bswap32((z << 1) | ((z >> 31) & 1));
+    uint32_t z = extended_fields[x - 3] ^ extended_fields[x - 8] ^
+        extended_fields[x - 14] ^ extended_fields[x - 16];
+    extended_fields[x] = (z << 1) | ((z >> 31) & 1);
   }
 
   uint32_t a = h0, b = h1, c = h2, d = h3, e = h4;
@@ -72,7 +72,7 @@ static void sha1_process_block(const void* block, uint32_t& h0, uint32_t& h1,
       k = 0xCA62C1D6;
     }
 
-    uint32_t new_a = ((a << 5) | ((a >> 27) & 0x1F)) + f + e + k + bswap32(extended_fields[x]);
+    uint32_t new_a = ((a << 5) | ((a >> 27) & 0x1F)) + f + e + k + extended_fields[x];
     e = d;
     d = c;
     c = (b << 30) | ((b >> 2) & 0x3FFFFFFF);
@@ -111,7 +111,7 @@ string sha1(const void* data, size_t size) {
 
   size_t blocks_remaining = 1 + (remaining_bytes > (0x40 - 9));
   for (remaining_bytes++; remaining_bytes < (0x40 * blocks_remaining - 8);
-       remaining_bytes++) {
+      remaining_bytes++) {
     last_blocks[remaining_bytes] = 0;
   }
   *reinterpret_cast<be_uint64_t*>(&last_blocks[0x40 * blocks_remaining - 8]) = size * 8;
@@ -146,7 +146,7 @@ string sha256(const void* data, size_t orig_size) {
     0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19,
   };
 
-  uint32_t k[64] = {
+  static const uint32_t k[64] = {
     0x428A2F98, 0x71374491, 0xB5C0FBCF, 0xE9B5DBA5, 0x3956C25B, 0x59F111F1, 0x923F82A4, 0xAB1C5ED5,
     0xD807AA98, 0x12835B01, 0x243185BE, 0x550C7DC3, 0x72BE5D74, 0x80DEB1FE, 0x9BDC06A7, 0xC19BF174,
     0xE49B69C1, 0xEFBE4786, 0x0FC19DC6, 0x240CA1CC, 0x2DE92C6F, 0x4A7484AA, 0x5CB0A9DC, 0x76F988DA,
@@ -158,25 +158,12 @@ string sha256(const void* data, size_t orig_size) {
   };
   // clang-format on
 
-  // TODO: Even though this is explicitly not optimized, copying the entire
-  // input is really bad. We should ideally not do this at all, and at least not
-  // do it for the last chunk (or two if the added bytes span a chunk boundary).
-  string input(reinterpret_cast<const char*>(data), orig_size);
-  {
-    input.push_back(0x80);
-    size_t num_zero_bytes = ((64 - ((input.size() + 8) & 0x3F)) & 0x3F);
-    input.resize(input.size() + num_zero_bytes, '\0');
-    uint64_t size_be = bswap64(orig_size << 3);
-    input.append(reinterpret_cast<const char*>(&size_be), 8);
-    if (input.size() & 0x3F) {
-      throw logic_error("padding did not result in correct length");
-    }
-  }
+  auto process_block = [&](const void* data) {
+    const be_uint32_t* be_data = reinterpret_cast<const be_uint32_t*>(data);
 
-  for (size_t offset = 0; offset < input.size(); offset += 0x40) {
     uint32_t w[64];
     for (size_t x = 0; x < 16; x++) {
-      w[x] = *reinterpret_cast<const be_uint32_t*>(&input[offset + (x * 4)]);
+      w[x] = be_data[x];
     }
 
     for (size_t x = 16; x < 64; x++) {
@@ -208,11 +195,36 @@ string sha256(const void* data, size_t orig_size) {
     for (size_t x = 0; x < 8; x++) {
       h[x] += z[x];
     }
+  };
+
+  // Process all possible blocks from the input until just before the end
+  size_t processed_offset;
+  for (processed_offset = 0; processed_offset + 0x3F < orig_size; processed_offset += 0x40) {
+    process_block(reinterpret_cast<const uint8_t*>(data) + processed_offset);
   }
 
+  // Make a copy of the last (possibly incomplete) block, append the trailer,
+  // and process what remains. This could result in either one or two blocks.
+  string end_data(reinterpret_cast<const char*>(data) + processed_offset, orig_size - processed_offset);
+  {
+    end_data.push_back(0x80);
+    size_t num_zero_bytes = ((0x40 - ((end_data.size() + 8) & 0x3F)) & 0x3F);
+    end_data.resize(end_data.size() + num_zero_bytes, '\0');
+    be_uint64_t size_be = orig_size << 3;
+    end_data.append(reinterpret_cast<const char*>(&size_be), 8);
+  }
+  if (end_data.size() & 0x3F) {
+    throw logic_error("padding did not result in correct length");
+  }
+  for (size_t z = 0; z < end_data.size(); z += 0x40) {
+    process_block(end_data.data() + z);
+  }
+
+#ifdef PHOSG_LITTLE_ENDIAN
   for (size_t x = 0; x < 8; x++) {
     h[x] = bswap32(h[x]);
   }
+#endif
   return string(reinterpret_cast<const char*>(h), 0x20);
 }
 
@@ -300,7 +312,7 @@ string md5(const void* data, size_t size) {
 
   size_t blocks_remaining = 1 + (remaining_bytes > (0x40 - 9));
   for (remaining_bytes++; remaining_bytes < (0x40 * blocks_remaining - 8);
-       remaining_bytes++) {
+      remaining_bytes++) {
     last_blocks[remaining_bytes] = 0;
   }
   *reinterpret_cast<le_uint64_t*>(&last_blocks[0x40 * blocks_remaining - 8]) = size * 8;
