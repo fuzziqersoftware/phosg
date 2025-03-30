@@ -31,24 +31,26 @@ public:
 void expect_generic(bool pred, const char* msg, const char* file, uint64_t line);
 
 template <typename ExcT>
-void expect_raises(std::function<void()> fn) {
+void expect_raises_fn(const char* file, uint64_t line, std::function<void()> fn) {
   try {
     fn();
-    expect_msg(false, "expected exception, but none raised");
+    expect_generic(false, "expected exception, but none raised", file, line);
   } catch (const ExcT&) {
     return;
   } catch (const std::exception& e) {
     std::string msg = string_printf("incorrect exception type raised (what: %s)", e.what());
-    expect_msg(false, msg.c_str());
+    expect_generic(false, msg.c_str(), file, line);
   } catch (...) {
     // TODO: It'd be nice to show SOMETHING about the thrown exception here,
     // but it's probably pretty rare to catch something that isn't a
     // std::exception anyway.
-    expect_msg(false, "incorrect exception type raised");
+    expect_generic(false, "incorrect exception type raised", file, line);
   }
-};
+}
 
 template <>
-void expect_raises<std::exception>(std::function<void()> fn);
+void expect_raises_fn<std::exception>(const char* file, uint64_t line, std::function<void()> fn);
+
+#define expect_raises(type, fn) expect_raises_fn<type>(__FILE__, __LINE__, fn)
 
 } // namespace phosg

@@ -314,11 +314,11 @@ void test_string_reader() {
 
   {
     fprintf(stderr, "---- readx/preadx\n");
-    expect_raises<out_of_range>([&]() {
+    expect_raises(out_of_range, [&]() {
       r.readx(0x100);
     });
 
-    expect_raises<out_of_range>([&]() {
+    expect_raises(out_of_range, [&]() {
       r.preadx(0, 0x100);
     });
 
@@ -332,7 +332,7 @@ void test_string_reader() {
     expect_eq(r.remaining(), 0);
     expect(r.eof());
 
-    expect_raises<out_of_range>([&]() {
+    expect_raises(out_of_range, [&]() {
       r.readx(1);
     });
 

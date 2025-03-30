@@ -152,19 +152,19 @@ int main(int, char**) {
 
   fprintf(stderr, "-- get_* without default value\n");
   expect_eq(root.get_bool("true"), true);
-  expect_raises<out_of_range>([&]() {
+  expect_raises(out_of_range, [&]() {
     root.get_bool("missing");
   });
   expect_eq(root.get_string("string0"), "");
-  expect_raises<out_of_range>([&]() {
+  expect_raises(out_of_range, [&]() {
     root.get_string("missing");
   });
   expect_eq(root.at("int1"), 134);
-  expect_raises<out_of_range>([&]() {
+  expect_raises(out_of_range, [&]() {
     root.get_int("missing");
   });
   expect_eq(root.at("float1"), 1.4);
-  expect_raises<out_of_range>([&]() {
+  expect_raises(out_of_range, [&]() {
     root.get_float("missing");
   });
 
@@ -671,22 +671,22 @@ int main(int, char**) {
   expect_eq(JSON::parse(root.serialize(JSON::SerializeOption::FORMAT)), root);
 
   fprintf(stderr, "-- exceptions\n");
-  expect_raises<out_of_range>([&]() {
+  expect_raises(out_of_range, [&]() {
     root.at("missing_key");
   });
-  expect_raises<out_of_range>([&]() {
+  expect_raises(out_of_range, [&]() {
     root.at("list1").at(2);
   });
-  expect_raises<JSON::type_error>([&]() {
+  expect_raises(JSON::type_error, [&]() {
     root.at("list1").as_dict();
   });
-  expect_raises<JSON::parse_error>([&]() {
+  expect_raises(JSON::parse_error, [&]() {
     JSON::parse("{this isn\'t valid json}");
   });
-  expect_raises<JSON::parse_error>([&]() {
+  expect_raises(JSON::parse_error, [&]() {
     JSON::parse("{} some garbage after valid JSON");
   });
-  expect_raises<JSON::parse_error>([&]() {
+  expect_raises(JSON::parse_error, [&]() {
     JSON::parse("{} \"valid JSON after some other valid JSON\"");
   });
 
@@ -699,10 +699,10 @@ int main(int, char**) {
   expect_eq(JSON::parse("{\n// empty dict\n}"), JSON::dict());
 
   fprintf(stderr, "-- extensions in strict mode\n");
-  expect_raises<JSON::parse_error>([&]() {
+  expect_raises(JSON::parse_error, [&]() {
     JSON::parse("0x123", 5, true);
   });
-  expect_raises<JSON::parse_error>([&]() {
+  expect_raises(JSON::parse_error, [&]() {
     JSON::parse("// this is null\nnull", 20, true);
   });
 

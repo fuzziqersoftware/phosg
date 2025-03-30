@@ -14,7 +14,7 @@ int main(int, char**) {
   expect_eq(c.size(), 0);
   expect_eq(c.count(), 0);
 
-  expect_raises<out_of_range>([&]() {
+  expect_raises(out_of_range, [&]() {
     c.at("key1");
   });
 
