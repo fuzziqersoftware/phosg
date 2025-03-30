@@ -41,8 +41,8 @@ uint64_t fnv1a64(const string& data, uint64_t hash) {
   return fnv1a64(data.data(), data.size(), hash);
 }
 
-static void sha1_process_block(const void* block, uint32_t& h0, uint32_t& h1,
-    uint32_t& h2, uint32_t& h3, uint32_t& h4) {
+static void sha1_process_block(
+    const void* block, uint32_t& h0, uint32_t& h1, uint32_t& h2, uint32_t& h3, uint32_t& h4) {
   const be_uint32_t* fields = reinterpret_cast<const be_uint32_t*>(block);
 
   uint32_t extended_fields[80];
@@ -232,8 +232,8 @@ string sha256(const string& data) {
   return sha256(data.data(), data.size());
 }
 
-static void md5_process_block(const void* block, uint32_t& a0, uint32_t& b0,
-    uint32_t& c0, uint32_t& d0) {
+static void md5_process_block(
+    const void* block, uint32_t& a0, uint32_t& b0, uint32_t& c0, uint32_t& d0) {
   // clang-format off
   static const uint32_t shifts[64] = {
       7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
