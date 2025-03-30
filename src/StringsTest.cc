@@ -133,6 +133,7 @@ F0 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
 0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 | Vom      [ @    \n\
 0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |     n7 C>Q?@    \n",
       float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_ASCII);
+#ifdef PHOSG_LITTLE_ENDIAN
   print_data_test_case("\
 0000000107B50FE0 |                                     00 00 00 00 |                                                   0\n\
 0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 |      -237.43            0       6.2612            0\n\
@@ -143,6 +144,18 @@ F0 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
 0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 | Vom      [ @     |      -237.43            0       6.2612            0\n\
 0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |     n7 C>Q?@     |            0       318.43       2.9893             \n",
       float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_ASCII | PrintDataFlags::PRINT_FLOAT);
+#else
+  print_data_test_case("\
+0000000107B50FE0 |                                     00 00 00 00 |                                                   0\n\
+0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 |   6.5814e+13            0  -1.9063e-16            0\n\
+0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |            0   1.4207e+28      0.20434             \n",
+      float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_FLOAT);
+  print_data_test_case("\
+0000000107B50FE0 |                                     00 00 00 00 |                  |                                                   0\n\
+0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 | Vom      [ @     |   6.5814e+13            0  -1.9063e-16            0\n\
+0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |     n7 C>Q?@     |            0   1.4207e+28      0.20434             \n",
+      float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_ASCII | PrintDataFlags::PRINT_FLOAT);
+#endif
 
   // reverse-endian floats
 #ifdef PHOSG_LITTLE_ENDIAN
@@ -178,10 +191,10 @@ F0 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
   print_data_test_case("\
 0000000107B50FE0 |                                              00 |                                                    \n\
 0000000107B50FF0 | 00 00 00 40 00                                  |            2                                       \n",
-      string("\0\0\0\0\x40\0", 6), 0x0000000107B50FEF, "", PrintDataFlags::PRINT_FLOAT);
+      string("\0\0\0\0\x40\0", 6), 0x0000000107B50FEF, "", PrintDataFlags::PRINT_FLOAT | PrintDataFlags::LITTLE_ENDIAN_FLOATS);
   print_data_test_case("\
 00 |    00 00 00 00 00 00 00 00                      |                         0                          \n",
-      string("\0\0\0\0\0\0\0\0", 8), 1, "", PrintDataFlags::PRINT_FLOAT);
+      string("\0\0\0\0\0\0\0\0", 8), 1, "", PrintDataFlags::PRINT_FLOAT | PrintDataFlags::LITTLE_ENDIAN_FLOATS);
 
   // doubles
   fprintf(stderr, "-- [print_data] with doubles\n");
@@ -223,10 +236,10 @@ F0 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
   iovs.emplace_back(iovec{.iov_base = data3.data(), .iov_len = data3.size()});
   print_data_test_case("\
 00 | 00 00 00 40 00 00 80 3F 00 00 00                |    @   ?         |            2            1                          \n",
-      iovs.data(), iovs.size(), 0, nullptr, 0, PrintDataFlags::PRINT_ASCII | PrintDataFlags::PRINT_FLOAT);
+      iovs.data(), iovs.size(), 0, nullptr, 0, PrintDataFlags::PRINT_ASCII | PrintDataFlags::PRINT_FLOAT | PrintDataFlags::LITTLE_ENDIAN_FLOATS);
   print_data_test_case("\
 00 |             00 00 00 40 00 00 80 3F 00 00 00    |        @   ?     |                         2            1             \n",
-      iovs.data(), iovs.size(), 4, nullptr, 0, PrintDataFlags::PRINT_ASCII | PrintDataFlags::PRINT_FLOAT);
+      iovs.data(), iovs.size(), 4, nullptr, 0, PrintDataFlags::PRINT_ASCII | PrintDataFlags::PRINT_FLOAT | PrintDataFlags::LITTLE_ENDIAN_FLOATS);
 
   // TODO: test diffing
 }
