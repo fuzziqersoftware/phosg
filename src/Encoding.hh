@@ -1,7 +1,11 @@
 #pragma once
 
-#include <inttypes.h>
-#include <stdint.h>
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+
+#include <cinttypes>
+#include <cstdint>
 
 #include <string>
 

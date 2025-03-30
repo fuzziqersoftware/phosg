@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace phosg {
 
