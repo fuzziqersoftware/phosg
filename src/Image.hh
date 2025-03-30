@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <sys/types.h>
 
 #include <functional>
 #include <stdexcept>
