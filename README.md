@@ -6,7 +6,7 @@ A short summary of its contents:
 * Byteswapping and encoding functions (base64, rot13)
 * Integer types with explicit endianness and transparent byteswapping
 * Directory listing, smart-pointer fopen and stat, file and path manipulation
-* Hash functions (fnv1a64, fnv1a32, sha1, sha256, md5)
+* Hash functions (fnv1a64, fnv1a32, sha1, sha256)
 * Basic image manipulation/drawing
 * JSON (de)serialization
 * Network helpers (IP address parsing/formatting, socket listen and connect functions)

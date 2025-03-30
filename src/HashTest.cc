@@ -28,22 +28,6 @@ int main(int, char**) {
   }
 
   {
-    printf("-- md5\n");
-    check_string(__FILE__, __LINE__,
-        string("\xD4\x1D\x8C\xD9\x8F\x00\xB2\x04\xE9\x80\x09\x98\xEC\xF8\x42\x7E", 16),
-        md5(nullptr, 0)); // technically undefined, but should work
-    check_string(__FILE__, __LINE__,
-        string("\xD4\x1D\x8C\xD9\x8F\x00\xB2\x04\xE9\x80\x09\x98\xEC\xF8\x42\x7E", 16),
-        md5("", 0));
-    check_string(__FILE__, __LINE__,
-        string("\xFA\xC7\xE1\x8E\xD6\x59\x9B\x37\x7C\x60\xF2\xCA\x94\xCC\xB4\x5B", 16),
-        md5("omg hax", 7));
-    check_string(__FILE__, __LINE__,
-        string("\x9E\x10\x7D\x9D\x37\x2B\xB6\x82\x6B\xD8\x1D\x35\x42\xA4\x19\xD6", 16),
-        md5("The quick brown fox jumps over the lazy dog", 43));
-  }
-
-  {
     printf("-- sha1\n");
     check_string(__FILE__, __LINE__,
         string("\xDA\x39\xA3\xEE\x5E\x6B\x4B\x0D\x32\x55\xBF\xEF\x95\x60\x18\x90\xAF\xD8\x07\x09", 20),
