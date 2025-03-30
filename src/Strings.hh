@@ -766,6 +766,120 @@ private:
   std::string data;
 };
 
+class BufferWriter {
+public:
+  BufferWriter(void* buf, size_t buf_size) : buf(reinterpret_cast<uint8_t*>(buf)), buf_size(buf_size), offset(0) {}
+  ~BufferWriter() = default;
+
+  inline void pwrite(size_t offset, const void* data, size_t size) {
+    if (offset + size > this->buf_size) {
+      throw std::runtime_error("Offset out of bounds");
+    }
+    memcpy(this->buf + offset, data, size);
+  }
+  inline void pwrite(size_t offset, const std::string& data) {
+    this->pwrite(offset, data.data(), data.size());
+  }
+
+  inline void write(const void* data, size_t size) {
+    this->pwrite(this->offset, data, size);
+    this->offset += size;
+  }
+  inline void write(const std::string& data) {
+    this->write(data.data(), data.size());
+  }
+
+  template <typename T>
+  void put(const T& v) {
+    this->write(&v, sizeof(v));
+  }
+  template <typename T>
+  void pput(size_t offset, const T& v) {
+    this->pwrite(offset, &v, sizeof(v));
+  }
+
+  inline void put_u8(uint8_t v) { this->put<uint8_t>(v); }
+  inline void put_s8(int8_t v) { this->put<int8_t>(v); }
+  inline void put_u16(uint16_t v) { this->put<uint16_t>(v); }
+  inline void put_s16(int16_t v) { this->put<int16_t>(v); }
+  inline void put_u32(uint32_t v) { this->put<uint32_t>(v); }
+  inline void put_s32(int32_t v) { this->put<int32_t>(v); }
+  inline void put_u64(uint64_t v) { this->put<uint64_t>(v); }
+  inline void put_s64(int64_t v) { this->put<int64_t>(v); }
+  inline void put_f32(float v) { this->put<float>(v); }
+  inline void put_f64(double v) { this->put<double>(v); }
+
+  inline void put_u16r(uint16_t v) { this->put<re_uint16_t>(v); }
+  inline void put_s16r(int16_t v) { this->put<re_int16_t>(v); }
+  inline void put_u32r(uint32_t v) { this->put<re_uint32_t>(v); }
+  inline void put_s32r(int32_t v) { this->put<re_int32_t>(v); }
+  inline void put_u64r(uint64_t v) { this->put<re_uint64_t>(v); }
+  inline void put_s64r(int64_t v) { this->put<re_int64_t>(v); }
+  inline void put_f32r(float v) { this->put<re_float>(v); }
+  inline void put_f64r(double v) { this->put<re_double>(v); }
+
+  inline void put_u16b(uint16_t v) { this->put<be_uint16_t>(v); }
+  inline void put_s16b(int16_t v) { this->put<be_int16_t>(v); }
+  inline void put_u32b(uint32_t v) { this->put<be_uint32_t>(v); }
+  inline void put_s32b(int32_t v) { this->put<be_int32_t>(v); }
+  inline void put_u64b(uint64_t v) { this->put<be_uint64_t>(v); }
+  inline void put_s64b(int64_t v) { this->put<be_int64_t>(v); }
+  inline void put_f32b(float v) { this->put<be_float>(v); }
+  inline void put_f64b(double v) { this->put<be_double>(v); }
+
+  inline void put_u16l(uint16_t v) { this->put<le_uint16_t>(v); }
+  inline void put_s16l(int16_t v) { this->put<le_int16_t>(v); }
+  inline void put_u32l(uint32_t v) { this->put<le_uint32_t>(v); }
+  inline void put_s32l(int32_t v) { this->put<le_int32_t>(v); }
+  inline void put_u64l(uint64_t v) { this->put<le_uint64_t>(v); }
+  inline void put_s64l(int64_t v) { this->put<le_int64_t>(v); }
+  inline void put_f32l(float v) { this->put<le_float>(v); }
+  inline void put_f64l(double v) { this->put<le_double>(v); }
+
+  inline void pput_u8(size_t offset, uint8_t v) { this->pput<uint8_t>(offset, v); }
+  inline void pput_s8(size_t offset, int8_t v) { this->pput<int8_t>(offset, v); }
+  inline void pput_u16(size_t offset, uint16_t v) { this->pput<uint16_t>(offset, v); }
+  inline void pput_s16(size_t offset, int16_t v) { this->pput<int16_t>(offset, v); }
+  inline void pput_u32(size_t offset, uint32_t v) { this->pput<uint32_t>(offset, v); }
+  inline void pput_s32(size_t offset, int32_t v) { this->pput<int32_t>(offset, v); }
+  inline void pput_u64(size_t offset, uint64_t v) { this->pput<uint64_t>(offset, v); }
+  inline void pput_s64(size_t offset, int64_t v) { this->pput<int64_t>(offset, v); }
+  inline void pput_f32(size_t offset, float v) { this->pput<float>(offset, v); }
+  inline void pput_f64(size_t offset, double v) { this->pput<double>(offset, v); }
+
+  inline void pput_u16r(size_t offset, uint16_t v) { this->pput<re_uint16_t>(offset, v); }
+  inline void pput_s16r(size_t offset, int16_t v) { this->pput<re_int16_t>(offset, v); }
+  inline void pput_u32r(size_t offset, uint32_t v) { this->pput<re_uint32_t>(offset, v); }
+  inline void pput_s32r(size_t offset, int32_t v) { this->pput<re_int32_t>(offset, v); }
+  inline void pput_u64r(size_t offset, uint64_t v) { this->pput<re_uint64_t>(offset, v); }
+  inline void pput_s64r(size_t offset, int64_t v) { this->pput<re_int64_t>(offset, v); }
+  inline void pput_f32r(size_t offset, float v) { this->pput<re_float>(offset, v); }
+  inline void pput_f64r(size_t offset, double v) { this->pput<re_double>(offset, v); }
+
+  inline void pput_u16b(size_t offset, uint16_t v) { this->pput<be_uint16_t>(offset, v); }
+  inline void pput_s16b(size_t offset, int16_t v) { this->pput<be_int16_t>(offset, v); }
+  inline void pput_u32b(size_t offset, uint32_t v) { this->pput<be_uint32_t>(offset, v); }
+  inline void pput_s32b(size_t offset, int32_t v) { this->pput<be_int32_t>(offset, v); }
+  inline void pput_u64b(size_t offset, uint64_t v) { this->pput<be_uint64_t>(offset, v); }
+  inline void pput_s64b(size_t offset, int64_t v) { this->pput<be_int64_t>(offset, v); }
+  inline void pput_f32b(size_t offset, float v) { this->pput<be_float>(offset, v); }
+  inline void pput_f64b(size_t offset, double v) { this->pput<be_double>(offset, v); }
+
+  inline void pput_u16l(size_t offset, uint16_t v) { this->pput<le_uint16_t>(offset, v); }
+  inline void pput_s16l(size_t offset, int16_t v) { this->pput<le_int16_t>(offset, v); }
+  inline void pput_u32l(size_t offset, uint32_t v) { this->pput<le_uint32_t>(offset, v); }
+  inline void pput_s32l(size_t offset, int32_t v) { this->pput<le_int32_t>(offset, v); }
+  inline void pput_u64l(size_t offset, uint64_t v) { this->pput<le_uint64_t>(offset, v); }
+  inline void pput_s64l(size_t offset, int64_t v) { this->pput<le_int64_t>(offset, v); }
+  inline void pput_f32l(size_t offset, float v) { this->pput<le_float>(offset, v); }
+  inline void pput_f64l(size_t offset, double v) { this->pput<le_double>(offset, v); }
+
+private:
+  uint8_t* buf;
+  size_t buf_size;
+  size_t offset;
+};
+
 class BlockStringWriter {
 public:
   BlockStringWriter() = default;
