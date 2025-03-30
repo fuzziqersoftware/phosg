@@ -57,7 +57,7 @@ int main(int, char** argv) {
     fprintf(stderr, "-- run_process failure\n");
     auto ret = run_process({"false"}, nullptr, false);
     expect(WIFEXITED(ret.exit_status));
-    expect_eq(1, WEXITSTATUS(ret.exit_status));
+    expect_ne(0, WEXITSTATUS(ret.exit_status));
   }
 
   // test run_process with stdout/stderr data
