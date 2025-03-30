@@ -5,7 +5,9 @@ cmake_minimum_required(VERSION 3.22)
 
 # Project setup
 
-set(CMAKE_OSX_ARCHITECTURES arm64;x86_64)
+if(APPLE AND NOT CMAKE_OSX_ARCHITECTURES)
+    set(CMAKE_OSX_ARCHITECTURES arm64;x86_64)
+endif()
 
 project(phosg)
 include(GNUInstallDirs)
