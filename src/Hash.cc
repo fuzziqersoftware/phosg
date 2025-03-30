@@ -152,27 +152,40 @@ MD5::MD5(const void* data, size_t size) {
     this->d0 += d;
   };
 
+  // TODO: Remove debugging statements when failure that only happens in GitHub Actions is fixed
+  fprintf(stderr, "MD5(%p, 0x%zX)\n", data, size);
+  print_data(stderr, data, size);
+  fprintf(stderr, "abcd = %08" PRIX32 " %08" PRIX32 " %08" PRIX32 " %08" PRIX32 "\n", this->a0, this->b0, this->c0, this->d0);
+
   size_t block_offset = 0;
   for (; block_offset + 0x40 < size; block_offset += 0x40) {
+    fprintf(stderr, "process_block(%p) with block_offset=0x%zX\n", reinterpret_cast<const uint8_t*>(data) + block_offset, block_offset);
     process_block(reinterpret_cast<const uint8_t*>(data) + block_offset);
+    fprintf(stderr, "abcd = %08" PRIX32 " %08" PRIX32 " %08" PRIX32 " %08" PRIX32 "\n", this->a0, this->b0, this->c0, this->d0);
   }
 
   size_t remaining_bytes = size - block_offset;
   uint8_t last_blocks[0x80];
-  memcpy(last_blocks, reinterpret_cast<const uint8_t*>(data) + block_offset,
-      remaining_bytes);
+  fprintf(stderr, "memcpy(%p, %p, 0z%zX)\n", last_blocks, reinterpret_cast<const uint8_t*>(data) + block_offset, remaining_bytes);
+  memcpy(last_blocks, reinterpret_cast<const uint8_t*>(data) + block_offset, remaining_bytes);
   last_blocks[remaining_bytes] = 0x80;
 
   size_t blocks_remaining = 1 + (remaining_bytes > (0x40 - 9));
-  for (remaining_bytes++; remaining_bytes < (0x40 * blocks_remaining - 8);
-      remaining_bytes++) {
+  for (remaining_bytes++; remaining_bytes < (0x40 * blocks_remaining - 8); remaining_bytes++) {
     last_blocks[remaining_bytes] = 0;
   }
   *reinterpret_cast<le_uint64_t*>(&last_blocks[0x40 * blocks_remaining - 8]) = size * 8;
+  // print_data(stderr, last_blocks, sizeof(last_blocks));
+  // fprintf(stderr, "process_block(%p) last\n", &last_blocks[0]);
   process_block(&last_blocks[0]);
+  // fprintf(stderr, "abcd = %08" PRIX32 " %08" PRIX32 " %08" PRIX32 " %08" PRIX32 "\n", this->a0, this->b0, this->c0, this->d0);
   if (blocks_remaining > 1) {
+    // fprintf(stderr, "process_block(%p) last2\n", &last_blocks[0]);
     process_block(&last_blocks[0x40]);
+    // fprintf(stderr, "abcd = %08" PRIX32 " %08" PRIX32 " %08" PRIX32 " %08" PRIX32 "\n", this->a0, this->b0, this->c0, this->d0);
   }
+
+  // fprintf(stderr, "MD5 done\n");
 }
 
 MD5::MD5(const std::string& data) : MD5(data.data(), data.size()) {}
