@@ -26,9 +26,9 @@ namespace phosg {
 // Try to determine endianess from GCC defines first. If they aren't available,
 // use some constants to try to figure it out
 // clang-format off
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
   #define PHOSG_LITTLE_ENDIAN
-#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
   #define PHOSG_BIG_ENDIAN
 
 #else
