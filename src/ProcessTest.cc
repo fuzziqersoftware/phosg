@@ -18,7 +18,7 @@
 using namespace std;
 using namespace phosg;
 
-#ifndef PHOSG_WINDOWS
+#if !defined(PHOSG_WINDOWS) && !defined(PHOSG_SKIP_PROCESS_TEST)
 
 int main(int, char** argv) {
 
@@ -230,7 +230,7 @@ int main(int, char** argv) {
 #else // PHOSG_WINDOWS
 
 int main(int, char**) {
-  printf("ProcessTest: tests do not run on Windows\n");
+  printf("ProcessTest: tests do not run in this build environment\n");
   return 0;
 }
 

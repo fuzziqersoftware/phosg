@@ -52,6 +52,9 @@ target_include_directories(
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
+if("${PHOSG_SKIP_PROCESS_TEST}" EQUAL 1)
+  target_compile_definitions(phosg PUBLIC -DPHOSG_SKIP_PROCESS_TEST)
+endif()
 
 # It seems that on some Linux variants (e.g. Raspbian) we also need -latomic,
 # but this library does not exist on others (e.g. Ubuntu) nor on macOS

@@ -32,4 +32,6 @@ Building & installing on macOS, Linux, or Windows (in a Cygwin bash shell):
 * `make test`
 * `sudo make install`
 
+Some of the tests exercise rarely-used and platform-specific parts of the library, and may fail in less-common environments. If you encounter issues, try building with `cmake . -DPHOSG_SKIP_PROCESS_TEST=1`.
+
 The Windows build does not have continuous integration, so I may accidentally break it and not know for a while. Please file a GitHub issue if it doesn't work.
