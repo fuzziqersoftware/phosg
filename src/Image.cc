@@ -802,7 +802,7 @@ void Image::read_pixel(ssize_t x, ssize_t y, uint64_t* r, uint64_t* g,
 
   // check coordinates
   if (x < 0 || y < 0 || x >= this->width || y >= this->height) {
-    throw runtime_error("out of bounds");
+    throw out_of_range("out of bounds");
   }
 
   size_t index = (y * this->width + x) * (this->has_alpha ? 4 : 3);
@@ -876,7 +876,7 @@ void Image::write_pixel(ssize_t x, ssize_t y, uint64_t r, uint64_t g,
 
   // check coordinates
   if (x < 0 || y < 0 || x >= this->width || y >= this->height) {
-    throw runtime_error("out of bounds");
+    throw out_of_range("out of bounds");
   }
 
   size_t index = (y * this->width + x) * (this->has_alpha ? 4 : 3);
@@ -1818,14 +1818,14 @@ void BitmapImage::clear(bool v) {
 
 bool BitmapImage::read_pixel(size_t x, size_t y) const {
   if (x >= this->width || y >= this->height) {
-    throw runtime_error("out of bounds");
+    throw out_of_range("out of bounds");
   }
   return !!(this->data[y * this->row_bytes + (x >> 3)] & (0x80 >> (x & 7)));
 }
 
 void BitmapImage::write_pixel(size_t x, size_t y, bool v) {
   if (x >= this->width || y >= this->height) {
-    throw runtime_error("out of bounds");
+    throw out_of_range("out of bounds");
   }
   if (v) {
     this->data[y * this->row_bytes + (x >> 3)] |= (0x80 >> (x & 7));
@@ -1836,7 +1836,7 @@ void BitmapImage::write_pixel(size_t x, size_t y, bool v) {
 
 void BitmapImage::write_row(size_t y, const void* in_data, size_t size_bits) {
   if (y >= this->height) {
-    throw runtime_error("out of bounds");
+    throw out_of_range("out of bounds");
   }
   memcpy(&this->data[y * this->row_bytes], in_data, min<size_t>(byte_count_for_bit_count(size_bits), row_bytes));
 }
