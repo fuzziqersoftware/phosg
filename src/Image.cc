@@ -1118,13 +1118,13 @@ void Image::draw_line(ssize_t x0, ssize_t y0, ssize_t x1, ssize_t y1,
     if (steep) {
       try {
         this->write_pixel(y, x, r, g, b, a);
-      } catch (const runtime_error& e) {
+      } catch (const out_of_range& e) {
         return;
       }
     } else {
       try {
         this->write_pixel(x, y, r, g, b, a);
-      } catch (const runtime_error& e) {
+      } catch (const out_of_range& e) {
         return;
       }
     }
@@ -1152,7 +1152,7 @@ void Image::draw_horizontal_line(ssize_t x1, ssize_t x2, ssize_t y,
     }
     try {
       this->write_pixel(x, y, r, g, b, a);
-    } catch (const runtime_error& e) {
+    } catch (const out_of_range& e) {
       break;
     }
   }
@@ -1172,7 +1172,7 @@ void Image::draw_vertical_line(ssize_t x, ssize_t y1, ssize_t y2,
     }
     try {
       this->write_pixel(x, y, r, g, b, a);
-    } catch (const runtime_error& e) {
+    } catch (const out_of_range& e) {
       break;
     }
   }
@@ -1223,7 +1223,7 @@ void Image::draw_text_v(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
         }
         try {
           this->write_pixel(x_pos + xx, y_pos + yy, r, g, b, a);
-        } catch (const runtime_error& e) {
+        } catch (const out_of_range& e) {
         }
       }
     }
@@ -1338,7 +1338,7 @@ void Image::fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint64_t r,
       for (ssize_t xx = 0; xx < w; xx++) {
         try {
           this->write_pixel(x + xx, y + yy, r, g, b, a);
-        } catch (const runtime_error& e) {
+        } catch (const out_of_range& e) {
         }
       }
     }
@@ -1353,7 +1353,7 @@ void Image::fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint64_t r,
           _b = (a * (uint32_t)b + (0xFF - a) * (uint32_t)_b) / 0xFF;
           _a = (a * (uint32_t)a + (0xFF - a) * (uint32_t)_a) / 0xFF;
           this->write_pixel(x + xx, y + yy, _r, _g, _b, _a);
-        } catch (const runtime_error& e) {
+        } catch (const out_of_range& e) {
         }
       }
     }
