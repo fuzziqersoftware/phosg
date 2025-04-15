@@ -1,13 +1,19 @@
+#include <string>
 #include <utility>
+#include <vector>
+
+#include "Encoding.hh"
 
 namespace phosg {
 
 template <typename IntT>
 constexpr IntT gcd(IntT a, IntT b) {
-  if (b == 0) {
-    return a;
+  while (b != 0) {
+    IntT m = a % b;
+    a = b;
+    b = m;
   }
-  return gcd(b, a % b);
+  return a;
 }
 
 template <typename IntT>

@@ -89,7 +89,7 @@ enable_testing()
 add_executable(ToolsTest src/ToolsTest.cc)
 target_link_libraries(ToolsTest phosg)
 
-foreach(TestName IN ITEMS ArgumentsTest EncodingTest FilesystemTest HashTest ImageTest JSONTest KDTreeTest LRUMapTest LRUSetTest ProcessTest StringsTest TimeTest UnitTestTest)
+foreach(TestName IN ITEMS ArgumentsTest EncodingTest FilesystemTest HashTest ImageTest JSONTest KDTreeTest LRUMapTest LRUSetTest MathTest ProcessTest StringsTest TimeTest UnitTestTest)
   add_executable(${TestName} src/${TestName}.cc)
   target_link_libraries(${TestName} phosg)
   add_test(NAME ${TestName} COMMAND ${TestName})
