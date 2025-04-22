@@ -1,9 +1,11 @@
 #pragma once
 
+#include <inttypes.h>
+
 namespace phosg {
 
 // clang-format off
-static uint8_t font[96][35] = {
+static constexpr uint8_t font[96][35] = {
   { 0,0,0,0,0,
     0,0,0,0,0,
     0,0,0,0,0,
