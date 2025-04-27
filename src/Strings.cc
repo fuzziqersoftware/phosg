@@ -670,8 +670,8 @@ void format_data(
   size_t prev_iov_index = 0;
   size_t prev_iov_bytes = 0;
   for (uint64_t line_start_address = start_address & (~0x0F);
-       line_start_address < end_address;
-       line_start_address += 0x10) {
+      line_start_address < end_address;
+      line_start_address += 0x10) {
 
     // Figure out the boundaries of the current line
     uint64_t line_end_address = line_start_address + 0x10;
@@ -1745,20 +1745,16 @@ string StringReader::pget_cstr(size_t offset) const {
   return ret;
 }
 
-size_t StringWriter::size() const {
-  return this->data.size();
-}
-
 void StringWriter::reset() {
-  this->data.clear();
+  this->contents.clear();
 }
 
 void StringWriter::write(const void* data, size_t size) {
-  this->data.append(reinterpret_cast<const char*>(data), size);
+  this->contents.append(reinterpret_cast<const char*>(data), size);
 }
 
 void StringWriter::write(const string& data) {
-  this->data.append(data);
+  this->contents.append(data);
 }
 
 size_t count_zeroes(const void* vdata, size_t size, size_t stride) {

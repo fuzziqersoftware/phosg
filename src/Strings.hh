@@ -653,14 +653,13 @@ public:
   StringWriter() = default;
   ~StringWriter() = default;
 
-  size_t size() const;
   void reset();
 
   inline void extend_to(size_t size, char v = '\0') {
-    this->data.resize(size, v);
+    this->contents.resize(size, v);
   }
   inline void extend_by(size_t size, char v = '\0') {
-    this->data.resize(this->data.size() + size, v);
+    this->contents.resize(this->contents.size() + size, v);
   }
 
   void write(const void* data, size_t size);
@@ -668,15 +667,15 @@ public:
 
   template <typename T>
   void put(const T& v) {
-    this->data.append(reinterpret_cast<const char*>(&v), sizeof(v));
+    this->contents.append(reinterpret_cast<const char*>(&v), sizeof(v));
   }
 
   template <typename T>
   void pput(size_t offset, const T& v) {
-    if (offset + sizeof(T) > this->data.size()) {
-      this->data.resize(offset + sizeof(T), '\0');
+    if (offset + sizeof(T) > this->contents.size()) {
+      this->contents.resize(offset + sizeof(T), '\0');
     }
-    memcpy(this->data.data() + offset, &v, sizeof(v));
+    memcpy(this->contents.data() + offset, &v, sizeof(v));
   }
 
   inline void put_u8(uint8_t v) { this->put<uint8_t>(v); }
@@ -755,15 +754,24 @@ public:
   inline void pput_f32l(size_t offset, float v) { this->pput<le_float>(offset, v); }
   inline void pput_f64l(size_t offset, double v) { this->pput<le_double>(offset, v); }
 
+  inline size_t size() const {
+    return this->contents.size();
+  }
+  inline void* data() {
+    return this->contents.data();
+  }
+  inline const void* data() const {
+    return this->contents.data();
+  }
   inline std::string& str() {
-    return this->data;
+    return this->contents;
   }
   inline const std::string& str() const {
-    return this->data;
+    return this->contents;
   }
 
 private:
-  std::string data;
+  std::string contents;
 };
 
 class BufferWriter {
