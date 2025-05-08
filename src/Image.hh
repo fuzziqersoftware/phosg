@@ -106,8 +106,16 @@ public:
   // canvas functions
   void reverse_horizontal();
   void reverse_vertical();
-  void set_channel_width(uint8_t new_width);
-  void set_has_alpha(bool has_alpha);
+  inline void set_dimensions(ssize_t new_w, ssize_t new_h) {
+    this->set_canvas_properties(new_w, new_h, this->has_alpha, this->channel_width);
+  }
+  inline void set_has_alpha(bool new_has_alpha) {
+    this->set_canvas_properties(this->width, this->height, new_has_alpha, this->channel_width);
+  }
+  inline void set_channel_width(uint8_t new_width) {
+    this->set_canvas_properties(this->width, this->height, this->has_alpha, new_width);
+  }
+  void set_canvas_properties(ssize_t new_w, ssize_t new_h, bool new_has_alpha, uint8_t new_channel_width);
   void set_alpha_from_mask_color(uint64_t r, uint64_t g, uint64_t b);
   void set_alpha_from_mask_color(uint32_t c);
 

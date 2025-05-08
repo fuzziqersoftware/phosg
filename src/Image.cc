@@ -942,118 +942,17 @@ void Image::reverse_vertical() {
   }
 }
 
-void Image::set_channel_width(uint8_t new_width) {
-  if (new_width != 8 && new_width != 16 && new_width != 32 && new_width != 64) {
+void Image::set_canvas_properties(ssize_t new_w, ssize_t new_h, bool new_has_alpha, uint8_t new_channel_width) {
+  if (new_w == this->width && new_h == this->height && new_channel_width == this->channel_width && new_has_alpha == this->has_alpha) {
+    return;
+  }
+  if (new_channel_width != 8 && new_channel_width != 16 && new_channel_width != 32 && new_channel_width != 64) {
     throw runtime_error("channel width must be 8, 16, 32, or 64");
   }
-  if (this->channel_width == new_width) {
-    return;
-  }
 
-  DataPtrs new_data;
-  new_data.raw = malloc(this->width * this->height * (3 + this->has_alpha) * (new_width / 8));
-
-  size_t value_count = this->width * this->height * (this->has_alpha ? 4 : 3);
-  for (size_t z = 0; z < value_count; z++) {
-    uint64_t v;
-    // If the new channel width is larger than the current width, expand the
-    // channels by copying the now-high bits to the lower bits. If the new
-    // channel width is smaller, preserve only the high bits of the original
-    // values.
-    if (this->channel_width == 8) {
-      v = this->data.as8[z];
-      if (new_width == 16) {
-        new_data.as16[z] = (v << 8) | v;
-      } else if (new_width == 32) {
-        new_data.as32[z] = (v << 24) | (v << 16) | (v << 8) | v;
-      } else if (new_width == 64) {
-        new_data.as64[z] = (v << 56) | (v << 48) | (v << 40) | (v << 32) | (v << 24) | (v << 16) | (v << 8) | v;
-      }
-
-    } else if (this->channel_width == 16) {
-      v = this->data.as16[z];
-      if (new_width == 8) {
-        new_data.as8[z] = v >> 8;
-      } else if (new_width == 32) {
-        new_data.as32[z] = (v << 16) | v;
-      } else if (new_width == 64) {
-        new_data.as64[z] = (v << 48) | (v << 32) | (v << 16) | v;
-      }
-
-    } else if (this->channel_width == 32) {
-      v = this->data.as32[z];
-      if (new_width == 8) {
-        new_data.as8[z] = v >> 24;
-      } else if (new_width == 16) {
-        new_data.as16[z] = v >> 16;
-      } else if (new_width == 64) {
-        new_data.as64[z] = (v << 32) | v;
-      }
-
-    } else if (this->channel_width == 64) {
-      v = this->data.as64[z];
-      if (new_width == 8) {
-        new_data.as8[z] = v >> 56;
-      } else if (new_width == 16) {
-        new_data.as16[z] = v >> 48;
-      } else if (new_width == 32) {
-        new_data.as32[z] = v >> 32;
-      }
-    }
-  }
-
-  free(this->data.raw);
-  this->data.raw = new_data.raw;
-  this->channel_width = new_width;
-  this->max_value = mask_for_width(this->channel_width);
-}
-
-void Image::set_has_alpha(bool new_has_alpha) {
-  if (this->has_alpha == new_has_alpha) {
-    return;
-  }
-  this->has_alpha = new_has_alpha;
-
-  DataPtrs new_data;
-  new_data.raw = malloc(this->get_data_size());
-
-  for (ssize_t z = 0; z < this->width * this->height; z++) {
-    size_t src_index = z * (this->has_alpha ? 3 : 4);
-    size_t dst_index = z * (this->has_alpha ? 4 : 3);
-
-    if (this->channel_width == 8) {
-      new_data.as8[dst_index + 0] = this->data.as8[src_index + 0];
-      new_data.as8[dst_index + 1] = this->data.as8[src_index + 1];
-      new_data.as8[dst_index + 2] = this->data.as8[src_index + 2];
-      if (this->has_alpha) {
-        new_data.as8[dst_index + 3] = this->max_value;
-      }
-    } else if (this->channel_width == 16) {
-      new_data.as16[dst_index + 0] = this->data.as16[src_index + 0];
-      new_data.as16[dst_index + 1] = this->data.as16[src_index + 1];
-      new_data.as16[dst_index + 2] = this->data.as16[src_index + 2];
-      if (this->has_alpha) {
-        new_data.as16[dst_index + 3] = this->max_value;
-      }
-    } else if (this->channel_width == 32) {
-      new_data.as32[dst_index + 0] = this->data.as32[src_index + 0];
-      new_data.as32[dst_index + 1] = this->data.as32[src_index + 1];
-      new_data.as32[dst_index + 2] = this->data.as32[src_index + 2];
-      if (this->has_alpha) {
-        new_data.as32[dst_index + 3] = this->max_value;
-      }
-    } else if (this->channel_width == 64) {
-      new_data.as64[dst_index + 0] = this->data.as64[src_index + 0];
-      new_data.as64[dst_index + 1] = this->data.as64[src_index + 1];
-      new_data.as64[dst_index + 2] = this->data.as64[src_index + 2];
-      if (this->has_alpha) {
-        new_data.as64[dst_index + 3] = this->max_value;
-      }
-    }
-  }
-
-  free(this->data.raw);
-  this->data.raw = new_data.raw;
+  Image new_img(new_w, new_h, new_has_alpha, new_channel_width);
+  new_img.blit(*this, 0, 0, min<size_t>(this->width, new_w), min<size_t>(this->height, new_h), 0, 0);
+  *this = std::move(new_img);
 }
 
 void Image::set_alpha_from_mask_color(uint64_t r, uint64_t g, uint64_t b) {
