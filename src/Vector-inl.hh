@@ -2,6 +2,7 @@
 
 #include <math.h>
 
+#include <format>
 #include <stdexcept>
 
 #include "Strings.hh"
@@ -160,7 +161,7 @@ T Vector2<T>::dot(const Vector2<T>& other) const {
 
 template <typename T>
 std::string Vector2<T>::str() const {
-  return string_printf("[%g, %g]", this->x, this->y);
+  return std::format("[{:g}, {:g}]", this->x, this->y);
 }
 
 template <typename T>
@@ -349,7 +350,7 @@ Vector3<T> Vector3<T>::cross(const Vector3<T>& other) const {
 
 template <typename T>
 std::string Vector3<T>::str() const {
-  return string_printf("[%g, %g, %g]", this->x, this->y, this->z);
+  return std::format("[{:g}, {:g}, {:g}]", this->x, this->y, this->z);
 }
 
 template <typename T>
@@ -563,7 +564,7 @@ T Vector4<T>::dot(const Vector4<T>& other) const {
 
 template <typename T>
 std::string Vector4<T>::str() const {
-  return string_printf("[%g, %g, %g, %g]", this->x, this->y, this->z, this->w);
+  return std::format("[{:g}, {:g}, {:g}, {:g}]", this->x, this->y, this->z, this->w);
 }
 
 template <typename T>
@@ -807,7 +808,7 @@ Matrix4<T>& Matrix4<T>::invert() {
 
 template <typename T>
 std::string Matrix4<T>::str() const {
-  return string_printf("[[%g, %g, %g, %g], [%g, %g, %g, %g], [%g, %g, %g, %g], [%g, %g, %g, %g]]",
+  return std::format("[[{:g}, {:g}, {:g}, {:g}], [{:g}, {:g}, {:g}, {:g}], [{:g}, {:g}, {:g}, {:g}], [{:g}, {:g}, {:g}, {:g}]]",
       this->m[0][0], this->m[1][0], this->m[2][0], this->m[3][0],
       this->m[0][1], this->m[1][1], this->m[2][1], this->m[3][1],
       this->m[0][2], this->m[1][2], this->m[2][2], this->m[3][2],

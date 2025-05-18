@@ -58,7 +58,4 @@ namespace phosg {
 #error SIZE_MAX is not a recognized value
 #endif
 
-// Define some useful shortcuts
-#define ATTR_PRINTF(x, y) __attribute__((format(printf, x, y)))
-
 } // namespace phosg

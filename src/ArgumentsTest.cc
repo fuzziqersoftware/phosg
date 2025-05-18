@@ -56,6 +56,6 @@ int main(int, char**) {
 
   a.assert_none_unused();
 
-  printf("ArgumentTest: all tests passed\n");
+  fwrite_fmt(stdout, "ArgumentTest: all tests passed\n");
   return 0;
 }

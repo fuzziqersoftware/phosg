@@ -62,15 +62,14 @@ struct stat fstat(int fd);
 struct stat fstat(FILE* f);
 
 bool isfile(const struct stat& st);
-bool isdir(const struct stat& st);
-bool islink(const struct stat& st);
-
 bool isfile(const std::string& filename);
+bool isdir(const struct stat& st);
 bool isdir(const std::string& filename);
 
+bool islink(const struct stat& st);
+bool islink(const std::string& filename);
 bool lisfile(const std::string& filename);
 bool lisdir(const std::string& filename);
-bool islink(const std::string& filename);
 
 std::string readlink(const std::string& filename);
 std::string realpath(const std::string& path);
@@ -200,14 +199,11 @@ void save_vector_file(const std::string& filename, const std::vector<T>& v) {
   save_file(filename, v.data(), v.size() * sizeof(T));
 }
 
-std::unique_ptr<FILE, void (*)(FILE*)> fopen_unique(const std::string& filename,
-    const std::string& mode = "rb", FILE* dash_file = nullptr);
-std::unique_ptr<FILE, void (*)(FILE*)> fdopen_unique(int fd,
-    const std::string& mode = "rb");
-std::unique_ptr<FILE, void (*)(FILE*)> fmemopen_unique(const void* buf,
-    size_t size);
-std::shared_ptr<FILE> fopen_shared(const std::string& filename,
-    const std::string& mode = "rb", FILE* dash_file = nullptr);
+std::unique_ptr<FILE, void (*)(FILE*)> fopen_unique(
+    const std::string& filename, const std::string& mode = "rb", FILE* dash_file = nullptr);
+std::unique_ptr<FILE, void (*)(FILE*)> fdopen_unique(int fd, const std::string& mode = "rb");
+std::unique_ptr<FILE, void (*)(FILE*)> fmemopen_unique(const void* buf, size_t size);
+std::shared_ptr<FILE> fopen_shared(const std::string& filename, const std::string& mode = "rb", FILE* dash_file = nullptr);
 std::shared_ptr<FILE> fdopen_shared(int fd, const std::string& mode = "rb");
 
 void rename(const std::string& old_filename, const std::string& new_filename);

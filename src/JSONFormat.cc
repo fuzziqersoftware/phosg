@@ -11,7 +11,7 @@ using namespace std;
 using namespace phosg;
 
 void print_usage() {
-  fprintf(stderr, "\
+  fwrite_fmt(stderr, "\
 Usage: jsonformat [options] infile outfile\n\
 \n\
 If infile is - or not specified, read from standard input.\n\
@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
       } else if (!strcmp(argv[x], "--hex-integers")) {
         options |= JSON::SerializeOption::HEX_INTEGERS;
       } else {
-        fprintf(stderr, "unknown argument: %s\n", argv[x]);
+        fwrite_fmt(stderr, "unknown argument: {}\n", argv[x]);
         return 1;
       }
     } else if (!src_filename) {
@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
     } else if (!dst_filename) {
       dst_filename = argv[x];
     } else {
-      fprintf(stderr, "too many positional arguments given\n");
+      fwrite_fmt(stderr, "too many positional arguments given\n");
       return 1;
     }
   }
@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
   try {
     json = JSON::parse(src_data);
   } catch (const exception& e) {
-    fprintf(stderr, "cannot parse input: %s\n", e.what());
+    fwrite_fmt(stderr, "cannot parse input: {}\n", e.what());
     return 2;
   }
 

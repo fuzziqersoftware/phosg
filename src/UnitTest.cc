@@ -2,6 +2,8 @@
 
 #include <inttypes.h>
 
+#include <format>
+
 #include "Strings.hh"
 
 using namespace std;
@@ -9,7 +11,7 @@ using namespace std;
 namespace phosg {
 
 expectation_failed::expectation_failed(const char* msg, const char* file, uint64_t line)
-    : logic_error(string_printf("failure at %s:%" PRIu64 ": %s", file, line, msg)),
+    : logic_error(std::format("failure at {}:{}: {}", file, line, msg)),
       msg(msg),
       file(file),
       line(line) {}

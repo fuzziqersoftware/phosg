@@ -46,22 +46,22 @@ void print_binary_diff(
       print_color_escape(stream, color, TerminalFormat::END);
     }
     uint64_t address = base_offset + line_start_offset;
-    fprintf(stream, "%c %0*" PRIX64 " |", left_ch, offset_width_digits, address);
+    fwrite_fmt(stream, "{:c} {:0>{}X} |", left_ch, offset_width_digits, address);
     for (size_t within_line_offset = 0; within_line_offset < 0x10; within_line_offset++) {
       size_t offset = (line_index * 0x10) + within_line_offset;
       if (offset < size) {
         if (use_color && (diff_flags & (1 << within_line_offset))) {
           print_color_escape(stream, color, TerminalFormat::BOLD, TerminalFormat::END);
-          fprintf(stream, " %02hhX", data[offset]);
+          fwrite_fmt(stream, " {:02X}", data[offset]);
           print_color_escape(stream, TerminalFormat::NORMAL, color, TerminalFormat::END);
         } else {
-          fprintf(stream, " %02hhX", data[offset]);
+          fwrite_fmt(stream, " {:02X}", data[offset]);
         }
       } else {
-        fprintf(stream, "   ");
+        fwrite_fmt(stream, "   ");
       }
     }
-    fprintf(stream, " | ");
+    fwrite_fmt(stream, " | ");
     for (size_t within_line_offset = 0; within_line_offset < 0x10; within_line_offset++) {
       size_t offset = (line_index * 0x10) + within_line_offset;
       if (offset < size) {
@@ -131,7 +131,7 @@ void print_binary_diff(
       }
 
       if (has_unprinted_gap) {
-        fprintf(stream, "  ...\n");
+        fwrite_fmt(stream, "  ...\n");
       }
 
       for (size_t z = chunk_start_line_index; z < line_index; z++) {
@@ -144,12 +144,12 @@ void print_binary_diff(
   }
 
   if (first_unprinted_line_index < num_lines) {
-    fprintf(stream, "  ...\n");
+    fwrite_fmt(stream, "  ...\n");
   }
 }
 
 void print_usage() {
-  fprintf(stderr, "\
+  fwrite_fmt(stderr, "\
 Usage: bindiff [options] file1 file2\n\
 \n\
 If either file1 or file2 is -, read from standard input. If both are -,\n\

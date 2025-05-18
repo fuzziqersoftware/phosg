@@ -9,6 +9,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include <format>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -86,7 +87,7 @@ string escape_quotes(const string& s) {
     if (ch == '\"') {
       ret += "\\\"";
     } else if (ch < 0x20 || ch > 0x7E) {
-      ret += string_printf("\\x%02X", static_cast<uint8_t>(ch));
+      ret += std::format("\\x{:02X}", static_cast<uint8_t>(ch));
     } else {
       ret += ch;
     }
@@ -119,7 +120,7 @@ string escape_controls(const string& s, bool escape_non_ascii) {
     } else if (ch == '\v') {
       ret += "\\v";
     } else if (escape_non_ascii ? (ch < 0x20 || ch > 0x7E) : (!(ch & 0x80) && ((ch < 0x20) || ch == 0x7F))) {
-      ret += string_printf("\\x%02X", static_cast<uint8_t>(ch));
+      ret += std::format("\\x{:02X}", static_cast<uint8_t>(ch));
     } else {
       ret += ch;
     }
@@ -134,69 +135,10 @@ string escape_url(const string& s, bool escape_slash) {
         (ch == '~') || (ch == '=') || (ch == '&') || (!escape_slash && (ch == '/'))) {
       ret += ch;
     } else {
-      ret += string_printf("%%%02hhX", ch);
+      ret += std::format("%{:02X}", ch);
     }
   }
   return ret;
-}
-
-string string_printf(const char* fmt, ...) {
-  va_list va;
-  va_start(va, fmt);
-  string ret = string_vprintf(fmt, va);
-  va_end(va);
-  return ret;
-}
-
-wstring wstring_printf(const wchar_t* fmt, ...) {
-  va_list va;
-  va_start(va, fmt);
-  wstring ret = wstring_vprintf(fmt, va);
-  va_end(va);
-  return ret;
-}
-
-string string_vprintf(const char* fmt, va_list va) {
-#ifndef PHOSG_WINDOWS
-  char* result = nullptr;
-  int length = vasprintf(&result, fmt, va);
-
-  if (result == nullptr) {
-    throw bad_alloc();
-  }
-
-  string ret(result, length);
-  free(result);
-
-#else
-  string ret(0x400, '\0');
-  int size = vsnprintf(ret.data(), ret.size(), fmt, va);
-  // TODO: We probably can handle this case more gracefully. Really, we should
-  // just restart va, resize the string, and call vsnprintf again, but I'm too
-  // lazy to test/verify that this works (or that va doesn't need restarting)
-  if (size > 0x400) {
-    throw logic_error("size too long");
-  }
-  ret.resize(size);
-
-#endif
-  return ret;
-}
-
-wstring wstring_vprintf(const wchar_t* fmt, va_list va) {
-  // TODO: use open_wmemstream when it's available on mac os
-  wstring result;
-  result.resize(wcslen(fmt) * 2); // silly guess
-
-  ssize_t written = -1;
-  while ((written < 0) || (written > static_cast<ssize_t>(result.size()))) {
-    va_list tmp_va;
-    va_copy(tmp_va, va);
-    written = vswprintf(result.data(), result.size(), fmt, va);
-    va_end(tmp_va);
-  }
-  result.resize(written);
-  return result;
 }
 
 uint8_t value_for_hex_char(char x) {
@@ -209,7 +151,7 @@ uint8_t value_for_hex_char(char x) {
   if (x >= 'a' && x <= 'f') {
     return (x - 'a') + 0xA;
   }
-  throw out_of_range(string_printf("invalid hex char: %c", x));
+  throw out_of_range(std::format("invalid hex char: {:c}", x));
 }
 
 template <>
@@ -275,28 +217,8 @@ void print_log_prefix(FILE* stream, LogLevel level) {
   localtime_r(&now_secs, &now_tm);
   strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", &now_tm);
   char level_char = log_level_chars.at(static_cast<int>(level));
-  fprintf(stream, "%c %d %s - ", level_char, getpid_cached(), time_buffer);
+  fwrite_fmt(stream, "{:c} {} {} - ", level_char, getpid_cached(), time_buffer);
 }
-
-void log_debug_v(const char* fmt, va_list va) { log_v<LogLevel::DEBUG>(fmt, va); }
-void log_info_v(const char* fmt, va_list va) { log_v<LogLevel::INFO>(fmt, va); }
-void log_warning_v(const char* fmt, va_list va) { log_v<LogLevel::WARNING>(fmt, va); }
-void log_error_v(const char* fmt, va_list va) { log_v<LogLevel::ERROR>(fmt, va); }
-
-#define LOG_HELPER_BODY(LEVEL) \
-  if (should_log(LEVEL)) {     \
-    va_list va;                \
-    va_start(va, fmt);         \
-    log_v<LEVEL>(fmt, va);     \
-    va_end(va);                \
-  }
-
-__attribute__((format(printf, 1, 2))) void log_debug(const char* fmt, ...) { LOG_HELPER_BODY(LogLevel::DEBUG); }
-__attribute__((format(printf, 1, 2))) void log_info(const char* fmt, ...) { LOG_HELPER_BODY(LogLevel::INFO); }
-__attribute__((format(printf, 1, 2))) void log_warning(const char* fmt, ...) { LOG_HELPER_BODY(LogLevel::WARNING); }
-__attribute__((format(printf, 1, 2))) void log_error(const char* fmt, ...) { LOG_HELPER_BODY(LogLevel::ERROR); }
-
-#undef LOG_HELPER_BODY
 
 PrefixedLogger::PrefixedLogger(const string& prefix, LogLevel min_level)
     : prefix(prefix),
@@ -304,14 +226,6 @@ PrefixedLogger::PrefixedLogger(const string& prefix, LogLevel min_level)
 
 PrefixedLogger PrefixedLogger::sub(const std::string& prefix, LogLevel min_level) const {
   return PrefixedLogger(this->prefix + prefix, min_level == LogLevel::USE_DEFAULT ? this->min_level : min_level);
-}
-
-PrefixedLogger PrefixedLogger::subf(const char* fmt, ...) const {
-  va_list va;
-  va_start(va, fmt);
-  string prefix = string_vprintf(fmt, va);
-  va_end(va);
-  return this->sub(prefix);
 }
 
 vector<string> split(const string& s, char delim, size_t max_splits) {
@@ -507,7 +421,7 @@ size_t skip_word(const char* s, size_t offset) {
 string string_for_error(int error) {
   char buffer[1024] = "Unknown error";
   strerror_r(error, buffer, sizeof(buffer));
-  return string_printf("%d (%s)", error, buffer);
+  return std::format("{} ({})", error, buffer);
 }
 
 string vformat_color_escape(TerminalFormat color, va_list va) {
@@ -645,11 +559,6 @@ void format_data(
 
   bool use_color = flags & PrintDataFlags::USE_COLOR;
   bool print_ascii = flags & PrintDataFlags::PRINT_ASCII;
-  bool print_float = flags & PrintDataFlags::PRINT_FLOAT;
-  bool print_double = flags & PrintDataFlags::PRINT_DOUBLE;
-  bool reverse_endian = flags & PrintDataFlags::REVERSE_ENDIAN_FLOATS;
-  bool big_endian = flags & PrintDataFlags::BIG_ENDIAN_FLOATS;
-  bool little_endian = flags & PrintDataFlags::LITTLE_ENDIAN_FLOATS;
   bool collapse_zero_lines = flags & PrintDataFlags::COLLAPSE_ZERO_LINES;
   bool skip_separator = flags & PrintDataFlags::SKIP_SEPARATOR;
 
@@ -678,35 +587,6 @@ void format_data(
     uint8_t line_invalid_start_bytes = max<int64_t>(start_address - line_start_address, 0);
     uint8_t line_invalid_end_bytes = max<int64_t>(line_end_address - end_address, 0);
     uint8_t line_bytes = 0x10 - line_invalid_end_bytes - line_invalid_start_bytes;
-
-    auto print_fields_column = [&]<typename LoadedDataT, typename StoredDataT>(
-                                   const char* field_format,
-                                   const void* blank_format,
-                                   size_t blank_format_len) -> void {
-      write_data(" |", skip_separator ? 1 : 2);
-
-      const auto* line_fields = reinterpret_cast<const StoredDataT*>(line_buf);
-      const auto* prev_line_fields = reinterpret_cast<const StoredDataT*>(prev_line_data);
-      uint8_t line_invalid_start_fields = (line_invalid_start_bytes + sizeof(StoredDataT) - 1) / sizeof(StoredDataT);
-      uint8_t line_invalid_end_fields = (line_invalid_end_bytes + sizeof(StoredDataT) - 1) / sizeof(StoredDataT);
-
-      constexpr size_t field_count = 0x10 / sizeof(StoredDataT);
-      size_t x = 0;
-      for (; x < line_invalid_start_fields; x++) {
-        write_data(blank_format, blank_format_len);
-      }
-      for (; x < static_cast<size_t>(field_count - line_invalid_end_fields); x++) {
-        LoadedDataT current_value = line_fields[x];
-        LoadedDataT previous_value = prev_line_fields[x];
-
-        RedBoldTerminalGuard g1(write_data, use_color && (previous_value != current_value));
-        string field = string_printf(field_format, current_value);
-        write_data(field.data(), field.size());
-      }
-      for (; x < field_count; x++) {
-        write_data(blank_format, blank_format_len);
-      }
-    };
 
     // Read the current and previous data for this line
     for (size_t x = 0; x < line_bytes; x++) {
@@ -742,8 +622,7 @@ void format_data(
       continue;
     }
 
-    string line = string_printf(skip_separator ? "%0*" PRIX64 : "%0*" PRIX64 " |",
-        width_digits, line_start_address);
+    string line = std::format("{:0>{}X}{}", line_start_address, width_digits, skip_separator ? "" : " |");
     write_data(line.data(), line.size());
 
     {
@@ -756,7 +635,7 @@ void format_data(
         uint8_t previous_value = prev_line_data[x];
 
         RedBoldTerminalGuard g(write_data, use_color && (previous_value != current_value));
-        string field = string_printf(" %02" PRIX8, current_value);
+        string field = std::format(" {:02X}", current_value);
         write_data(field.data(), field.size());
       }
       for (; x < 0x10; x++) {
@@ -785,29 +664,6 @@ void format_data(
       }
       for (; x < 0x10; x++) {
         write_data(" ", 1);
-      }
-    }
-
-    if (print_float) {
-      if (reverse_endian) {
-        print_fields_column.operator()<float, re_float>(" %12.5g", "             ", 13);
-      } else if (big_endian) {
-        print_fields_column.operator()<float, be_float>(" %12.5g", "             ", 13);
-      } else if (little_endian) {
-        print_fields_column.operator()<float, le_float>(" %12.5g", "             ", 13);
-      } else {
-        print_fields_column.operator()<float, float>(" %12.5g", "             ", 13);
-      }
-    }
-    if (print_double) {
-      if (reverse_endian) {
-        print_fields_column.operator()<double, re_double>(" %12.5lg", "             ", 13);
-      } else if (big_endian) {
-        print_fields_column.operator()<double, be_double>(" %12.5lg", "             ", 13);
-      } else if (little_endian) {
-        print_fields_column.operator()<double, le_double>(" %12.5lg", "             ", 13);
-      } else {
-        print_fields_column.operator()<double, double>(" %12.5lg", "             ", 13);
       }
     }
 
@@ -1222,7 +1078,7 @@ string format_data_string(const void* vdata, size_t size, const void* vmask, uin
         mask_enabled = !mask_enabled;
         ret += '?';
       }
-      ret += string_printf("%02X", data[x]);
+      ret += std::format("{:02X}", data[x]);
     }
   }
   return ret;
@@ -1241,19 +1097,19 @@ string format_data_string(const void* vdata, size_t size, const void* vmask, uin
 #if (SIZE_T_BITS == 8)
 
 string format_size(size_t size, bool include_bytes) {
-  return string_printf("%zu bytes", size);
+  return std::format("{} bytes", size);
 }
 
 #elif (SIZE_T_BITS == 16)
 
 string format_size(size_t size, bool include_bytes) {
   if (size < KB_SIZE) {
-    return string_printf("%zu bytes", size);
+    return std::format("{} bytes", size);
   }
   if (include_bytes) {
-    return string_printf("%zu bytes (%.02f KB)", size, (float)size / KB_SIZE);
+    return std::format("{} bytes ({:.02f} KB)", size, (float)size / KB_SIZE);
   } else {
-    return string_printf("%.02f KB", (float)size / KB_SIZE);
+    return std::format("{:.02f} KB", (float)size / KB_SIZE);
   }
 }
 
@@ -1261,24 +1117,24 @@ string format_size(size_t size, bool include_bytes) {
 
 string format_size(size_t size, bool include_bytes) {
   if (size < KB_SIZE) {
-    return string_printf("%zu bytes", size);
+    return std::format("{} bytes", size);
   }
   if (include_bytes) {
     if (size < MB_SIZE) {
-      return string_printf("%zu bytes (%.02f KB)", size, (float)size / KB_SIZE);
+      return std::format("{} bytes ({:.02f} KB)", size, (float)size / KB_SIZE);
     }
     if (size < GB_SIZE) {
-      return string_printf("%zu bytes (%.02f MB)", size, (float)size / MB_SIZE);
+      return std::format("{} bytes ({:.02f} MB)", size, (float)size / MB_SIZE);
     }
-    return string_printf("%zu bytes (%.02f GB)", size, (float)size / GB_SIZE);
+    return std::format("{} bytes ({:.02f} GB)", size, (float)size / GB_SIZE);
   } else {
     if (size < MB_SIZE) {
-      return string_printf("%.02f KB", (float)size / KB_SIZE);
+      return std::format("{:.02f} KB", (float)size / KB_SIZE);
     }
     if (size < GB_SIZE) {
-      return string_printf("%.02f MB", (float)size / MB_SIZE);
+      return std::format("{:.02f} MB", (float)size / MB_SIZE);
     }
-    return string_printf("%.02f GB", (float)size / GB_SIZE);
+    return std::format("{:.02f} GB", (float)size / GB_SIZE);
   }
 }
 
@@ -1286,42 +1142,42 @@ string format_size(size_t size, bool include_bytes) {
 
 string format_size(size_t size, bool include_bytes) {
   if (size < KB_SIZE) {
-    return string_printf("%zu bytes", size);
+    return std::format("{} bytes", size);
   }
   if (include_bytes) {
     if (size < MB_SIZE) {
-      return string_printf("%zu bytes (%.02f KB)", size, (float)size / KB_SIZE);
+      return std::format("{} bytes ({:.02f} KB)", size, (float)size / KB_SIZE);
     }
     if (size < GB_SIZE) {
-      return string_printf("%zu bytes (%.02f MB)", size, (float)size / MB_SIZE);
+      return std::format("{} bytes ({:.02f} MB)", size, (float)size / MB_SIZE);
     }
     if (size < TB_SIZE) {
-      return string_printf("%zu bytes (%.02f GB)", size, (float)size / GB_SIZE);
+      return std::format("{} bytes ({:.02f} GB)", size, (float)size / GB_SIZE);
     }
     if (size < PB_SIZE) {
-      return string_printf("%zu bytes (%.02f TB)", size, (float)size / TB_SIZE);
+      return std::format("{} bytes ({:.02f} TB)", size, (float)size / TB_SIZE);
     }
     if (size < EB_SIZE) {
-      return string_printf("%zu bytes (%.02f PB)", size, (float)size / PB_SIZE);
+      return std::format("{} bytes ({:.02f} PB)", size, (float)size / PB_SIZE);
     }
-    return string_printf("%zu bytes (%.02f EB)", size, (float)size / EB_SIZE);
+    return std::format("{} bytes ({:.02f} EB)", size, (float)size / EB_SIZE);
   } else {
     if (size < MB_SIZE) {
-      return string_printf("%.02f KB", (float)size / KB_SIZE);
+      return std::format("{:.02f} KB", (float)size / KB_SIZE);
     }
     if (size < GB_SIZE) {
-      return string_printf("%.02f MB", (float)size / MB_SIZE);
+      return std::format("{:.02f} MB", (float)size / MB_SIZE);
     }
     if (size < TB_SIZE) {
-      return string_printf("%.02f GB", (float)size / GB_SIZE);
+      return std::format("{:.02f} GB", (float)size / GB_SIZE);
     }
     if (size < PB_SIZE) {
-      return string_printf("%.02f TB", (float)size / TB_SIZE);
+      return std::format("{:.02f} TB", (float)size / TB_SIZE);
     }
     if (size < EB_SIZE) {
-      return string_printf("%.02f PB", (float)size / PB_SIZE);
+      return std::format("{:.02f} PB", (float)size / PB_SIZE);
     }
-    return string_printf("%.02f EB", (float)size / EB_SIZE);
+    return std::format("{:.02f} EB", (float)size / EB_SIZE);
   }
 }
 
@@ -1778,17 +1634,6 @@ void BlockStringWriter::write(const string& data) {
 
 void BlockStringWriter::write(string&& data) {
   this->blocks.emplace_back(std::move(data));
-}
-
-void BlockStringWriter::write_printf(const char* fmt, ...) {
-  va_list va;
-  va_start(va, fmt);
-  this->write_vprintf(fmt, va);
-  va_end(va);
-}
-
-void BlockStringWriter::write_vprintf(const char* fmt, va_list va) {
-  this->blocks.emplace_back(string_vprintf(fmt, va));
 }
 
 string BlockStringWriter::close(const char* separator) {

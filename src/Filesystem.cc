@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <deque>
+#include <format>
 #include <functional>
 #include <memory>
 #include <string>
@@ -91,8 +92,6 @@ string getcwd() {
   return ret;
 }
 
-#ifndef PHOSG_WINDOWS
-
 // TODO: this can definitely be implemented on windows; I'm just lazy
 string get_user_home_directory() {
   const char* homedir = getenv("HOME");
@@ -113,8 +112,6 @@ string get_user_home_directory() {
 
   return pwd.pw_dir;
 }
-
-#endif
 
 cannot_stat_file::cannot_stat_file(int fd)
     : runtime_error("can\'t stat fd " + to_string(fd) + ": " + string_for_error(errno)),
@@ -137,7 +134,7 @@ io_error::io_error(int fd)
       error(errno) {}
 
 io_error::io_error(int fd, const string& what)
-    : runtime_error(string_printf("io error on fd %d: %s", fd, what.c_str())),
+    : runtime_error(std::format("io error on fd {}: {}", fd, what.c_str())),
       error(-1) {}
 
 struct stat stat(const string& filename) {
@@ -393,7 +390,7 @@ void readx(int fd, void* data, size_t size) {
   if (ret_size < 0) {
     throw io_error(fd);
   } else if (ret_size != static_cast<ssize_t>(size)) {
-    throw io_error(fd, string_printf("expected %zu bytes, read %zd bytes", size, ret_size));
+    throw io_error(fd, std::format("expected {} bytes, read {} bytes", size, ret_size));
   }
 }
 
@@ -402,7 +399,7 @@ void writex(int fd, const void* data, size_t size) {
   if (ret_size < 0) {
     throw io_error(fd);
   } else if (ret_size != static_cast<ssize_t>(size)) {
-    throw io_error(fd, string_printf("expected %zu bytes, wrote %zd bytes", size, ret_size));
+    throw io_error(fd, std::format("expected {} bytes, wrote {} bytes", size, ret_size));
   }
 }
 
@@ -421,7 +418,7 @@ void preadx(int fd, void* data, size_t size, off_t offset) {
   if (ret_size < 0) {
     throw io_error(fd);
   } else if (ret_size != static_cast<ssize_t>(size)) {
-    throw io_error(fd, string_printf("expected %zu bytes, read %zd bytes", size, ret_size));
+    throw io_error(fd, std::format("expected {} bytes, read {} bytes", size, ret_size));
   }
 }
 
@@ -430,7 +427,7 @@ void pwritex(int fd, const void* data, size_t size, off_t offset) {
   if (ret_size < 0) {
     throw io_error(fd);
   } else if (ret_size != static_cast<ssize_t>(size)) {
-    throw io_error(fd, string_printf("expected %zu bytes, wrote %zd bytes", size, ret_size));
+    throw io_error(fd, std::format("expected {} bytes, wrote {} bytes", size, ret_size));
   }
 }
 
@@ -449,7 +446,7 @@ void freadx(FILE* f, void* data, size_t size) {
   if (ret_size < 0) {
     throw io_error(fileno(f));
   } else if (ret_size != static_cast<ssize_t>(size)) {
-    throw io_error(fileno(f), string_printf("expected %zu bytes, read %zd bytes", size, ret_size));
+    throw io_error(fileno(f), std::format("expected {} bytes, read {} bytes", size, ret_size));
   }
 }
 
@@ -458,7 +455,7 @@ void fwritex(FILE* f, const void* data, size_t size) {
   if (ret_size < 0) {
     throw io_error(fileno(f));
   } else if (ret_size != static_cast<ssize_t>(size)) {
-    throw io_error(fileno(f), string_printf("expected %zu bytes, wrote %zd bytes", size, ret_size));
+    throw io_error(fileno(f), std::format("expected {} bytes, wrote {} bytes", size, ret_size));
   }
 }
 
@@ -518,8 +515,7 @@ string load_file(const string& filename) {
   ssize_t bytes_read = ::read(fd, data.data(), data.size());
   if (bytes_read != file_size) {
     if (errno == 0) {
-      throw runtime_error(string_printf("can\'t read from %s: %zd/%zd bytes read",
-          filename.c_str(), bytes_read, file_size));
+      throw runtime_error(std::format("can\'t read from {}: {}/{} bytes read", filename.c_str(), bytes_read, file_size));
     } else {
       throw runtime_error("can\'t read from " + filename + ": " + string_for_error(errno));
     }
@@ -533,7 +529,7 @@ void save_file(const string& filename, const void* data, size_t size) {
   ssize_t bytes_written = write(fd, data, size);
   if (bytes_written != static_cast<ssize_t>(size)) {
     if (errno == 0) {
-      throw runtime_error(string_printf("can\'t write to %s: %zd/%zd bytes written",
+      throw runtime_error(std::format("can\'t write to {}: {}/{} bytes written",
           filename.c_str(), bytes_written, size));
     } else {
       throw runtime_error("can\'t write to " + filename + ": " + string_for_error(errno));

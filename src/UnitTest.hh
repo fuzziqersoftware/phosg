@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 
+#include <format>
 #include <functional>
 #include <stdexcept>
 
@@ -38,7 +39,7 @@ void expect_raises_fn(const char* file, uint64_t line, std::function<void()> fn)
   } catch (const ExcT&) {
     return;
   } catch (const std::exception& e) {
-    std::string msg = string_printf("incorrect exception type raised (what: %s)", e.what());
+    std::string msg = std::format("incorrect exception type raised (what: {})", e.what());
     expect_generic(false, msg.c_str(), file, line);
   } catch (...) {
     // TODO: It'd be nice to show SOMETHING about the thrown exception here,

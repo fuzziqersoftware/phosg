@@ -13,7 +13,6 @@ A short summary of its contents:
 * Functions for getting random data from the OS
 * Process utilities (list processes, name <> PID mapping, subprocess execution)
 * Time conversions
-* std::string helpers like printf, split/join, time and size formatting, etc.
 * 2D, 3D, and 4D vectors and basic vector math
 * KD-tree and LRU set data structures
 

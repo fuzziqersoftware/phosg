@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <format>
 #include <map>
 
 #include "Filesystem.hh"
@@ -276,17 +277,17 @@ string JSON::escape_string(const string& s, StringEscapeMode mode) {
       ret += "\\t";
     } else if (static_cast<uint8_t>(ch) < 0x20) {
       if (mode != StringEscapeMode::STANDARD) {
-        ret += string_printf("\\x%02hhX", ch);
+        ret += std::format("\\x{:02X}", ch);
       } else {
-        ret += string_printf("\\u%04hhX", ch);
+        ret += std::format("\\u{:04X}", ch);
       }
     } else if (static_cast<uint8_t>(ch) > 0x7E) {
       if (mode == StringEscapeMode::CONTROL_ONLY) {
         ret += ch;
       } else if (mode == StringEscapeMode::HEX) {
-        ret += string_printf("\\x%02hhX", ch);
+        ret += std::format("\\x{:02X}", ch);
       } else {
-        ret += string_printf("\\u%04hhX", ch);
+        ret += std::format("\\u{:04X}", ch);
       }
     } else {
       ret += ch;
@@ -320,14 +321,14 @@ string JSON::serialize(uint32_t options, size_t indent_level) const {
     case 2: { // int64_t
       int64_t v = this->as_int();
       if (options & SerializeOption::HEX_INTEGERS) {
-        return v < 0 ? string_printf("-0x%" PRIX64, -v) : string_printf("0x%" PRIX64, v);
+        return v < 0 ? std::format("-0x{:X}", -v) : std::format("0x{:X}", v);
       } else {
         return to_string(this->as_int());
       }
     }
 
     case 3: { // double
-      string ret = string_printf("%g", this->as_float());
+      string ret = std::format("{:.17g}", this->as_float());
       if (ret.find('.') == string::npos) {
         return ret + ".0";
       }

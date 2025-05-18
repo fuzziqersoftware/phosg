@@ -62,6 +62,6 @@ int main(int, char**) {
     throw runtime_error("omg hax");
   });
 
-  printf("UnitTestTest: all tests passed\n");
+  fwrite_fmt(stdout, "UnitTestTest: all tests passed\n");
   return 0;
 }

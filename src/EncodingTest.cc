@@ -120,9 +120,11 @@ int main(int, char**) {
     data.le32 = 0x01020304;
     expect_eq(data.be32, 0x04030201);
     expect_eq(data.bytes[0], 0x04);
+    expect_eq("04030201", std::format("{:08X}", data.be32));
     data.be32 = 0x01020304;
     expect_eq(data.le32, 0x04030201);
     expect_eq(data.bytes[0], 0x01);
+    expect_eq("04030201", std::format("{:08X}", data.le32));
   }
 
   // TODO: test custom alphabets
@@ -144,6 +146,6 @@ int main(int, char**) {
 
   expect_eq("The brick quown jox fumps over the dazy log", rot13("Gur oevpx dhbja wbk shzcf bire gur qnml ybt", 43));
 
-  printf("EncodingTest: all tests passed\n");
+  fwrite_fmt(stdout, "EncodingTest: all tests passed\n");
   return 0;
 }

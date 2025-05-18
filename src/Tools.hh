@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include <atomic>
+#include <format>
 #include <functional>
 #include <stdexcept>
 #include <string>
@@ -10,6 +11,7 @@
 #include <vector>
 
 #include "Encoding.hh"
+#include "Filesystem.hh"
 #include "Strings.hh"
 #include "Time.hh"
 
@@ -30,10 +32,6 @@ inline CallOnDestroy on_close_scope(std::function<void()> f) {
 
 template <typename IntT>
 void parallel_range_default_progress_fn(IntT start_value, IntT end_value, IntT current_value, uint64_t start_time) {
-  std::string format_str = "... %08";
-  format_str += printf_hex_format_for_type<IntT>();
-  format_str += " (%s / -%s)\r";
-
   uint64_t elapsed_time = now() - start_time;
   std::string elapsed_str = format_duration(elapsed_time);
 
@@ -46,8 +44,7 @@ void parallel_range_default_progress_fn(IntT start_value, IntT end_value, IntT c
     remaining_str = "...";
   }
 
-  fprintf(stderr, format_str.c_str(), current_value,
-      elapsed_str.c_str(), remaining_str.c_str());
+  fwritex(stderr, std::format("... {:08X} ({} / {})\r", current_value, elapsed_str, remaining_str));
 }
 
 template <typename IntT>

@@ -84,6 +84,6 @@ int main(int, char**) {
 
   // TODO: test get_user_home_directory
 
-  printf("FilesystemTest: all tests passed\n");
+  fwrite_fmt(stdout, "FilesystemTest: all tests passed\n");
   return 0;
 }

@@ -5,18 +5,18 @@
 #include "Platform.hh"
 
 #include <arpa/inet.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <ifaddrs.h>
+#include <inttypes.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include <sys/un.h>
-
-#include <errno.h>
-#include <fcntl.h>
-#include <inttypes.h>
 #include <sys/types.h>
+#include <sys/un.h>
 #include <unistd.h>
 
+#include <format>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -129,10 +129,9 @@ string render_sockaddr_storage(const sockaddr_storage& s) {
 
       char buf[INET_ADDRSTRLEN];
       if (!inet_ntop(AF_INET, &sin->sin_addr, buf, sizeof(buf) / sizeof(buf[0]))) {
-        return string_printf("<UNPRINTABLE-IPV4-ADDRESS>:%" PRIu16,
-            ntohs(sin->sin_port));
+        return std::format("<UNPRINTABLE-IPV4-ADDRESS>:{}", ntohs(sin->sin_port));
       }
-      return string_printf("%s:%" PRIu16, buf, ntohs(sin->sin_port));
+      return std::format("{}:{}", buf, ntohs(sin->sin_port));
     }
 
     case AF_INET6: {
@@ -140,10 +139,9 @@ string render_sockaddr_storage(const sockaddr_storage& s) {
 
       char buf[INET6_ADDRSTRLEN];
       if (!inet_ntop(AF_INET6, &sin6->sin6_addr, buf, sizeof(buf) / sizeof(buf[0]))) {
-        return string_printf("<UNPRINTABLE-IPV6-ADDRESS>:%" PRIu16,
-            ntohs(sin6->sin6_port));
+        return std::format("<UNPRINTABLE-IPV6-ADDRESS>:{}", ntohs(sin6->sin6_port));
       }
-      return string_printf("[%s]:%" PRIu16, buf, ntohs(sin6->sin6_port));
+      return std::format("[{}]:{}", buf, ntohs(sin6->sin6_port));
     }
 
     default:

@@ -11,7 +11,6 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
-
 #ifdef PHOSG_MACOS
 #include <libproc.h>
 #include <sys/proc_info.h>
@@ -20,6 +19,7 @@
 #endif
 
 #include <deque>
+#include <format>
 #include <set>
 
 #include "Filesystem.hh"
@@ -44,7 +44,7 @@ unique_ptr<FILE, void (*)(FILE*)> popen_unique(const string& command,
 }
 
 string name_for_pid(pid_t pid) {
-  string command = string_printf("ps -ax -c -o pid -o command | grep ^\\ *%u\\ | sed s/[0-9]*\\ //g", pid);
+  string command = std::format("ps -ax -c -o pid -o command | grep ^\\ *{}\\ | sed s/[0-9]*\\ //g", pid);
   auto f = popen_unique(command.c_str(), "r");
 
   string name;
@@ -136,7 +136,7 @@ bool pid_is_zombie(pid_t pid) {
   // so many syscalls... sigh
   char status_data[2048]; // this is probably big enough
   try {
-    string filename = string_printf("/proc/%d/status", pid);
+    string filename = std::format("/proc/{}/status", pid);
     scoped_fd fd(filename, O_RDONLY);
     ssize_t bytes_read = ::read(fd, status_data, 2047);
     if (bytes_read < 0) {
@@ -182,7 +182,7 @@ uint64_t start_time_for_pid(pid_t pid, bool allow_zombie) {
 #else
   uint64_t start_time;
   try {
-    struct stat st = stat(string_printf("/proc/%d", pid));
+    struct stat st = stat(std::format("/proc/{}", pid));
     start_time = (uint64_t)st.st_mtim.tv_sec * 1000000000 +
         (uint64_t)st.st_mtim.tv_nsec;
   } catch (const cannot_stat_file& e) {
@@ -297,7 +297,7 @@ Subprocess::Subprocess(const vector<string>& cmd, int stdin_fd, int stdout_fd,
       vector<string> environ;
       vector<const char*> envp;
       for (const auto& it : *env) {
-        environ.emplace_back(string_printf("%s=%s", it.first.c_str(), it.second.c_str()));
+        environ.emplace_back(std::format("{}={}", it.first.c_str(), it.second.c_str()));
         envp.emplace_back(environ.back().c_str());
       }
       envp.emplace_back(nullptr);
@@ -607,8 +607,8 @@ SubprocessResult run_process(const vector<string>& cmd, const string* stdin_data
   }
 
   if (check && sp.wait()) {
-    throw runtime_error(string_printf("command returned code %d\nstdout:\n%s\nstderr:\n%s",
-        sp.wait(), ret.stdout_contents.c_str(), ret.stderr_contents.c_str()));
+    throw runtime_error(std::format("command returned code {}\nstdout:\n{}\nstderr:\n{}",
+        sp.wait(), ret.stdout_contents, ret.stderr_contents));
   }
 
   return ret;

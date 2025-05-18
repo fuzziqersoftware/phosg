@@ -31,14 +31,14 @@ void Arguments::assert_none_unused() const {
   for (size_t z = 0; z < this->positional.size(); z++) {
     const auto& arg = this->positional[z];
     if (!arg.used) {
-      throw invalid_argument(string_printf("(@%zu) excess argument", z));
+      throw invalid_argument(std::format("(@{}) excess argument", z));
     }
   }
   for (const auto& named_it : this->named) {
     size_t index = 0;
     for (const auto& instance_it : named_it.second) {
       if (!instance_it.used) {
-        throw invalid_argument(string_printf("(--%s#%zu) excess argument", named_it.first.c_str(), index));
+        throw invalid_argument(std::format("(--{}#{}) excess argument", named_it.first.c_str(), index));
       }
       index++;
     }

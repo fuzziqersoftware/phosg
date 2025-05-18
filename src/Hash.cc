@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <format>
 #include <string>
 
 #include "Encoding.hh"
@@ -184,8 +185,7 @@ string MD5::bin() const {
 }
 
 string MD5::hex() const {
-  return phosg::string_printf("%08" PRIX32 "%08" PRIX32 "%08" PRIX32 "%08" PRIX32,
-      bswap32(this->a0), bswap32(this->b0), bswap32(this->c0), bswap32(this->d0));
+  return format("{:08X}{:08X}{:08X}{:08X}", bswap32(this->a0), bswap32(this->b0), bswap32(this->c0), bswap32(this->d0));
 }
 
 SHA1::SHA1(const void* data, size_t size) {
@@ -274,8 +274,7 @@ std::string SHA1::bin() const {
 }
 
 std::string SHA1::hex() const {
-  return phosg::string_printf("%08" PRIX32 "%08" PRIX32 "%08" PRIX32 "%08" PRIX32 "%08" PRIX32,
-      this->h[0], this->h[1], this->h[2], this->h[3], this->h[4]);
+  return format("{:08X}{:08X}{:08X}{:08X}{:08X}", this->h[0], this->h[1], this->h[2], this->h[3], this->h[4]);
 }
 
 static inline uint32_t rotate_right(uint32_t x, uint8_t bits) {
@@ -381,7 +380,7 @@ std::string SHA256::bin() const {
 }
 
 std::string SHA256::hex() const {
-  return phosg::string_printf("%08" PRIX32 "%08" PRIX32 "%08" PRIX32 "%08" PRIX32 "%08" PRIX32 "%08" PRIX32 "%08" PRIX32 "%08" PRIX32,
+  return format("{:08X}{:08X}{:08X}{:08X}{:08X}{:08X}{:08X}{:08X}",
       this->h[0], this->h[1], this->h[2], this->h[3], this->h[4], this->h[5], this->h[6], this->h[7]);
 }
 

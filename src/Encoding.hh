@@ -7,6 +7,7 @@
 #include <cinttypes>
 #include <cstdint>
 
+#include <format>
 #include <string>
 
 #include "Platform.hh"
@@ -22,54 +23,6 @@ constexpr T msb_for_type = (static_cast<T>(1) << (bits_for_type<T> - 1));
 
 template <typename T>
 constexpr uint64_t mask_for_type = 0xFFFFFFFFFFFFFFFF >> (64 - bits_for_type<T>);
-
-template <typename T>
-constexpr const char* printf_format_for_type() {
-  static_assert(always_false<T>::v,
-      "unspecialized printf_format_for_type should never be called");
-  return nullptr;
-}
-
-template <typename T>
-constexpr const char* printf_hex_format_for_type() {
-  static_assert(always_false<T>::v,
-      "unspecialized printf_hex_format_for_type should never be called");
-  return nullptr;
-}
-
-template <>
-constexpr const char* printf_format_for_type<uint8_t>() { return PRIu8; }
-template <>
-constexpr const char* printf_format_for_type<int8_t>() { return PRId8; }
-template <>
-constexpr const char* printf_format_for_type<uint16_t>() { return PRIu16; }
-template <>
-constexpr const char* printf_format_for_type<int16_t>() { return PRId16; }
-template <>
-constexpr const char* printf_format_for_type<uint32_t>() { return PRIu32; }
-template <>
-constexpr const char* printf_format_for_type<int32_t>() { return PRId32; }
-template <>
-constexpr const char* printf_format_for_type<uint64_t>() { return PRIu64; }
-template <>
-constexpr const char* printf_format_for_type<int64_t>() { return PRId64; }
-
-template <>
-constexpr const char* printf_hex_format_for_type<uint8_t>() { return PRIX8; }
-template <>
-constexpr const char* printf_hex_format_for_type<int8_t>() { return PRIX8; }
-template <>
-constexpr const char* printf_hex_format_for_type<uint16_t>() { return PRIX16; }
-template <>
-constexpr const char* printf_hex_format_for_type<int16_t>() { return PRIX16; }
-template <>
-constexpr const char* printf_hex_format_for_type<uint32_t>() { return PRIX32; }
-template <>
-constexpr const char* printf_hex_format_for_type<int32_t>() { return PRIX32; }
-template <>
-constexpr const char* printf_hex_format_for_type<uint64_t>() { return PRIX64; }
-template <>
-constexpr const char* printf_hex_format_for_type<int64_t>() { return PRIX64; }
 
 template <typename ResultT, typename SrcT>
 ResultT sign_extend(SrcT src) {
@@ -357,46 +310,26 @@ public:
 } __attribute__((packed));
 
 template <typename ExposedT, typename StoredT = ExposedT>
-class reverse_endian
-    : public converted_endian<ExposedT, StoredT, bswap_st<ExposedT, StoredT>, bswap_st<StoredT, ExposedT>> {
-public:
-  using converted_endian<ExposedT, StoredT, bswap_st<ExposedT, StoredT>, bswap_st<StoredT, ExposedT>>::converted_endian;
-} __attribute__((packed));
+using reverse_endian = converted_endian<ExposedT, StoredT, bswap_st<ExposedT, StoredT>, bswap_st<StoredT, ExposedT>>;
 
 template <typename ExposedT, typename StoredT = ExposedT>
-class same_endian
-    : public converted_endian<ExposedT, StoredT, ident_st<ExposedT, StoredT>, ident_st<StoredT, ExposedT>> {
-public:
-  using converted_endian<ExposedT, StoredT, ident_st<ExposedT, StoredT>, ident_st<StoredT, ExposedT>>::converted_endian;
-} __attribute__((packed));
+using same_endian = converted_endian<ExposedT, StoredT, ident_st<ExposedT, StoredT>, ident_st<StoredT, ExposedT>>;
 
 #ifdef PHOSG_LITTLE_ENDIAN
 
 template <typename ExposedT, typename StoredT = ExposedT>
-class big_endian : public reverse_endian<ExposedT, StoredT> {
-public:
-  using reverse_endian<ExposedT, StoredT>::reverse_endian;
-} __attribute__((packed));
+using big_endian = reverse_endian<ExposedT, StoredT>;
 
 template <typename ExposedT, typename StoredT = ExposedT>
-class little_endian : public same_endian<ExposedT, StoredT> {
-public:
-  using same_endian<ExposedT, StoredT>::same_endian;
-} __attribute__((packed));
+using little_endian = same_endian<ExposedT, StoredT>;
 
 #elif defined(PHOSG_BIG_ENDIAN)
 
 template <typename ExposedT, typename StoredT = ExposedT>
-class little_endian : public reverse_endian<ExposedT, StoredT> {
-public:
-  using reverse_endian<ExposedT, StoredT>::reverse_endian;
-} __attribute__((packed));
+using little_endian = reverse_endian<ExposedT, StoredT>;
 
 template <typename ExposedT, typename StoredT = ExposedT>
-class big_endian : public same_endian<ExposedT, StoredT> {
-public:
-  using same_endian<ExposedT, StoredT>::same_endian;
-} __attribute__((packed));
+using big_endian = same_endian<ExposedT, StoredT>;
 
 #else
 
@@ -473,3 +406,17 @@ std::string base64_decode(const std::string& data, const char* alphabet = nullpt
 std::string rot13(const void* data, size_t size);
 
 } // namespace phosg
+
+// Enable converted_endian objects and their subclasses to be used directly
+// with std::format without calling .load()
+template <typename ExposedT, typename StoredT, typename OnStoreSt, typename OnLoadSt, typename CharT>
+struct std::formatter<phosg::converted_endian<ExposedT, StoredT, OnStoreSt, OnLoadSt>, CharT> {
+  std::formatter<ExposedT, CharT> inner;
+  constexpr auto parse(std::format_parse_context& ctx) {
+    return this->inner.parse(ctx);
+  }
+  template <typename ContextT>
+  auto format(const phosg::converted_endian<ExposedT, StoredT, OnStoreSt, OnLoadSt>& w, ContextT& ctx) const {
+    return this->inner.format(w.load(), ctx);
+  }
+};

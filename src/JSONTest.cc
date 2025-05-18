@@ -49,7 +49,7 @@ int main(int, char**) {
   uint32_t format_option = JSON::SerializeOption::FORMAT;
   uint32_t one_char_trivial_option = JSON::SerializeOption::ONE_CHARACTER_TRIVIAL_CONSTANTS;
 
-  fprintf(stderr, "-- construction\n");
+  fwrite_fmt(stderr, "-- construction\n");
   JSON orig_root = JSON::dict({
       {"null", nullptr},
       {"true", true},
@@ -62,7 +62,7 @@ int main(int, char**) {
       {"int1", 134},
       {"int2", -3214},
       {"float0", 0.0},
-      {"float1", 1.4},
+      {"float1", 1.5},
       {"float2", -10.5},
       {"enum", JSONTestEnum::TWO},
       {"list0", JSON::list({})},
@@ -82,7 +82,7 @@ int main(int, char**) {
       {"int1", 134},
       {"int2", -3214},
       {"float0", 0.0},
-      {"float1", 1.4},
+      {"float1", 1.5},
       {"float2", -10.5},
       {"enum", JSONTestEnum::TWO},
       {"list0", JSON::list()},
@@ -91,12 +91,12 @@ int main(int, char**) {
       {"dict1", JSON::dict({{"one", 1}})},
   });
 
-  fprintf(stderr, "-- equality\n");
+  fwrite_fmt(stderr, "-- equality\n");
   expect_eq(root, orig_root);
   root.emplace("extra_item", 3);
   expect_ne(root, orig_root);
 
-  fprintf(stderr, "-- int/float equality\n");
+  fwrite_fmt(stderr, "-- int/float equality\n");
   expect(JSON(0).is_int());
   expect(JSON(3).is_int());
   expect(JSON(0.0).is_float());
@@ -106,7 +106,7 @@ int main(int, char**) {
   expect_ne(JSON(true), JSON(1));
 
   {
-    fprintf(stderr, "-- implicit unwrap operators\n");
+    fwrite_fmt(stderr, "-- implicit unwrap operators\n");
 
     bool b = root.at("true").as_bool();
     expect_eq(b, true);
@@ -124,13 +124,13 @@ int main(int, char**) {
     expect_eq(i, 0);
 
     double f = root.at("float1").as_float();
-    expect_eq(f, 1.4);
+    expect_eq(f, 1.5);
     f = root.at("float0").as_float();
     expect_eq(f, 0.0);
   }
 
   {
-    fprintf(stderr, "-- get_enum\n");
+    fwrite_fmt(stderr, "-- get_enum\n");
     JSON enum_root = JSON::dict({{"enum1", "ONE"}, {"enum3", "THREE"}});
     JSONTestEnum e = enum_root.get_enum("enum1", JSONTestEnum::TWO);
     expect_eq(e, JSONTestEnum::ONE);
@@ -140,17 +140,17 @@ int main(int, char**) {
     expect_eq(e, JSONTestEnum::TWO);
   }
 
-  fprintf(stderr, "-- get_* with default value\n");
+  fwrite_fmt(stderr, "-- get_* with default value\n");
   expect_eq(root.get_bool("true", false), true);
   expect_eq(root.get_bool("missing", false), false);
   expect_eq(root.get_string("string0", "def"), "");
   expect_eq(root.get_string("missing", "def"), "def");
   expect_eq(root.get_int("int1", 246), 134);
   expect_eq(root.get_int("missing", 246), 246);
-  expect_eq(root.get_float("float1", 3.0), 1.4);
+  expect_eq(root.get_float("float1", 3.0), 1.5);
   expect_eq(root.get_float("missing", 3.0), 3.0);
 
-  fprintf(stderr, "-- get_* without default value\n");
+  fwrite_fmt(stderr, "-- get_* without default value\n");
   expect_eq(root.get_bool("true"), true);
   expect_raises(out_of_range, [&]() {
     root.get_bool("missing");
@@ -163,12 +163,12 @@ int main(int, char**) {
   expect_raises(out_of_range, [&]() {
     root.get_int("missing");
   });
-  expect_eq(root.at("float1"), 1.4);
+  expect_eq(root.at("float1"), 1.5);
   expect_raises(out_of_range, [&]() {
     root.get_float("missing");
   });
 
-  fprintf(stderr, "-- null checks\n");
+  fwrite_fmt(stderr, "-- null checks\n");
   expect_eq(root.at("null").is_null(), true);
   expect_eq(root.at("true").is_null(), false);
   expect_eq(root.at("false").is_null(), false);
@@ -187,7 +187,7 @@ int main(int, char**) {
   expect_eq(root.at("dict0").is_null(), false);
   expect_eq(root.at("dict1").is_null(), false);
 
-  fprintf(stderr, "-- comparison shortcut operators (null vs. x)\n");
+  fwrite_fmt(stderr, "-- comparison shortcut operators (null vs. x)\n");
   expect_eq(root.at("null") == nullptr, true);
   expect_eq(root.at("null") != nullptr, false);
   expect_eq(root.at("null") == true, false);
@@ -227,7 +227,7 @@ int main(int, char**) {
   expect_eq(root.at("null") == JSON::dict({{"seven", 7}}), false);
   expect_eq(root.at("null") != JSON::dict({{"seven", 7}}), true);
 
-  fprintf(stderr, "-- comparison shortcut operators (bool vs. x)\n");
+  fwrite_fmt(stderr, "-- comparison shortcut operators (bool vs. x)\n");
   expect_eq(root.at("true") == nullptr, false);
   expect_eq(root.at("true") != nullptr, true);
   expect_eq(root.at("true") == true, true);
@@ -267,7 +267,7 @@ int main(int, char**) {
   expect_eq(root.at("true") == JSON::dict({{"seven", 7}}), false);
   expect_eq(root.at("true") != JSON::dict({{"seven", 7}}), true);
 
-  fprintf(stderr, "-- comparison shortcut operators (string vs. x)\n");
+  fwrite_fmt(stderr, "-- comparison shortcut operators (string vs. x)\n");
   expect_eq(root.at("string1") == nullptr, false);
   expect_eq(root.at("string1") != nullptr, true);
   expect_eq(root.at("string1") == true, false);
@@ -321,7 +321,7 @@ int main(int, char**) {
   expect_eq(root.at("string1") == JSON::dict({{"seven", 7}}), false);
   expect_eq(root.at("string1") != JSON::dict({{"seven", 7}}), true);
 
-  fprintf(stderr, "-- comparison shortcut operators (int vs. x)\n");
+  fwrite_fmt(stderr, "-- comparison shortcut operators (int vs. x)\n");
   expect_eq(root.at("int0") == nullptr, false);
   expect_eq(root.at("int0") != nullptr, true);
   expect_eq(root.at("int0") == true, false);
@@ -373,7 +373,7 @@ int main(int, char**) {
   expect_eq(root.at("int0") == JSON::dict({{"zero", 0}}), false);
   expect_eq(root.at("int0") != JSON::dict({{"zero", 0}}), true);
 
-  fprintf(stderr, "-- comparison shortcut operators (float vs. x)\n");
+  fwrite_fmt(stderr, "-- comparison shortcut operators (float vs. x)\n");
   expect_eq(root.at("float0") == nullptr, false);
   expect_eq(root.at("float0") != nullptr, true);
   expect_eq(root.at("float0") == true, false);
@@ -425,7 +425,7 @@ int main(int, char**) {
   expect_eq(root.at("float0") == JSON::dict({{"zero", 0}}), false);
   expect_eq(root.at("float0") != JSON::dict({{"zero", 0}}), true);
 
-  fprintf(stderr, "-- comparison shortcut operators (list vs. x)\n");
+  fwrite_fmt(stderr, "-- comparison shortcut operators (list vs. x)\n");
   expect_eq(root.at("list1") == nullptr, false);
   expect_eq(root.at("list1") != nullptr, true);
   expect_eq(root.at("list1") == true, false);
@@ -483,7 +483,7 @@ int main(int, char**) {
   expect_eq(root.at("list1") == JSON::dict({{"zero", 0}}), false);
   expect_eq(root.at("list1") != JSON::dict({{"zero", 0}}), true);
 
-  fprintf(stderr, "-- comparison shortcut operators (dict vs. x)\n");
+  fwrite_fmt(stderr, "-- comparison shortcut operators (dict vs. x)\n");
   expect_eq(root.at("dict1") == nullptr, false);
   expect_eq(root.at("dict1") != nullptr, true);
   expect_eq(root.at("dict1") == true, false);
@@ -529,7 +529,7 @@ int main(int, char**) {
   expect_eq(root.at("dict1") != JSON::dict({{"one", 1}}), false);
   expect_eq(root.at("dict1") != JSON::dict({{"one", 2}}), true);
 
-  fprintf(stderr, "-- get()\n");
+  fwrite_fmt(stderr, "-- get()\n");
   expect_eq(root.get("true", false), true);
   expect_eq(root.get("false", true), false);
   expect_eq(root.get("missing", false), false);
@@ -537,14 +537,14 @@ int main(int, char**) {
   expect_eq(root.get("missing", "def"), "def");
   expect_eq(root.get("int1", 290), 134);
   expect_eq(root.get("missing", 290), 290);
-  expect_eq(root.get("float1", 3.0), 1.4);
+  expect_eq(root.get("float1", 3.0), 1.5);
   expect_eq(root.get("missing", 3.0), 3.0);
   expect_eq(root.get("list1", JSON::list({2})), JSON::list({1}));
   expect_eq(root.get("missing", JSON::list({2})), JSON::list({2}));
   expect_eq(root.get("dict1", JSON::dict({{"two", 2}})), JSON::dict({{"one", 1}}));
   expect_eq(root.get("missing", JSON::dict({{"two", 2}})), JSON::dict({{"two", 2}}));
 
-  fprintf(stderr, "-- retrieval + equality (with other JSON objects)\n");
+  fwrite_fmt(stderr, "-- retrieval + equality (with other JSON objects)\n");
   expect_eq(root.at("null"), JSON(nullptr));
   expect_eq(root.at("true"), JSON(true));
   expect_eq(root.at("false"), JSON(false));
@@ -556,7 +556,7 @@ int main(int, char**) {
   expect_eq(root.at("int1"), JSON((int64_t)134));
   expect_eq(root.at("int2"), JSON((int64_t)-3214));
   expect_eq(root.at("float0"), JSON(0.0));
-  expect_eq(root.at("float1"), JSON(1.4));
+  expect_eq(root.at("float1"), JSON(1.5));
   expect_eq(root.at("float2"), JSON(-10.5));
   expect_eq(root.at("list0"), JSON::list());
   expect_eq(root.at("list1"), JSON::list({1}));
@@ -565,7 +565,7 @@ int main(int, char**) {
   expect_eq(root.at("dict1"), JSON::dict({{"one", 1}}));
   expect_eq(root.at("dict1").at("one"), JSON((int64_t)1));
 
-  fprintf(stderr, "-- retrieval + unwrap + equality\n");
+  fwrite_fmt(stderr, "-- retrieval + unwrap + equality\n");
   expect_eq(root.at("true").as_bool(), true);
   expect_eq(root.at("false").as_bool(), false);
   expect_eq(root.at("string0").as_string(), "");
@@ -576,7 +576,7 @@ int main(int, char**) {
   expect_eq(root.at("int1").as_int(), 134);
   expect_eq(root.at("int2").as_int(), -3214);
   expect_eq(root.at("float0").as_float(), 0.0);
-  expect_eq(root.at("float1").as_float(), 1.4);
+  expect_eq(root.at("float1").as_float(), 1.5);
   expect_eq(root.at("float2").as_float(), -10.5);
   expect_eq(root.at("list0").as_list(), vector<unique_ptr<JSON>>());
   expect_eq(root.at("list1").as_list().size(), 1);
@@ -585,7 +585,7 @@ int main(int, char**) {
   expect_eq(root.at("dict1").at("one").as_int(), 1);
   expect_eq(root.at("dict1").as_dict().size(), 1);
 
-  fprintf(stderr, "-- serialize\n");
+  fwrite_fmt(stderr, "-- serialize\n");
   expect_eq(root.at("null").serialize(), "null");
   expect_eq(root.at("true").serialize(), "true");
   expect_eq(root.at("false").serialize(), "false");
@@ -603,14 +603,14 @@ int main(int, char**) {
   expect_eq(root.at("int1").serialize(hex_option), "0x86");
   expect_eq(root.at("int2").serialize(hex_option), "-0xC8E");
   expect_eq(root.at("float0").serialize(), "0.0");
-  expect_eq(root.at("float1").serialize(), "1.4");
+  expect_eq(root.at("float1").serialize(), "1.5");
   expect_eq(root.at("float2").serialize(), "-10.5");
   expect_eq(root.at("list0").serialize(), "[]");
   expect_eq(root.at("list1").serialize(), "[1]");
   expect_eq(root.at("dict0").serialize(), "{}");
   expect_eq(root.at("dict1").serialize(), "{\"one\":1}");
 
-  fprintf(stderr, "-- serialize (format)\n");
+  fwrite_fmt(stderr, "-- serialize (format)\n");
   expect_eq(root.at("null").serialize(format_option), "null");
   expect_eq(root.at("true").serialize(format_option), "true");
   expect_eq(root.at("false").serialize(format_option), "false");
@@ -628,14 +628,14 @@ int main(int, char**) {
   expect_eq(root.at("int1").serialize(format_option | hex_option), "0x86");
   expect_eq(root.at("int2").serialize(format_option | hex_option), "-0xC8E");
   expect_eq(root.at("float0").serialize(format_option), "0.0");
-  expect_eq(root.at("float1").serialize(format_option), "1.4");
+  expect_eq(root.at("float1").serialize(format_option), "1.5");
   expect_eq(root.at("float2").serialize(format_option), "-10.5");
   expect_eq(root.at("list0").serialize(format_option), "[]");
   expect_eq(root.at("list1").serialize(format_option), "[\n  1\n]");
   expect_eq(root.at("dict0").serialize(format_option), "{}");
   expect_eq(root.at("dict1").serialize(format_option), "{\n  \"one\": 1\n}");
 
-  fprintf(stderr, "-- parse\n");
+  fwrite_fmt(stderr, "-- parse\n");
   expect_eq(root.at("null"), JSON::parse("null"));
   expect_eq(root.at("true"), JSON::parse("true"));
   expect_eq(root.at("false"), JSON::parse("false"));
@@ -653,24 +653,24 @@ int main(int, char**) {
   expect_eq(root.at("int1"), JSON::parse("0x86"));
   expect_eq(root.at("int2"), JSON::parse("-0xC8E"));
   expect_eq(root.at("float0"), JSON::parse("0.0"));
-  expect_eq(root.at("float1"), JSON::parse("1.4"));
+  expect_eq(root.at("float1"), JSON::parse("1.5"));
   expect_eq(root.at("float2"), JSON::parse("-10.5"));
   expect_eq(root.at("list0"), JSON::parse("[]"));
   expect_eq(root.at("list1"), JSON::parse("[1]"));
   expect_eq(root.at("dict0"), JSON::parse("{}"));
   expect_eq(root.at("dict1"), JSON::parse("{\"one\":1}"));
 
-  fprintf(stderr, "-- parse list with trailing comma\n");
+  fwrite_fmt(stderr, "-- parse list with trailing comma\n");
   expect_eq(root.at("list1"), JSON::parse("[1,]"));
-  fprintf(stderr, "-- parse dict with trailing comma\n");
+  fwrite_fmt(stderr, "-- parse dict with trailing comma\n");
   expect_eq(root.at("dict1"), JSON::parse("{\"one\":1,}"));
 
-  fprintf(stderr, "-- serialize / parse\n");
+  fwrite_fmt(stderr, "-- serialize / parse\n");
   expect_eq(JSON::parse(root.serialize()), root);
-  fprintf(stderr, "-- serialize (format) / parse\n");
+  fwrite_fmt(stderr, "-- serialize (format) / parse\n");
   expect_eq(JSON::parse(root.serialize(JSON::SerializeOption::FORMAT)), root);
 
-  fprintf(stderr, "-- exceptions\n");
+  fwrite_fmt(stderr, "-- exceptions\n");
   expect_raises(out_of_range, [&]() {
     root.at("missing_key");
   });
@@ -693,12 +693,12 @@ int main(int, char**) {
   expect_eq(JSON::parse("false // a comment after valid JSON").serialize(), "false");
   expect_eq(JSON::parse("false     ").serialize(), "false");
 
-  fprintf(stderr, "-- comments\n");
+  fwrite_fmt(stderr, "-- comments\n");
   expect_eq(JSON::parse("// this is null\nnull"), nullptr);
   expect_eq(JSON::parse("[\n// empty list\n]"), JSON::list());
   expect_eq(JSON::parse("{\n// empty dict\n}"), JSON::dict());
 
-  fprintf(stderr, "-- extensions in strict mode\n");
+  fwrite_fmt(stderr, "-- extensions in strict mode\n");
   expect_raises(JSON::parse_error, [&]() {
     JSON::parse("0x123", 5, true);
   });
@@ -706,6 +706,6 @@ int main(int, char**) {
     JSON::parse("// this is null\nnull", 20, true);
   });
 
-  printf("JSONTest: all tests passed\n");
+  fwrite_fmt(stderr, "JSONTest: all tests passed\n");
   return 0;
 }

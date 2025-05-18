@@ -14,9 +14,9 @@ using namespace std;
 using namespace phosg;
 
 void run_randomized_test() {
-  printf("-- randomized\n");
+  fwrite_fmt(stdout, "-- randomized\n");
 
-  printf("--   construction/insert\n");
+  fwrite_fmt(stdout, "--   construction/insert\n");
   srand(time(nullptr));
   KDTree<Vector2<int64_t>, int64_t> t;
   set<pair<int64_t, int64_t>> points;
@@ -27,9 +27,9 @@ void run_randomized_test() {
       t.insert({x, y}, x * y);
     }
   }
-  fprintf(stderr, "--     tree: size=%zu, depth=%zu\n", t.size(), t.depth());
+  fwrite_fmt(stderr, "--     tree: size={}, depth={}\n", t.size(), t.depth());
 
-  printf("--   within\n");
+  fwrite_fmt(stdout, "--   within\n");
   {
     set<pair<int64_t, int64_t>> remaining_points = points;
     for (const auto& it : t.within({250, 250}, {750, 750})) {
@@ -44,7 +44,7 @@ void run_randomized_test() {
     }
   }
 
-  printf("--   erase 1\n");
+  fwrite_fmt(stdout, "--   erase 1\n");
   {
     // delete all points where x + y is an odd number
     for (auto it = t.begin(); it != t.end();) {
@@ -55,14 +55,14 @@ void run_randomized_test() {
         ++it;
       }
     }
-    fprintf(stderr, "--     tree: size=%zu, depth=%zu\n", t.size(), t.depth());
+    fwrite_fmt(stderr, "--     tree: size={}, depth={}\n", t.size(), t.depth());
     for (auto it : t) {
       expect_eq(1, points.count(make_pair(it.first.x, it.first.y)));
       expect_eq(0, (it.first.x + it.first.y) % 2);
     }
   }
 
-  printf("--   erase 2\n");
+  fwrite_fmt(stdout, "--   erase 2\n");
   {
     // delete all points in (250, 250) -> (750, 750)
     for (auto it = t.begin(); it != t.end();) {
@@ -74,7 +74,7 @@ void run_randomized_test() {
         ++it;
       }
     }
-    fprintf(stderr, "--     tree: size=%zu, depth=%zu\n", t.size(), t.depth());
+    fwrite_fmt(stderr, "--     tree: size={}, depth={}\n", t.size(), t.depth());
     for (auto it : t) {
       expect_eq(1, points.count(make_pair(it.first.x, it.first.y)));
       expect_eq(0, (it.first.x + it.first.y) % 2);
@@ -86,9 +86,9 @@ void run_randomized_test() {
 }
 
 void run_basic_test() {
-  printf("-- basic\n");
+  fwrite_fmt(stdout, "-- basic\n");
 
-  printf("--   construction\n");
+  fwrite_fmt(stdout, "--   construction\n");
 
   KDTree<Vector2<int64_t>, int64_t> t;
   expect_eq(t.size(), 0);
@@ -123,7 +123,7 @@ void run_basic_test() {
       {7, 2, 5},
   });
 
-  printf("--   insert\n");
+  fwrite_fmt(stdout, "--   insert\n");
   t.insert({2, 3}, 0);
   t.insert({5, 4}, 1);
   t.insert({9, 6}, 2);
@@ -131,7 +131,7 @@ void run_basic_test() {
   t.insert({8, 1}, 4);
   t.insert({7, 2}, 5);
 
-  printf("--   at/exists\n");
+  fwrite_fmt(stdout, "--   at/exists\n");
   expect_eq(6, t.size());
   expect_eq(4, t.at({8, 1}));
   expect_raises(out_of_range, [&]() {
@@ -140,7 +140,7 @@ void run_basic_test() {
   expect_eq(true, t.exists({5, 4}));
   expect_eq(false, t.exists({5, 3}));
 
-  printf("--   within\n");
+  fwrite_fmt(stdout, "--   within\n");
   {
     set<Entry> remaining_entries;
     remaining_entries.insert({2, 3, 0});
@@ -151,7 +151,7 @@ void run_basic_test() {
     expect_eq(0, remaining_entries.size());
   }
 
-  printf("--   erase\n");
+  fwrite_fmt(stdout, "--   erase\n");
   expect_eq(false, t.erase({8, 6}, 2));
   expect_eq(6, t.size());
   expect_eq(false, t.erase({9, 6}, 1));
@@ -159,7 +159,7 @@ void run_basic_test() {
   expect_eq(true, t.erase({9, 6}, 2));
   expect_eq(5, t.size());
 
-  printf("--   iterate\n");
+  fwrite_fmt(stdout, "--   iterate\n");
   {
     set<Entry> remaining_entries(entries.begin(), entries.end());
     expect_eq(1, remaining_entries.erase({9, 6, 2}));
@@ -169,7 +169,7 @@ void run_basic_test() {
     expect_eq(0, remaining_entries.size());
   }
 
-  printf("--   iterate+erase\n");
+  fwrite_fmt(stdout, "--   iterate+erase\n");
   {
     set<Entry> remaining_entries(entries.begin(), entries.end());
     expect_eq(1, remaining_entries.erase({9, 6, 2}));
@@ -184,7 +184,7 @@ void run_basic_test() {
     expect_eq(0, remaining_entries.size());
   }
 
-  printf("--   ensure committed (iterate)\n");
+  fwrite_fmt(stdout, "--   ensure committed (iterate)\n");
   {
     set<Entry> remaining_entries(entries.begin(), entries.end());
     expect_eq(1, remaining_entries.erase({9, 6, 2}));
@@ -195,7 +195,7 @@ void run_basic_test() {
     expect_eq(0, remaining_entries.size());
   }
 
-  printf("--   ensure committed (within)\n");
+  fwrite_fmt(stdout, "--   ensure committed (within)\n");
   {
     set<Entry> remaining_entries;
     remaining_entries.insert({2, 3, 0});
@@ -209,6 +209,6 @@ void run_basic_test() {
 int main(int, char**) {
   run_basic_test();
   run_randomized_test();
-  printf("KDTreeTest: all tests passed\n");
+  fwrite_fmt(stdout, "KDTreeTest: all tests passed\n");
   return 0;
 }

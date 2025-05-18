@@ -1,5 +1,6 @@
 #pragma once
 
+#include <format>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -170,8 +171,8 @@ private:
     ret += ") ";
     return ret;
   }
-  static inline std::string exc_prefix(size_t position) {
-    return string_printf("(@%zu) ", position);
+  static inline std::string exc_prefix(uint64_t position) {
+    return std::format("(@{}) ", position);
   }
 
   template <typename RetT, typename IdentT>

@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <sys/types.h>
-#include <sys/uio.h>
 
 #include <deque>
 #include <memory>
@@ -17,6 +16,11 @@
 #include "Platform.hh"
 
 namespace phosg {
+
+template <typename... ArgTs>
+void fwrite_fmt(FILE* f, std::format_string<ArgTs...> fmt, ArgTs&&... args) {
+  fwritex(f, std::format(fmt, std::forward<ArgTs>(args)...));
+}
 
 std::unique_ptr<void, void (*)(void*)> malloc_unique(size_t size);
 
@@ -117,11 +121,6 @@ inline std::string escape_controls_utf8(const std::string& s) {
   return escape_controls(s, false);
 }
 
-std::string string_printf(const char* fmt, ...) ATTR_PRINTF(1, 2);
-std::wstring wstring_printf(const wchar_t* fmt, ...);
-std::string string_vprintf(const char* fmt, va_list va);
-std::wstring wstring_vprintf(const wchar_t* fmt, va_list va);
-
 uint8_t value_for_hex_char(char x);
 
 enum class LogLevel : int {
@@ -141,8 +140,6 @@ const char* name_for_enum<LogLevel>(LogLevel level);
 LogLevel log_level();
 void set_log_level(LogLevel new_level);
 
-void print_log_prefix(FILE* stream, LogLevel level);
-
 inline bool should_log(LogLevel incoming_level, LogLevel min_level) {
   return (static_cast<int>(incoming_level) >= static_cast<int>(min_level));
 }
@@ -151,49 +148,43 @@ inline bool should_log(LogLevel incoming_level) {
   return should_log(incoming_level, log_level());
 }
 
-template <LogLevel LEVEL>
-void log_v(const char* fmt, va_list va) {
-  if (should_log(LEVEL)) {
-    print_log_prefix(stderr, LEVEL);
-    vfprintf(stderr, fmt, va);
-    putc('\n', stderr);
+void print_log_prefix(FILE* stream, LogLevel level);
+
+template <LogLevel Level, typename... ArgTs>
+bool log_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) {
+  if (!should_log(Level, log_level())) {
+    return false;
   }
+  print_log_prefix(stderr, Level);
+  fwrite_fmt(stderr, fmt, std::forward<ArgTs>(args)...);
+  fputc('\n', stderr);
+  return true;
 }
 
-void log_debug_v(const char* fmt, va_list va);
-void log_info_v(const char* fmt, va_list va);
-void log_warning_v(const char* fmt, va_list va);
-void log_error_v(const char* fmt, va_list va);
-
-template <LogLevel LEVEL>
-ATTR_PRINTF(1, 2)
-void log(const char* fmt, ...) {
-  if (should_log(LEVEL)) {
-    va_list va;
-    va_start(va, fmt);
-    log_v<LEVEL>(fmt, va);
-    va_end(va);
-  }
+template <typename... ArgTs>
+bool log_debug_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) {
+  return log_f<LogLevel::DEBUG>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
 }
-
-ATTR_PRINTF(1, 2)
-void log_debug(const char* fmt, ...);
-ATTR_PRINTF(1, 2)
-void log_info(const char* fmt, ...);
-ATTR_PRINTF(1, 2)
-void log_warning(const char* fmt, ...);
-ATTR_PRINTF(1, 2)
-void log_error(const char* fmt, ...);
+template <typename... ArgTs>
+bool log_info_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) {
+  return log_f<LogLevel::INFO>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
+}
+template <typename... ArgTs>
+bool log_warning_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) {
+  return log_f<LogLevel::WARNING>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
+}
+template <typename... ArgTs>
+bool log_error_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) {
+  return log_f<LogLevel::ERROR>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
+}
 
 struct PrefixedLogger {
   std::string prefix;
   LogLevel min_level;
 
-  explicit PrefixedLogger(
-      const std::string& prefix, LogLevel min_level = LogLevel::USE_DEFAULT);
+  explicit PrefixedLogger(const std::string& prefix, LogLevel min_level = LogLevel::USE_DEFAULT);
 
   PrefixedLogger sub(const std::string& prefix, LogLevel min_level = LogLevel::USE_DEFAULT) const;
-  PrefixedLogger subf(const char* fmt, ...) const ATTR_PRINTF(2, 3);
 
   inline LogLevel effective_level() const {
     return this->min_level == LogLevel::USE_DEFAULT ? log_level() : this->min_level;
@@ -203,45 +194,34 @@ struct PrefixedLogger {
     return (static_cast<int>(incoming_level) >= static_cast<int>(this->effective_level()));
   }
 
-  template <LogLevel LEVEL>
-  bool v(const char* fmt, va_list va) const {
-    if (!this->should_log(LEVEL)) {
+  template <LogLevel Level, typename... ArgTs>
+  bool log_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) const {
+    if (!this->should_log(Level)) {
       return false;
     }
-    print_log_prefix(stderr, LEVEL);
+    print_log_prefix(stderr, Level);
     fwritex(stderr, this->prefix);
-    vfprintf(stderr, fmt, va);
-    putc('\n', stderr);
+    fwrite_fmt(stderr, fmt, std::forward<ArgTs>(args)...);
+    fputc('\n', stderr);
     return true;
   }
 
-  bool debug_v(const char* fmt, va_list va) const { return this->v<LogLevel::DEBUG>(fmt, va); }
-  bool info_v(const char* fmt, va_list va) const { return this->v<LogLevel::INFO>(fmt, va); }
-  bool warning_v(const char* fmt, va_list va) const { return this->v<LogLevel::WARNING>(fmt, va); }
-  bool error_v(const char* fmt, va_list va) const { return this->v<LogLevel::ERROR>(fmt, va); }
-
-#define LOG_HELPER_BODY(LEVEL)    \
-  if (!this->should_log(LEVEL)) { \
-    return false;                 \
-  }                               \
-  va_list va;                     \
-  va_start(va, fmt);              \
-  this->v<LEVEL>(fmt, va);        \
-  va_end(va);                     \
-  return true;
-
-  template <LogLevel LEVEL>
-  ATTR_PRINTF(2, 3)
-  bool operator()(const char* fmt, ...) const {
-    LOG_HELPER_BODY(LEVEL);
+  template <typename... ArgTs>
+  bool debug_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) const {
+    return this->log_f<LogLevel::DEBUG>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
   }
-
-  bool debug(const char* fmt, ...) const ATTR_PRINTF(2, 3) { LOG_HELPER_BODY(LogLevel::DEBUG); }
-  bool info(const char* fmt, ...) const ATTR_PRINTF(2, 3) { LOG_HELPER_BODY(LogLevel::INFO); }
-  bool warning(const char* fmt, ...) const ATTR_PRINTF(2, 3) { LOG_HELPER_BODY(LogLevel::WARNING); }
-  bool error(const char* fmt, ...) const ATTR_PRINTF(2, 3) { LOG_HELPER_BODY(LogLevel::ERROR); }
-
-#undef LOG_HELPER_BODY
+  template <typename... ArgTs>
+  bool info_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) const {
+    return this->log_f<LogLevel::INFO>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
+  }
+  template <typename... ArgTs>
+  bool warning_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) const {
+    return this->log_f<LogLevel::WARNING>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
+  }
+  template <typename... ArgTs>
+  bool error_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) const {
+    return this->log_f<LogLevel::ERROR>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
+  }
 };
 
 std::vector<std::string> split(const std::string& s, char delim, size_t max_splits = 0);
@@ -315,9 +295,6 @@ void print_indent(FILE* stream, int indent_level);
 enum PrintDataFlags {
   USE_COLOR = 0x0001, // Force color output (for diffs and non-ASCII)
   PRINT_ASCII = 0x0002, // Print ASCII view on the right
-  PRINT_FLOAT = 0x0004, // Print float view on the right
-  PRINT_DOUBLE = 0x0008, // Print double view on the right
-  REVERSE_ENDIAN_FLOATS = 0x0010, // Floats/doubles should be byteswapped
   COLLAPSE_ZERO_LINES = 0x0020, // Skip lines of all zeroes
   SKIP_SEPARATOR = 0x0040, // Instead of " | ", print just " "
   DISABLE_COLOR = 0x0080, // Never use color output
@@ -325,8 +302,6 @@ enum PrintDataFlags {
   OFFSET_16_BITS = 0x0200, // Always use 4 hex digits in offset column
   OFFSET_32_BITS = 0x0400, // Always use 8 hex digits in offset column
   OFFSET_64_BITS = 0x0800, // Always use 16 hex digits in offset column
-  BIG_ENDIAN_FLOATS = 0x1000, // Floats/doubles are explicitly big-endian
-  LITTLE_ENDIAN_FLOATS = 0x2000, // Floats/doubles are explicitly little-endian
 };
 
 enum FormatDataFlags {
@@ -896,8 +871,6 @@ public:
   void write(const void* data, size_t size);
   void write(const std::string& data);
   void write(std::string&& data);
-  void write_printf(const char* fmt, ...) ATTR_PRINTF(2, 3);
-  void write_vprintf(const char* fmt, va_list va);
 
   template <typename T>
   void put(const T& v) {
@@ -905,6 +878,11 @@ public:
   }
 
   std::string close(const char* separator = "");
+
+  template <typename... ArgTs>
+  void write_fmt(std::format_string<ArgTs...> fmt, ArgTs&&... args) {
+    this->write(std::format(fmt, std::forward<ArgTs>(args)...));
+  }
 
 private:
   std::deque<std::string> blocks;

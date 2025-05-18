@@ -92,7 +92,7 @@ int main(int, char**) {
   expect_eq(d.size(), 0);
   expect_eq(d.count(), 0);
 
-  printf("LRUSetTest: all tests passed\n");
+  fwrite_fmt(stdout, "LRUSetTest: all tests passed\n");
 
   return 0;
 }

@@ -8,20 +8,20 @@ using namespace std;
 using namespace phosg;
 
 int main(int, char**) {
-  fprintf(stderr, "-- usleep\n");
+  fwrite_fmt(stderr, "-- usleep\n");
   uint64_t start_time = now();
   expect_ge(now(), start_time);
   usleep(1000000);
   expect_ge(now(), start_time + 1000000);
 
-  fprintf(stderr, "-- format_time\n");
+  fwrite_fmt(stderr, "-- format_time\n");
   expect_eq(format_time(static_cast<uint64_t>(0)), "1970-01-01 00:00:00.000000");
   expect_eq(format_time(1478915749908529), "2016-11-12 01:55:49.908529");
   expect_eq(format_time(1478915749000529), "2016-11-12 01:55:49.000529");
   expect_eq(format_time(1478915749908000), "2016-11-12 01:55:49.908000");
 
   {
-    fprintf(stderr, "-- format_duration\n");
+    fwrite_fmt(stderr, "-- format_duration\n");
     expect_eq("0.000000", format_duration(0));
     expect_eq("0.222222", format_duration(222222));
     expect_eq("2.222222", format_duration(2222222));
@@ -44,6 +44,6 @@ int main(int, char**) {
     expect_eq("0.438294", format_duration(438294, 6));
   }
 
-  printf("TimeTest: all tests passed\n");
+  fwrite_fmt(stdout, "TimeTest: all tests passed\n");
   return 0;
 }

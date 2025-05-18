@@ -1,5 +1,6 @@
 #include <stdexcept>
 
+#include "Strings.hh"
 #include "Tools.hh"
 #include "UnitTest.hh"
 
@@ -8,7 +9,7 @@ using namespace phosg;
 
 int main(int, char**) {
   {
-    printf("-- on_close_scope\n");
+    fwrite_fmt(stderr, "-- on_close_scope\n");
     bool called = false;
     {
       auto g1 = on_close_scope([&]() {
@@ -22,7 +23,7 @@ int main(int, char**) {
   const size_t num_threads = thread::hardware_concurrency();
 
   {
-    printf("-- parallel_range\n");
+    fwrite_fmt(stderr, "-- parallel_range\n");
     vector<uint8_t> hits(0x1000000, 0);
     auto handle_value = [&](uint64_t v, size_t thread_num) -> bool {
       hits[v] = thread_num + 1;
@@ -31,7 +32,7 @@ int main(int, char**) {
     uint64_t start_time = now();
     parallel_range<uint64_t>(handle_value, 0, hits.size(), num_threads, nullptr);
     uint64_t duration = now() - start_time;
-    fprintf(stderr, "---- time: %" PRIu64 "\n", duration);
+    fwrite_fmt(stderr, "---- time: {}\n", duration);
 
     vector<size_t> thread_counts(num_threads, 0);
     for (size_t x = 0; x < hits.size(); x++) {
@@ -42,14 +43,14 @@ int main(int, char**) {
     size_t sum = 0;
     for (size_t x = 0; x < thread_counts.size(); x++) {
       expect_ne(thread_counts[x], 0);
-      fprintf(stderr, "---- thread %zu: %zu\n", x, thread_counts[x]);
+      fwrite_fmt(stderr, "---- thread {}: {}\n", x, thread_counts[x]);
       sum += thread_counts[x];
     }
     expect_eq(sum, hits.size());
   }
 
   {
-    printf("-- parallel_range return value\n");
+    fwrite_fmt(stderr, "-- parallel_range return value\n");
     uint64_t target_value = 0xC349;
     auto is_equal = [&](uint64_t v, size_t) -> bool {
       return (v == target_value);
@@ -65,7 +66,7 @@ int main(int, char**) {
   }
 
   {
-    printf("-- parallel_range_blocks\n");
+    fwrite_fmt(stderr, "-- parallel_range_blocks\n");
     vector<uint8_t> hits(0x1000000, 0);
     auto handle_value = [&](uint64_t v, size_t thread_num) -> bool {
       hits[v] = thread_num + 1;
@@ -74,7 +75,7 @@ int main(int, char**) {
     uint64_t start_time = now();
     parallel_range_blocks<uint64_t>(handle_value, 0, hits.size(), 0x1000, num_threads, nullptr);
     uint64_t duration = now() - start_time;
-    fprintf(stderr, "---- time: %" PRIu64 "\n", duration);
+    fwrite_fmt(stderr, "---- time: {}\n", duration);
 
     vector<size_t> thread_counts(num_threads, 0);
     for (size_t x = 0; x < hits.size(); x++) {
@@ -85,14 +86,14 @@ int main(int, char**) {
     size_t sum = 0;
     for (size_t x = 0; x < thread_counts.size(); x++) {
       expect_ne(thread_counts[x], 0);
-      fprintf(stderr, "---- thread %zu: %zu\n", x, thread_counts[x]);
+      fwrite_fmt(stderr, "---- thread {}: {}\n", x, thread_counts[x]);
       sum += thread_counts[x];
     }
     expect_eq(sum, hits.size());
   }
 
   {
-    printf("-- parallel_range_blocks return value\n");
+    fwrite_fmt(stderr, "-- parallel_range_blocks return value\n");
     uint64_t target_value = 0xC349;
     auto is_equal = [&](uint64_t v, size_t) -> bool {
       return (v == target_value);
@@ -108,7 +109,7 @@ int main(int, char**) {
   }
 
   {
-    printf("-- parallel_range_blocks_multi\n");
+    fwrite_fmt(stderr, "-- parallel_range_blocks_multi\n");
     vector<uint8_t> hits(0x1000000, 0);
     auto handle_value = [&](uint64_t v, size_t thread_num) -> bool {
       hits[v] = thread_num + 1;
@@ -117,7 +118,7 @@ int main(int, char**) {
     uint64_t start_time = now();
     parallel_range_blocks_multi<uint64_t>(handle_value, 0, hits.size(), 0x1000, num_threads, nullptr);
     uint64_t duration = now() - start_time;
-    fprintf(stderr, "---- time: %" PRIu64 "\n", duration);
+    fwrite_fmt(stderr, "---- time: {}\n", duration);
 
     vector<size_t> thread_counts(num_threads, 0);
     for (size_t x = 0; x < hits.size(); x++) {
@@ -128,14 +129,14 @@ int main(int, char**) {
     size_t sum = 0;
     for (size_t x = 0; x < thread_counts.size(); x++) {
       expect_ne(thread_counts[x], 0);
-      fprintf(stderr, "---- thread %zu: %zu\n", x, thread_counts[x]);
+      fwrite_fmt(stderr, "---- thread {}: {}\n", x, thread_counts[x]);
       sum += thread_counts[x];
     }
     expect_eq(sum, hits.size());
   }
 
   {
-    printf("-- parallel_range_blocks_multi return value\n");
+    fwrite_fmt(stderr, "-- parallel_range_blocks_multi return value\n");
     uint64_t target_value1 = 0xC349;
     uint64_t target_value2 = 0x53A0;
     uint64_t target_value3 = 0x034D;
@@ -149,6 +150,6 @@ int main(int, char**) {
     expect(found.count(target_value3));
   }
 
-  printf("ToolsTest: all tests passed\n");
+  fwrite_fmt(stderr, "ToolsTest: all tests passed\n");
   return 0;
 }

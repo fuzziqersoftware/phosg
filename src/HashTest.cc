@@ -10,9 +10,9 @@ using namespace phosg;
 
 void check_string(const char* file, int line, const string& expected, const string& received) {
   if (expected != received) {
-    fprintf(stderr, "(%s:%d) Strings do not match; expected:\n", file, line);
+    fwrite_fmt(stderr, "({}:{}) Strings do not match; expected:\n", file, line);
     print_data(stderr, expected);
-    fprintf(stderr, "Received:\n");
+    fwrite_fmt(stderr, "Received:\n");
     print_data(stderr, received);
     throw logic_error("Strings do not match");
   }
@@ -20,7 +20,7 @@ void check_string(const char* file, int line, const string& expected, const stri
 
 int main(int, char**) {
   {
-    printf("-- crc32\n");
+    fwrite_fmt(stdout, "-- crc32\n");
     expect_eq(0x00000000, crc32(nullptr, 0));
     expect_eq(0x00000000, crc32("", 0));
     expect_eq(0xD3D99E8B, crc32("A", 1));
@@ -30,7 +30,7 @@ int main(int, char**) {
   }
 
   {
-    printf("-- fnv1a32\n");
+    fwrite_fmt(stdout, "-- fnv1a32\n");
     expect_eq(0x811C9DC5, fnv1a32(nullptr, 0)); // technically undefined, but should work
     expect_eq(0x811C9DC5, fnv1a32("", 0));
     expect_eq(0x36E1DFD3, fnv1a32("omg hax", 7));
@@ -38,7 +38,7 @@ int main(int, char**) {
   }
 
   {
-    printf("-- fnv1a64\n");
+    fwrite_fmt(stdout, "-- fnv1a64\n");
     expect_eq(0xCBF29CE484222325, fnv1a64(nullptr, 0)); // technically undefined, but should work
     expect_eq(0xCBF29CE484222325, fnv1a64("", 0));
     expect_eq(0xE6CAC1F92EB65713, fnv1a64("omg hax", 7));
@@ -46,7 +46,7 @@ int main(int, char**) {
   }
 
   {
-    printf("-- md5\n");
+    fwrite_fmt(stdout, "-- md5\n");
     MD5 md5(nullptr, 0);
     check_string(__FILE__, __LINE__, string("\xD4\x1D\x8C\xD9\x8F\x00\xB2\x04\xE9\x80\x09\x98\xEC\xF8\x42\x7E", 16), md5.bin());
     check_string(__FILE__, __LINE__, "D41D8CD98F00B204E9800998ECF8427E", md5.hex());
@@ -62,7 +62,7 @@ int main(int, char**) {
   }
 
   {
-    printf("-- sha1\n");
+    fwrite_fmt(stdout, "-- sha1\n");
     SHA1 sha1(nullptr, 0);
     check_string(__FILE__, __LINE__, string("\xDA\x39\xA3\xEE\x5E\x6B\x4B\x0D\x32\x55\xBF\xEF\x95\x60\x18\x90\xAF\xD8\x07\x09", 20), sha1.bin());
     check_string(__FILE__, __LINE__, "DA39A3EE5E6B4B0D3255BFEF95601890AFD80709", sha1.hex());
@@ -78,7 +78,7 @@ int main(int, char**) {
   }
 
   {
-    printf("-- sha256\n");
+    fwrite_fmt(stdout, "-- sha256\n");
     SHA256 sha256(nullptr, 0);
     check_string(__FILE__, __LINE__, string("\xE3\xB0\xC4\x42\x98\xFC\x1C\x14\x9A\xFB\xF4\xC8\x99\x6F\xB9\x24\x27\xAE\x41\xE4\x64\x9B\x93\x4C\xA4\x95\x99\x1B\x78\x52\xB8\x55", 32), sha256.bin());
     check_string(__FILE__, __LINE__, "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855", sha256.hex());
@@ -104,6 +104,6 @@ int main(int, char**) {
     expect_eq(result, "\x1A\xE1\x80\xD5\xE5\xDB\x7F\xDF\x59\xEA\x73\x91\xB6\x5E\x25\x16\x73\xE1\xB0\x01\xC1\x50\xAA\x3A\x48\xDC\x78\x48\x8B\x4B\x70\xC4");
   }
 
-  printf("HashTest: all tests passed\n");
+  fwrite_fmt(stdout, "HashTest: all tests passed\n");
   return 0;
 }

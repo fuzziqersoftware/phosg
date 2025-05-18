@@ -44,18 +44,18 @@ void print_data_test() {
 
   // basic
   string first_bytes("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 0x10);
-  fprintf(stderr, "-- [print_data] one line\n");
+  fwrite_fmt(stderr, "-- [print_data] one line\n");
   print_data_test_case("\
 00 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
       first_bytes);
-  fprintf(stderr, "-- [print_data] multiple lines, last line partial\n");
+  fwrite_fmt(stderr, "-- [print_data] multiple lines, last line partial\n");
   print_data_test_case("\
 00 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n\
 10 | 61 62 63 64 65 66 67 68 69                      | abcdefghi       \n",
       string("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x61\x62\x63\x64\x65\x66\x67\x68\x69", 0x19));
 
   // with offset width flags
-  fprintf(stderr, "-- [print_data] with offset width flags\n");
+  fwrite_fmt(stderr, "-- [print_data] with offset width flags\n");
   print_data_test_case("\
 00 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
       first_bytes, 0, "", PrintDataFlags::OFFSET_8_BITS | PrintDataFlags::PRINT_ASCII);
@@ -71,7 +71,7 @@ void print_data_test() {
   print_data_test_case("\
 0000000000000000 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
       first_bytes, 0, "", PrintDataFlags::OFFSET_64_BITS | PrintDataFlags::PRINT_ASCII);
-  fprintf(stderr, "-- [print_data] automatic offset width\n");
+  fwrite_fmt(stderr, "-- [print_data] automatic offset width\n");
   print_data_test_case("\
 F0 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
       first_bytes, 0xF0);
@@ -86,32 +86,32 @@ F0 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
       first_bytes, 0x7F0000000);
 
   // with address
-  fprintf(stderr, "-- [print_data] with address\n");
+  fwrite_fmt(stderr, "-- [print_data] with address\n");
   print_data_test_case("\
 3FFF3039AEC14EE0 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
       string("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 0x10),
       0x3FFF3039AEC14EE0);
-  fprintf(stderr, "-- [print_data] with non-aligned address\n");
+  fwrite_fmt(stderr, "-- [print_data] with non-aligned address\n");
   print_data_test_case("\
 3FFF3039AEC14EE0 |          00 01 02 03 04 05 06 07 08 09 0A 0B 0C |                 \n\
 3FFF3039AEC14EF0 | 0D 0E 0F                                        |                 \n",
       string("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 0x10),
       0x3FFF3039AEC14EE3);
-  fprintf(stderr, "-- [print_data] short data with non-aligned address\n");
+  fwrite_fmt(stderr, "-- [print_data] short data with non-aligned address\n");
   print_data_test_case("\
 3FFF3039AEC14EE0 |          61 63 65                               |    ace          \n",
       "ace", 3, 0x3FFF3039AEC14EE3);
-  fprintf(stderr, "-- [print_data] short data with non-aligned address near beginning\n");
+  fwrite_fmt(stderr, "-- [print_data] short data with non-aligned address near beginning\n");
   print_data_test_case("\
 3FFF3039AEC14EE0 |    61 63 65                                     |  ace            \n",
       "ace", 3, 0x3FFF3039AEC14EE1);
-  fprintf(stderr, "-- [print_data] short data with non-aligned address near end\n");
+  fwrite_fmt(stderr, "-- [print_data] short data with non-aligned address near end\n");
   print_data_test_case("\
 3FFF3039AEC14EE0 |                                     61 63 65    |             ace \n",
       "ace", 3, 0x3FFF3039AEC14EEC);
 
   // without ascii
-  fprintf(stderr, "-- [print_data] without ascii\n");
+  fwrite_fmt(stderr, "-- [print_data] without ascii\n");
   print_data_test_case("\
 3FFF3039AEC14EE0 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n",
       string("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 0x10),
@@ -125,107 +125,17 @@ F0 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
 3FFF3039AEC14EE0 |          61 63 65                              \n",
       "ace", 0x3FFF3039AEC14EE3, "", 0);
 
-  // floats
-  fprintf(stderr, "-- [print_data] with floats\n");
+  // float data
+  fwrite_fmt(stderr, "-- [print_data] float data\n");
   string float_data("\0\0\0\0\x56\x6F\x6D\xC3\0\0\0\0\xA5\x5B\xC8\x40\0\0\0\0\0\0\0\0\x6E\x37\x9F\x43\x3E\x51\x3F\x40", 0x20);
   print_data_test_case("\
 0000000107B50FE0 |                                     00 00 00 00 |                 \n\
 0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 | Vom      [ @    \n\
 0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |     n7 C>Q?@    \n",
       float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_ASCII);
-#ifdef PHOSG_LITTLE_ENDIAN
-  print_data_test_case("\
-0000000107B50FE0 |                                     00 00 00 00 |                                                   0\n\
-0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 |      -237.43            0       6.2612            0\n\
-0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |            0       318.43       2.9893             \n",
-      float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_FLOAT);
-  print_data_test_case("\
-0000000107B50FE0 |                                     00 00 00 00 |                  |                                                   0\n\
-0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 | Vom      [ @     |      -237.43            0       6.2612            0\n\
-0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |     n7 C>Q?@     |            0       318.43       2.9893             \n",
-      float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_ASCII | PrintDataFlags::PRINT_FLOAT);
-#else
-  print_data_test_case("\
-0000000107B50FE0 |                                     00 00 00 00 |                                                   0\n\
-0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 |   6.5814e+13            0  -1.9063e-16            0\n\
-0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |            0   1.4207e+28      0.20434             \n",
-      float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_FLOAT);
-  print_data_test_case("\
-0000000107B50FE0 |                                     00 00 00 00 |                  |                                                   0\n\
-0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 | Vom      [ @     |   6.5814e+13            0  -1.9063e-16            0\n\
-0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |     n7 C>Q?@     |            0   1.4207e+28      0.20434             \n",
-      float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_ASCII | PrintDataFlags::PRINT_FLOAT);
-#endif
-
-  // reverse-endian floats
-#ifdef PHOSG_LITTLE_ENDIAN
-  fprintf(stderr, "-- [print_data] with reverse-endian floats\n");
-  print_data_test_case("\
-0000000107B50FE0 |                                     00 00 00 00 |                                                   0\n\
-0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 |   6.5814e+13            0  -1.9063e-16            0\n\
-0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |            0   1.4207e+28      0.20434             \n",
-      float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_FLOAT | PrintDataFlags::REVERSE_ENDIAN_FLOATS);
-#else
-  fprintf(stderr, "-- [print_data] with reverse-endian floats\n");
-  print_data_test_case("\
-0000000107B50FE0 |                                     00 00 00 00 |                                                   0\n\
-0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 |      -237.43            0       6.2612            0\n\
-0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |            0       318.43       2.9893             \n",
-      float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_FLOAT | PrintDataFlags::REVERSE_ENDIAN_FLOATS);
-#endif
-  fprintf(stderr, "-- [print_data] with big-endian floats\n");
-  print_data_test_case("\
-0000000107B50FE0 |                                     00 00 00 00 |                                                   0\n\
-0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 |   6.5814e+13            0  -1.9063e-16            0\n\
-0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |            0   1.4207e+28      0.20434             \n",
-      float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_FLOAT | PrintDataFlags::BIG_ENDIAN_FLOATS);
-  fprintf(stderr, "-- [print_data] with little-endian floats\n");
-  print_data_test_case("\
-0000000107B50FE0 |                                     00 00 00 00 |                                                   0\n\
-0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 |      -237.43            0       6.2612            0\n\
-0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |            0       318.43       2.9893             \n",
-      float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_FLOAT | PrintDataFlags::LITTLE_ENDIAN_FLOATS);
-
-  // float alignment
-  fprintf(stderr, "-- [print_data] with floats and non-aligned addresses\n");
-  print_data_test_case("\
-0000000107B50FE0 |                                              00 |                                                    \n\
-0000000107B50FF0 | 00 00 00 40 00                                  |            2                                       \n",
-      string("\0\0\0\0\x40\0", 6), 0x0000000107B50FEF, "", PrintDataFlags::PRINT_FLOAT | PrintDataFlags::LITTLE_ENDIAN_FLOATS);
-  print_data_test_case("\
-00 |    00 00 00 00 00 00 00 00                      |                         0                          \n",
-      string("\0\0\0\0\0\0\0\0", 8), 1, "", PrintDataFlags::PRINT_FLOAT | PrintDataFlags::LITTLE_ENDIAN_FLOATS);
-
-  // doubles
-  fprintf(stderr, "-- [print_data] with doubles\n");
-  print_data_test_case("\
-00 | 3F F0 00 00 00 00 00 00 41 FC 80 AC EA 2C AA 40 |  3.0387e-319       3350.5\n\
-10 | 40 00 00 00 00 00 00 00                         |   3.162e-322             \n",
-      string("\x3F\xF0\0\0\0\0\0\0\x41\xFC\x80\xAC\xEA\x2C\xAA\x40\x40\0\0\0\0\0\0\0", 0x18),
-      0, "", PrintDataFlags::PRINT_DOUBLE | PrintDataFlags::PRINT_DOUBLE | PrintDataFlags::LITTLE_ENDIAN_FLOATS);
-  print_data_test_case("\
-00 | 3F F0 00 00 00 00 00 00 41 FC 80 AC EA 2C AA 40 |            1   7.6511e+09\n\
-10 | 40 00 00 00 00 00 00 00                         |            2             \n",
-      string("\x3F\xF0\0\0\0\0\0\0\x41\xFC\x80\xAC\xEA\x2C\xAA\x40\x40\0\0\0\0\0\0\0", 0x18),
-      0, "", PrintDataFlags::PRINT_DOUBLE | PrintDataFlags::BIG_ENDIAN_FLOATS);
-
-  // reverse-endian doubles
-  fprintf(stderr, "-- [print_data] with reverse-endian doubles\n");
-  print_data_test_case("\
-00 | 3F F0 00 00 00 00 00 00 41 FC 80 AC EA 2C AA 40 | ?       A    , @ |            1   7.6511e+09\n\
-10 | 40 00 00 00 00 00 00 00                         | @                |            2             \n",
-      string("\x3F\xF0\0\0\0\0\0\0\x41\xFC\x80\xAC\xEA\x2C\xAA\x40\x40\0\0\0\0\0\0\0", 0x18),
-      0, "", PrintDataFlags::PRINT_DOUBLE | PrintDataFlags::PRINT_ASCII | PrintDataFlags::BIG_ENDIAN_FLOATS);
-
-  // double alignment
-  fprintf(stderr, "-- [print_data] with doubles and non-aligned addresses\n");
-  print_data_test_case("\
-00 |    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |                         0\n\
-10 | 00                                              |                          \n",
-      string("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 16), 1, "", PrintDataFlags::PRINT_DOUBLE);
 
   // iovecs
-  fprintf(stderr, "-- [print_data] with iovecs\n");
+  fwrite_fmt(stderr, "-- [print_data] with iovecs\n");
   string data1("\0\0\0\x40\0\0", 6);
   string data2("\x80\x3F\0\0", 4);
   string data3("\0", 1);
@@ -235,17 +145,17 @@ F0 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
   iovs.emplace_back(iovec{.iov_base = nullptr, .iov_len = 0});
   iovs.emplace_back(iovec{.iov_base = data3.data(), .iov_len = data3.size()});
   print_data_test_case("\
-00 | 00 00 00 40 00 00 80 3F 00 00 00                |    @   ?         |            2            1                          \n",
-      iovs.data(), iovs.size(), 0, nullptr, 0, PrintDataFlags::PRINT_ASCII | PrintDataFlags::PRINT_FLOAT | PrintDataFlags::LITTLE_ENDIAN_FLOATS);
+00 | 00 00 00 40 00 00 80 3F 00 00 00                |    @   ?        \n",
+      iovs.data(), iovs.size(), 0, nullptr, 0, PrintDataFlags::PRINT_ASCII);
   print_data_test_case("\
-00 |             00 00 00 40 00 00 80 3F 00 00 00    |        @   ?     |                         2            1             \n",
-      iovs.data(), iovs.size(), 4, nullptr, 0, PrintDataFlags::PRINT_ASCII | PrintDataFlags::PRINT_FLOAT | PrintDataFlags::LITTLE_ENDIAN_FLOATS);
+00 |             00 00 00 40 00 00 80 3F 00 00 00    |        @   ?    \n",
+      iovs.data(), iovs.size(), 4, nullptr, 0, PrintDataFlags::PRINT_ASCII);
 
   // TODO: test diffing
 }
 
 void test_bit_reader() {
-  fprintf(stderr, "-- BitReader\n");
+  fwrite_fmt(stderr, "-- BitReader\n");
   BitReader r("\x01\x02\xFF\x80\xC0", 34);
   expect_eq(0x01, r.read(8));
   expect_eq(0x00, r.read(4));
@@ -257,7 +167,7 @@ void test_bit_reader() {
 }
 
 void test_string_reader() {
-  fprintf(stderr, "-- StringReader\n");
+  fwrite_fmt(stderr, "-- StringReader\n");
 
   string data(
       /*00*/ "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F" // 16 bytes (to be read as various int sizes)
@@ -269,21 +179,21 @@ void test_string_reader() {
              /*3A*/ "and this is a cstring\0",
       80);
 
-  fprintf(stderr, "---- construct\n");
+  fwrite_fmt(stderr, "---- construct\n");
   StringReader r(data);
   expect_eq(r.size(), data.size());
 
-  fprintf(stderr, "---- position getters\n");
+  fwrite_fmt(stderr, "---- position getters\n");
   expect_eq(r.where(), 0);
   expect_eq(r.remaining(), data.size());
   expect(!r.eof());
 
-  fprintf(stderr, "---- all\n");
+  fwrite_fmt(stderr, "---- all\n");
   expect_eq(r.all(), data);
   expect_eq(data.data(), r.peek(0));
 
   {
-    fprintf(stderr, "---- read/pread\n");
+    fwrite_fmt(stderr, "---- read/pread\n");
     expect_eq(r.read(0x100, false), data);
     expect_eq(r.where(), 0);
     expect_eq(r.remaining(), data.size());
@@ -313,7 +223,7 @@ void test_string_reader() {
   }
 
   {
-    fprintf(stderr, "---- readx/preadx\n");
+    fwrite_fmt(stderr, "---- readx/preadx\n");
     expect_raises(out_of_range, [&]() {
       r.readx(0x100);
     });
@@ -345,7 +255,7 @@ void test_string_reader() {
   }
 
   {
-    fprintf(stderr, "---- get/pget\n");
+    fwrite_fmt(stderr, "---- get/pget\n");
     struct TestStruct {
       be_uint32_t a;
       le_uint32_t b;
@@ -421,13 +331,13 @@ void test_string_reader() {
   });
 
   for (const auto& get_test_case : get_test_cases) {
-    fprintf(stderr, "---- %s\n", get_test_case.name);
+    fwrite_fmt(stderr, "---- {}\n", get_test_case.name);
     r.go(get_test_case.start_offset);
     get_test_case.fn(r);
     expect_eq(r.where(), get_test_case.start_offset + get_test_case.expected_advance);
   }
 
-  fprintf(stderr, "---- get_cstr/pget_cstr\n");
+  fwrite_fmt(stderr, "---- get_cstr/pget_cstr\n");
   r.go(0x3A);
   expect_eq(r.get_cstr(), "and this is a cstring");
   expect(r.eof());
@@ -436,14 +346,14 @@ void test_string_reader() {
 
 int main(int, char**) {
 
-  fprintf(stderr, "-- starts_with\n");
+  fwrite_fmt(stderr, "-- starts_with\n");
   expect(starts_with("abcdef", "abc"));
   expect(starts_with("abcdef", "abcdef"));
   expect(!starts_with("abcdef", "abcdefg"));
   expect(!starts_with("abcdef", "abd"));
   expect(!starts_with("abcdef", "dbc"));
 
-  fprintf(stderr, "-- ends_with\n");
+  fwrite_fmt(stderr, "-- ends_with\n");
   expect(ends_with("abcdef", "def"));
   expect(ends_with("abcdef", "abcdef"));
   expect(!ends_with("abcdef", "gabcdef"));
@@ -451,7 +361,7 @@ int main(int, char**) {
   expect(!ends_with("abcdef", "fef"));
 
   {
-    fprintf(stderr, "-- str_replace_all\n");
+    fwrite_fmt(stderr, "-- str_replace_all\n");
     expect_eq("", str_replace_all(string(""), "def", "xyz"));
     expect_eq("abcdef", str_replace_all(string("abcdef"), "efg", "xyz"));
     expect_eq("abcxyz", str_replace_all(string("abcdef"), "def", "xyz"));
@@ -462,7 +372,7 @@ int main(int, char**) {
   }
 
   {
-    fprintf(stderr, "-- strip_trailing_zeroes\n");
+    fwrite_fmt(stderr, "-- strip_trailing_zeroes\n");
     string s1("abcdef", 6);
     strip_trailing_zeroes(s1);
     expect_eq(s1, "abcdef");
@@ -481,7 +391,7 @@ int main(int, char**) {
   }
 
   {
-    fprintf(stderr, "-- strip_trailing_whitespace\n");
+    fwrite_fmt(stderr, "-- strip_trailing_whitespace\n");
     string s1 = "abcdef";
     strip_trailing_whitespace(s1);
     expect_eq(s1, "abcdef");
@@ -500,7 +410,7 @@ int main(int, char**) {
   }
 
   {
-    fprintf(stderr, "-- strip_whitespace\n");
+    fwrite_fmt(stderr, "-- strip_whitespace\n");
 
     string s = "abcdef";
     strip_whitespace(s);
@@ -528,7 +438,7 @@ int main(int, char**) {
   }
 
   {
-    fprintf(stderr, "-- strip_multiline_comments\n");
+    fwrite_fmt(stderr, "-- strip_multiline_comments\n");
 
     string s = "abc/*def*/ghi";
     strip_multiline_comments(s);
@@ -544,15 +454,7 @@ int main(int, char**) {
   }
 
   {
-    fprintf(stderr, "-- string_printf\n");
-    string result = string_printf("%s %" PRIu64 " 0x%04hX", "lolz",
-        static_cast<uint64_t>(1000), static_cast<uint16_t>(0x4F));
-    fprintf(stderr, "%s\n", result.c_str());
-    expect_eq("lolz 1000 0x004F", result);
-  }
-
-  {
-    fprintf(stderr, "-- split\n");
+    fwrite_fmt(stderr, "-- split\n");
     expect_eq(vector<string>({"12", "34", "567", "abc"}), split("12,34,567,abc", ','));
     expect_eq(vector<string>({"12", "34", "567", "", ""}), split("12,34,567,,", ','));
     expect_eq(vector<string>({""}), split("", ','));
@@ -560,7 +462,7 @@ int main(int, char**) {
   }
 
   {
-    fprintf(stderr, "-- split_context\n");
+    fwrite_fmt(stderr, "-- split_context\n");
     expect_eq(vector<string>({"12", "34", "567", "abc"}), split_context("12,34,567,abc", ','));
     expect_eq(vector<string>({"12", "34", "567", "", ""}), split_context("12,34,567,,", ','));
     expect_eq(vector<string>({""}), split_context("", ','));
@@ -577,7 +479,7 @@ int main(int, char**) {
   }
 
   {
-    fprintf(stderr, "-- split_args\n");
+    fwrite_fmt(stderr, "-- split_args\n");
     expect_eq(vector<string>(), split_args(""));
     expect_eq(vector<string>(), split_args("      "));
     expect_eq(vector<string>({"12", "34", "567", "abc"}), split_args("12 34 567 abc"));
@@ -590,7 +492,7 @@ int main(int, char**) {
     expect_eq(vector<string>({"12", "34 567", "abc", " "}), split_args("   12 34\\ 567 abc  \\   "));
   }
 
-  fprintf(stderr, "-- skip_whitespace/skip_non_whitespace\n");
+  fwrite_fmt(stderr, "-- skip_whitespace/skip_non_whitespace\n");
   expect_eq(0, skip_whitespace("1234", 0));
   expect_eq(2, skip_whitespace("  1234", 0));
   expect_eq(7, skip_whitespace("  \t\r\n  1234", 0));
@@ -624,7 +526,7 @@ int main(int, char**) {
   expect_eq(4, skip_non_whitespace(string("1234"), 0));
   expect_eq(4, skip_non_whitespace(string("1234"), 2));
 
-  fprintf(stderr, "-- skip_word\n");
+  fwrite_fmt(stderr, "-- skip_word\n");
   const char* sentence = "The quick brown fox jumped over the lazy dog.";
   vector<size_t> expected_offsets = {4, 10, 16, 20, 27, 32, 36, 41, 45};
   {
@@ -647,7 +549,7 @@ int main(int, char**) {
     expect_eq(expected_offsets, offsets);
   }
 
-  fprintf(stderr, "-- parse_data_string/format_data_string with arbitrary data\n");
+  fwrite_fmt(stderr, "-- parse_data_string/format_data_string with arbitrary data\n");
   {
     string input("/* omit 01 02 */ 03 ?04? $ ##30 $ ##127 ?\"dark\"? ###-1 \'cold\' %-1.667 %%-2.667");
     string expected_data(
@@ -687,7 +589,7 @@ int main(int, char**) {
     }
   }
 
-  fprintf(stderr, "-- parse_data_string/format_data_string with printable data\n");
+  fwrite_fmt(stderr, "-- parse_data_string/format_data_string with printable data\n");
   {
     string input("this is printable\nand it is sort of a haiku\nwith some control bytes\t\r\n");
     string expected_formatted("\"this is printable\\nand it is sort of a haiku\\nwith some control bytes\\t\\r\\n\"");
@@ -700,7 +602,7 @@ int main(int, char**) {
     expect_eq(input, parse_data_string(formatted_hex));
   }
 
-  fprintf(stderr, "-- parse_data_string/format_data_string with quotes in printable data\n");
+  fwrite_fmt(stderr, "-- parse_data_string/format_data_string with quotes in printable data\n");
   {
     string input("this string has \"some\" \'quotes\'.");
     string expected_formatted("\"this string has \\\"some\\\" \\\'quotes\\\'.\"");
@@ -709,7 +611,7 @@ int main(int, char**) {
     expect_eq(input, parse_data_string(formatted));
   }
 
-  fprintf(stderr, "-- format_size\n");
+  fwrite_fmt(stderr, "-- format_size\n");
   {
     expect_eq("0 bytes", format_size(0));
     expect_eq("1000 bytes", format_size(1000));
@@ -719,7 +621,7 @@ int main(int, char**) {
     expect_eq("1073741824 bytes (1.00 GB)", format_size(1073741824, true));
   }
 
-  fprintf(stderr, "-- parse_size\n");
+  fwrite_fmt(stderr, "-- parse_size\n");
   {
     expect_eq(0, parse_size("0"));
     expect_eq(0, parse_size("0B"));
@@ -730,14 +632,14 @@ int main(int, char**) {
     expect_eq(3 * 1024 * 1024, parse_size("3 MB"));
   }
 
-  fprintf(stderr, "-- escape_quotes\n");
+  fwrite_fmt(stderr, "-- escape_quotes\n");
   {
     expect_eq("", escape_quotes(""));
     expect_eq("omg hax", escape_quotes("omg hax"));
     expect_eq("\'omg\' \\\"hax\\\"", escape_quotes("\'omg\' \"hax\""));
   }
 
-  fprintf(stderr, "-- escape_url\n");
+  fwrite_fmt(stderr, "-- escape_url\n");
   {
     expect_eq("", escape_url(""));
     expect_eq("omg%20hax", escape_url("omg hax"));
@@ -751,13 +653,12 @@ int main(int, char**) {
 
   test_string_reader();
 
-  // TODO: test string_vprintf
   // TODO: test log_level, set_log_level, log
   // TODO: test get_time_string
   // TODO: test string_for_error
 
   unlink("StringsTest-data");
 
-  printf("StringsTest: all tests passed\n");
+  fwrite_fmt(stdout, "StringsTest: all tests passed\n");
   return 0;
 }

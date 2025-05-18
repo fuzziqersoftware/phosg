@@ -3,6 +3,7 @@
 #include <sys/time.h>
 #include <time.h>
 
+#include <format>
 #include <stdexcept>
 #include <string>
 
@@ -56,9 +57,8 @@ string format_time_natural(struct timeval* tv) {
       "May", "June", "July", "August", "September", "October", "November",
       "December"};
 
-  return string_printf("%u %s %4u %02u:%02u:%02u.%03hu", cooked.tm_mday,
-      monthnames[cooked.tm_mon], cooked.tm_year + 1900,
-      cooked.tm_hour, cooked.tm_min, cooked.tm_sec,
+  return std::format("{} {} {:4} {:02}:{:02}:{:02}.{:03}",
+      cooked.tm_mday, monthnames[cooked.tm_mon], cooked.tm_year + 1900, cooked.tm_hour, cooked.tm_min, cooked.tm_sec,
       static_cast<uint16_t>(tv->tv_usec / 1000));
 }
 
@@ -67,15 +67,13 @@ string format_duration(uint64_t usecs, int8_t subsecond_precision) {
     if (subsecond_precision < 0) {
       subsecond_precision = 6;
     }
-    return string_printf("%.*lf", subsecond_precision,
-        static_cast<double>(usecs) / 1000000ULL);
+    return std::format("{:.{}f}", static_cast<double>(usecs) / 1000000ULL, subsecond_precision);
 
   } else if (usecs < 60 * 1000000ULL) {
     if (subsecond_precision < 0) {
       subsecond_precision = 6;
     }
-    return string_printf("%.*lf", subsecond_precision,
-        static_cast<double>(usecs) / 1000000ULL);
+    return std::format("{:.{}f}", static_cast<double>(usecs) / 1000000ULL, subsecond_precision);
 
   } else if (usecs < 60 * 60 * 1000000ULL) {
     if (subsecond_precision < 0) {
@@ -83,11 +81,8 @@ string format_duration(uint64_t usecs, int8_t subsecond_precision) {
     }
     uint64_t minutes = usecs / (60 * 1000000ULL);
     uint64_t usecs_part = usecs - (minutes * 60 * 1000000ULL);
-    string seconds_str = string_printf("%.*lf", subsecond_precision,
-        static_cast<double>(usecs_part) / 1000000ULL);
-    return string_printf("%" PRIu64 ":%s", minutes,
-               ((seconds_str.at(1) == '.') ? "0" : "")) +
-        seconds_str;
+    string seconds_str = std::format("{:.{}f}", static_cast<double>(usecs_part) / 1000000ULL, subsecond_precision);
+    return std::format("{}:{}", minutes, ((seconds_str.at(1) == '.') ? "0" : "")) + seconds_str;
 
   } else if (usecs < 24 * 60 * 60 * 1000000ULL) {
     if (subsecond_precision < 0) {
@@ -96,11 +91,8 @@ string format_duration(uint64_t usecs, int8_t subsecond_precision) {
     uint64_t hours = usecs / (60 * 60 * 1000000ULL);
     uint64_t minutes = (usecs / (60 * 1000000ULL)) % 60;
     uint64_t usecs_part = usecs - (hours * 60 * 60 * 1000000ULL) - (minutes * 60 * 1000000ULL);
-    string seconds_str = string_printf("%.*lf", subsecond_precision,
-        static_cast<double>(usecs_part) / 1000000ULL);
-    return string_printf("%" PRIu64 ":%02" PRIu64 ":%s", hours, minutes,
-               ((seconds_str.size() == 1 || seconds_str.at(1) == '.') ? "0" : "")) +
-        seconds_str;
+    string seconds_str = std::format("{:.{}f}", static_cast<double>(usecs_part) / 1000000ULL, subsecond_precision);
+    return std::format("{}:{:02}:{}", hours, minutes, ((seconds_str.size() == 1 || seconds_str.at(1) == '.') ? "0" : "")) + seconds_str;
 
   } else {
     if (subsecond_precision < 0) {
@@ -110,11 +102,8 @@ string format_duration(uint64_t usecs, int8_t subsecond_precision) {
     uint64_t hours = (usecs / (60 * 60 * 1000000ULL)) % 24;
     uint64_t minutes = (usecs / (60 * 1000000ULL)) % 60;
     uint64_t usecs_part = usecs - (days * 24 * 60 * 60 * 1000000ULL) - (hours * 60 * 60 * 1000000ULL) - (minutes * 60 * 1000000ULL);
-    string seconds_str = string_printf("%.*lf", subsecond_precision,
-        static_cast<double>(usecs_part) / 1000000ULL);
-    return string_printf("%" PRIu64 ":%02" PRIu64 ":%02" PRIu64 ":%s", days,
-               hours, minutes, ((seconds_str.size() == 1 || seconds_str.at(1) == '.') ? "0" : "")) +
-        seconds_str;
+    string seconds_str = std::format("{:.{}f}", static_cast<double>(usecs_part) / 1000000ULL, subsecond_precision);
+    return std::format("{}:{:02}:{:02}:{}", days, hours, minutes, ((seconds_str.size() == 1 || seconds_str.at(1) == '.') ? "0" : "")) + seconds_str;
   }
 }
 

@@ -27,6 +27,11 @@ T enum_for_name(const char*) {
 }
 
 template <typename T>
+T enum_for_name(const std::string& s) {
+  return enum_for_name<T>(s.c_str());
+}
+
+template <typename T>
 const char* name_for_enum(T) {
   static_assert(always_false<T>::v, "unspecialized name_for_enum should never be called");
   throw std::logic_error("unspecialized name_for_enum should never be called");

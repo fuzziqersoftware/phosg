@@ -8,18 +8,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <zlib.h>
 
+#include <format>
 #include <map>
 #include <stdexcept>
 
-#include <zlib.h>
-
 #include "Filesystem.hh"
-#include "Strings.hh"
-
-#include "Platform.hh"
-
 #include "ImageTextFont.hh"
+#include "Platform.hh"
+#include "Strings.hh"
 
 using namespace std;
 
@@ -141,8 +139,7 @@ void Image::load(FILE* f) {
   } else if (sig[0] == 'B' && sig[1] == 'M') {
     format = Format::WINDOWS_BITMAP;
   } else {
-    throw unknown_format(string_printf(
-        "can\'t load image; type signature is %02X%02X", sig[0], sig[1]));
+    throw unknown_format(std::format("can\'t load image; type signature is {:02X}{:02X}", sig[0], sig[1]));
   }
 
   if (format == Format::GRAYSCALE_PPM || format == Format::COLOR_PPM) {
@@ -319,22 +316,20 @@ void Image::load(FILE* f) {
     memcpy(&header.file_header.magic, sig, 2);
     freadx(f, reinterpret_cast<uint8_t*>(&header.file_header) + 2, sizeof(header.file_header) - 2);
     if (header.file_header.magic != 0x4D42) {
-      throw runtime_error(string_printf("bad signature in bitmap file (%04hX)",
-          header.file_header.magic.load()));
+      throw runtime_error(std::format("bad signature in bitmap file ({:04X})", header.file_header.magic));
     }
 
     // Read variable-sized BMP info header
     freadx(f, &header.info_header.header_size, 4);
     if (header.info_header.header_size > sizeof(header.info_header)) {
-      throw runtime_error(string_printf("unsupported bitmap header: size is %u, maximum supported size is %zu",
-          header.info_header.header_size.load(), sizeof(header.info_header)));
+      throw runtime_error(std::format("unsupported bitmap header: size is {}, maximum supported size is {}",
+          header.info_header.header_size, sizeof(header.info_header)));
     }
 
     freadx(f, reinterpret_cast<uint8_t*>(&header.info_header) + 4, header.info_header.header_size - 4);
     if ((header.info_header.bit_depth != 24) && (header.info_header.bit_depth != 32)) {
-      throw runtime_error(string_printf(
-          "can only load 24-bit or 32-bit bitmaps (this is a %hu-bit bitmap)",
-          header.info_header.bit_depth.load()));
+      throw runtime_error(std::format(
+          "can only load 24-bit or 32-bit bitmaps (this is a {}-bit bitmap)", header.info_header.bit_depth));
     }
     if (header.info_header.num_planes != 1) {
       throw runtime_error("can only load 1-plane bitmaps");
@@ -633,14 +628,14 @@ void Image::save_helper(Format format, Writer&& writer) const {
       throw runtime_error("can\'t save grayscale ppm files");
 
     case Format::COLOR_PPM: {
-      char header[256];
+      string header;
       if (this->has_alpha) {
-        snprintf(header, sizeof(header), "P7\nWIDTH %zu\nHEIGHT %zu\nDEPTH 4\nMAXVAL %" PRIu64 "\nTUPLTYPE RGB_ALPHA\nENDHDR\n",
+        header = std::format("P7\nWIDTH {}\nHEIGHT {}\nDEPTH 4\nMAXVAL {}\nTUPLTYPE RGB_ALPHA\nENDHDR\n",
             this->width, this->height, this->max_value);
       } else {
-        snprintf(header, sizeof(header), "P6 %zu %zu %" PRIu64 "\n", this->width, this->height, this->max_value);
+        header = std::format("P6 {} {} {}\n", this->width, this->height, this->max_value);
       }
-      writer(header, strlen(header));
+      writer(header.data(), header.size());
       writer(this->data.raw, this->get_data_size());
       break;
     }
@@ -732,7 +727,7 @@ void Image::save_helper(Format format, Writer&& writer) const {
       uLongf idat_size = compressBound(image_size);
       auto idat_data = malloc_unique(idat_size);
       if (int result = compress2(static_cast<Bytef*>(idat_data.get()), &idat_size, static_cast<const Bytef*>(image_data.get()), image_size, 9)) {
-        throw runtime_error(string_printf("zlib error compressing png data: %d", result));
+        throw runtime_error(std::format("zlib error compressing png data: {}", result));
       }
 
       write_png_chunk("IDAT", idat_data.get(), idat_size, writer);
@@ -1082,16 +1077,15 @@ void Image::draw_vertical_line(ssize_t x, ssize_t y1, ssize_t y2,
   this->draw_vertical_line(x, y1, y2, dash_length, ec.r, ec.g, ec.b, ec.a);
 }
 
-void Image::draw_text_v(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
+void Image::draw_text_string(
+    ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
     uint64_t r, uint64_t g, uint64_t b, uint64_t a, uint64_t br, uint64_t bg,
-    uint64_t bb, uint64_t ba, const char* fmt, va_list va) {
-
-  string buffer = string_vprintf(fmt, va);
+    uint64_t bb, uint64_t ba, const std::string& text) {
 
   ssize_t max_x_pos = 0;
   ssize_t x_pos = x, y_pos = y;
-  for (size_t z = 0; z < buffer.size(); z++) {
-    uint8_t ch = buffer[z];
+  for (size_t z = 0; z < text.size(); z++) {
+    uint8_t ch = text[z];
     if (ch == '\r') {
       continue;
     }
@@ -1138,80 +1132,6 @@ void Image::draw_text_v(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
   if (height) {
     *height = y_pos + 7 - y;
   }
-}
-
-void Image::draw_text(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
-    uint64_t r, uint64_t g, uint64_t b, uint64_t a, uint64_t br, uint64_t bg,
-    uint64_t bb, uint64_t ba, const char* fmt, ...) {
-  va_list va;
-  va_start(va, fmt);
-  try {
-    this->draw_text_v(x, y, width, height, r, g, b, a, br, bg, bb, ba, fmt, va);
-  } catch (...) {
-    va_end(va);
-    throw;
-  }
-  va_end(va);
-}
-
-void Image::draw_text(ssize_t x, ssize_t y,
-    uint64_t r, uint64_t g, uint64_t b, uint64_t a, uint64_t br, uint64_t bg,
-    uint64_t bb, uint64_t ba, const char* fmt, ...) {
-  va_list va;
-  va_start(va, fmt);
-  try {
-    this->draw_text_v(x, y, nullptr, nullptr, r, g, b, a, br, bg, bb, ba, fmt, va);
-  } catch (...) {
-    va_end(va);
-    throw;
-  }
-  va_end(va);
-}
-
-void Image::draw_text(ssize_t x, ssize_t y, ssize_t* width, ssize_t* height,
-    uint32_t color, uint32_t background, const char* fmt, ...) {
-  va_list va;
-  va_start(va, fmt);
-  try {
-    this->draw_text_v(x, y, width, height,
-        (color >> 24) & 0xFF, (color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF,
-        (background >> 24) & 0xFF, (background >> 16) & 0xFF, (background >> 8) & 0xFF, background & 0xFF,
-        fmt, va);
-  } catch (...) {
-    va_end(va);
-    throw;
-  }
-  va_end(va);
-}
-
-void Image::draw_text(ssize_t x, ssize_t y, uint32_t color, uint32_t background,
-    const char* fmt, ...) {
-  va_list va;
-  va_start(va, fmt);
-  try {
-    this->draw_text_v(x, y, nullptr, nullptr,
-        (color >> 24) & 0xFF, (color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF,
-        (background >> 24) & 0xFF, (background >> 16) & 0xFF, (background >> 8) & 0xFF, background & 0xFF,
-        fmt, va);
-  } catch (...) {
-    va_end(va);
-    throw;
-  }
-  va_end(va);
-}
-
-void Image::draw_text(ssize_t x, ssize_t y, uint32_t color, const char* fmt, ...) {
-  va_list va;
-  va_start(va, fmt);
-  try {
-    this->draw_text_v(x, y, nullptr, nullptr,
-        (color >> 24) & 0xFF, (color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF,
-        0, 0, 0, 0, fmt, va);
-  } catch (...) {
-    va_end(va);
-    throw;
-  }
-  va_end(va);
 }
 
 void Image::fill_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint64_t r,

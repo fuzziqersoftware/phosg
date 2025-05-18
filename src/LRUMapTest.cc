@@ -96,7 +96,7 @@ int main(int, char**) {
   expect_eq(d.size(), 0);
   expect_eq(d.count(), 0);
 
-  printf("LRUMapTest: all tests passed\n");
+  fwrite_fmt(stdout, "LRUMapTest: all tests passed\n");
 
   return 0;
 }
