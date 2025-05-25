@@ -49,7 +49,7 @@ int main(int, char** argv) {
     unordered_map<pid_t, string> ret = list_processes(false);
     expect_eq("ProcessTest", ret.at(getpid()));
     ret = list_processes(true);
-    expect(starts_with(ret.at(getpid()), argv[0]));
+    expect(ret.at(getpid()).starts_with(argv[0]));
   }
 
   // test run_process failure

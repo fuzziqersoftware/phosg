@@ -24,9 +24,6 @@ void fwrite_fmt(FILE* f, std::format_string<ArgTs...> fmt, ArgTs&&... args) {
 
 std::unique_ptr<void, void (*)(void*)> malloc_unique(size_t size);
 
-bool starts_with(const std::string& s, const std::string& start);
-bool ends_with(const std::string& s, const std::string& end);
-
 std::string toupper(const std::string& s);
 std::string tolower(const std::string& s);
 

@@ -155,15 +155,15 @@ void Image::load(FILE* f) {
       for (;;) {
         string line = fgets(f);
         strip_trailing_whitespace(line);
-        if (starts_with(line, "WIDTH ")) {
+        if (line.starts_with("WIDTH ")) {
           new_width = stoull(line.substr(6));
-        } else if (starts_with(line, "HEIGHT ")) {
+        } else if (line.starts_with("HEIGHT ")) {
           new_height = stoull(line.substr(7));
-        } else if (starts_with(line, "DEPTH ")) {
+        } else if (line.starts_with("DEPTH ")) {
           // We ignore this and use TUPLTYPE instead
-        } else if (starts_with(line, "MAXVAL ")) {
+        } else if (line.starts_with("MAXVAL ")) {
           new_max_value = stoull(line.substr(7));
-        } else if (starts_with(line, "TUPLTYPE ")) {
+        } else if (line.starts_with("TUPLTYPE ")) {
           string tuple_type = line.substr(9);
           if (tuple_type == "GRAYSCALE") {
             format = Format::GRAYSCALE_PPM;

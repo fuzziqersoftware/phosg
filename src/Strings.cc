@@ -29,20 +29,6 @@ unique_ptr<void, void (*)(void*)> malloc_unique(size_t size) {
   return unique_ptr<void, void (*)(void*)>(malloc(size), free);
 }
 
-bool starts_with(const string& s, const string& start) {
-  if (s.length() >= start.length()) {
-    return (0 == s.compare(0, start.length(), start));
-  }
-  return false;
-}
-
-bool ends_with(const string& s, const string& end) {
-  if (s.length() >= end.length()) {
-    return (0 == s.compare(s.length() - end.length(), end.length(), end));
-  }
-  return false;
-}
-
 string toupper(const string& s) {
   string ret;
   ret.reserve(s.size());
@@ -1574,7 +1560,7 @@ string StringReader::get_line(bool advance) {
   if (advance) {
     this->offset += (ret.size() + 1);
   }
-  if (ends_with(ret, "\r")) {
+  if (ret.ends_with("\r")) {
     ret.pop_back();
   }
   return ret;

@@ -345,21 +345,6 @@ void test_string_reader() {
 }
 
 int main(int, char**) {
-
-  fwrite_fmt(stderr, "-- starts_with\n");
-  expect(starts_with("abcdef", "abc"));
-  expect(starts_with("abcdef", "abcdef"));
-  expect(!starts_with("abcdef", "abcdefg"));
-  expect(!starts_with("abcdef", "abd"));
-  expect(!starts_with("abcdef", "dbc"));
-
-  fwrite_fmt(stderr, "-- ends_with\n");
-  expect(ends_with("abcdef", "def"));
-  expect(ends_with("abcdef", "abcdef"));
-  expect(!ends_with("abcdef", "gabcdef"));
-  expect(!ends_with("abcdef", "ded"));
-  expect(!ends_with("abcdef", "fef"));
-
   {
     fwrite_fmt(stderr, "-- str_replace_all\n");
     expect_eq("", str_replace_all(string(""), "def", "xyz"));
