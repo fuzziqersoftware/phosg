@@ -4,18 +4,24 @@
 
 #include "Platform.hh"
 
-#include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <ifaddrs.h>
 #include <inttypes.h>
+#include <sys/types.h>
+#include <unistd.h>
+#ifndef PHOSG_WINDOWS
+#include <arpa/inet.h>
+#include <ifaddrs.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 #include <sys/un.h>
-#include <unistd.h>
+#else
+#include <winsock2.h>
+#undef ERROR // winsock2.h defines this, apparently :|
+#endif
 
+#include <filesystem>
 #include <format>
 #include <memory>
 #include <stdexcept>
@@ -28,30 +34,8 @@ using namespace std;
 
 namespace phosg {
 
-uint32_t resolve_ipv4(const string& addr) {
-  struct addrinfo* res0;
-  if (getaddrinfo(addr.c_str(), nullptr, nullptr, &res0)) {
-    throw runtime_error("can\'t resolve hostname " + addr + ": " + string_for_error(errno));
-  }
-
-  std::unique_ptr<struct addrinfo, void (*)(struct addrinfo*)> res0_unique(
-      res0, freeaddrinfo);
-  struct addrinfo* res4 = nullptr;
-  for (struct addrinfo* res = res0; res; res = res->ai_next) {
-    if (!res4 && (res->ai_family == AF_INET)) {
-      res4 = res;
-    }
-  }
-  if (!res4) {
-    throw runtime_error("can\'t resolve hostname " + addr + ": no usable data");
-  }
-
-  struct sockaddr_in* res_sin = (struct sockaddr_in*)res4->ai_addr;
-  return ntohl(res_sin->sin_addr.s_addr);
-}
-
-pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const string& addr,
-    uint16_t port) {
+#ifndef PHOSG_WINDOWS
+pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const string& addr, uint16_t port) {
   struct sockaddr_storage s;
   memset(&s, 0, sizeof(s));
 
@@ -149,8 +133,29 @@ string render_sockaddr_storage(const sockaddr_storage& s) {
   }
 }
 
-int listen(const string& addr, int port, int backlog, bool nonblocking) {
+uint32_t resolve_ipv4(const string& addr) {
+  struct addrinfo* res0;
+  if (getaddrinfo(addr.c_str(), nullptr, nullptr, &res0)) {
+    throw runtime_error("can\'t resolve hostname " + addr + ": " + string_for_error(errno));
+  }
 
+  std::unique_ptr<struct addrinfo, void (*)(struct addrinfo*)> res0_unique(
+      res0, freeaddrinfo);
+  struct addrinfo* res4 = nullptr;
+  for (struct addrinfo* res = res0; res; res = res->ai_next) {
+    if (!res4 && (res->ai_family == AF_INET)) {
+      res4 = res;
+    }
+  }
+  if (!res4) {
+    throw runtime_error("can\'t resolve hostname " + addr + ": no usable data");
+  }
+
+  struct sockaddr_in* res_sin = (struct sockaddr_in*)res4->ai_addr;
+  return ntohl(res_sin->sin_addr.s_addr);
+}
+
+int listen(const string& addr, int port, int backlog, bool nonblocking) {
   pair<struct sockaddr_storage, size_t> s = make_sockaddr_storage(addr, port);
 
   int fd = socket(s.first.ss_family, backlog ? SOCK_STREAM : SOCK_DGRAM,
@@ -167,7 +172,7 @@ int listen(const string& addr, int port, int backlog, bool nonblocking) {
 
   if (port == 0) {
     // Delete the socket file before we start listening on it
-    unlink(addr);
+    std::filesystem::remove(addr);
   }
 
   if (::bind(fd, (struct sockaddr*)&s.first, s.second) != 0) {
@@ -230,6 +235,7 @@ void get_socket_addresses(int fd, struct sockaddr_storage* local,
     getpeername(fd, (struct sockaddr*)remote, &len);
   }
 }
+#endif
 
 string render_netloc(const string& addr, int port) {
   if (addr.empty()) {
@@ -255,6 +261,7 @@ pair<string, uint16_t> parse_netloc(const string& netloc, int default_port) {
   return make_pair(netloc.substr(0, colon_loc), stod(netloc.substr(colon_loc + 1)));
 }
 
+#ifndef PHOSG_WINDOWS
 string gethostname() {
   string buf(sysconf(_SC_HOST_NAME_MAX) + 1, '\0');
   if (::gethostname(buf.data(), buf.size())) {
@@ -289,5 +296,6 @@ unordered_map<string, struct sockaddr_storage> get_network_interfaces() {
 
   return ret;
 }
+#endif
 
 } // namespace phosg

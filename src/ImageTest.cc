@@ -3,6 +3,7 @@
 #include <inttypes.h>
 #include <sys/time.h>
 
+#include <filesystem>
 #include <format>
 #include <vector>
 
@@ -126,7 +127,7 @@ int main(int, char**) {
         string reference_filename = std::format("reference/ImageTestReference.{}.{}.{}", has_alpha_tag, channel_width, ext);
         string temp_filename = std::format("ImageTestImage.{}.{}.{}", has_alpha_tag, channel_width, ext);
 
-        string reference_data = isfile(reference_filename) ? load_file(reference_filename) : "";
+        string reference_data = std::filesystem::is_regular_file(reference_filename) ? load_file(reference_filename) : "";
         if (reference_data.empty()) {
           fwrite_fmt(stderr, "warning: reference file {} not found; skipping verification\n", reference_filename);
         }
@@ -159,7 +160,7 @@ int main(int, char**) {
           expect_eq(ref, img);
         }
 
-        unlink(temp_filename);
+        std::filesystem::remove(temp_filename);
       }
     }
   }
@@ -234,7 +235,7 @@ int main(int, char**) {
       string temp_filename = "BitmapImageTestImage.bmp";
 
       string reference_data;
-      if (isfile(reference_filename)) {
+      if (std::filesystem::is_regular_file(reference_filename)) {
         reference_data = load_file(reference_filename);
       } else {
         fwrite_fmt(stderr, "warning: reference file {} not found; skipping verification\n", reference_filename);
@@ -269,7 +270,7 @@ int main(int, char**) {
         expect_eq(ref, img);
       }
 
-      unlink(temp_filename);
+      std::filesystem::remove(temp_filename);
     }
   }
 

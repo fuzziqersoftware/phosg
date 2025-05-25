@@ -10,18 +10,6 @@ using namespace phosg;
 
 int main(int, char**) {
   {
-    auto results = list_directory(".");
-#ifdef PHOSG_WINDOWS
-    expect_eq(1, results.count("FilesystemTest.exe"));
-#else
-    expect_eq(1, results.count("FilesystemTest"));
-#endif
-    expect_eq(0, results.count("the-test-will-fail-if-this-file-exists"));
-    expect_eq(0, results.count("."));
-    expect_eq(0, results.count(".."));
-  }
-
-  {
     string filename("FilesystemTest-data");
     string symlink_name("FilesystemTest-link");
     try {

@@ -4,6 +4,14 @@
 
 #include <string.h>
 
+#ifdef PHOSG_WINDOWS
+#include <windows.h>
+
+#include <bcrypt.h>
+#include <ntstatus.h>
+#endif
+
+#include <format>
 #include <stdexcept>
 #include <string>
 
@@ -20,6 +28,7 @@ string random_data(size_t bytes) {
 }
 
 void random_data(void* data, size_t bytes) {
+#ifndef PHOSG_WINDOWS
   static scoped_fd fd("/dev/urandom", O_RDONLY);
   static thread_local string buffer;
 
@@ -34,6 +43,12 @@ void random_data(void* data, size_t bytes) {
     memcpy(data, buffer.data() + buffer.size() - bytes, bytes);
     buffer.resize(buffer.size() - bytes);
   }
+#else
+  auto status = BCryptGenRandom(nullptr, reinterpret_cast<PUCHAR>(data), bytes, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+  if (status != STATUS_SUCCESS) {
+    throw std::runtime_error(std::format("unable to generate random data: {:08X}", status));
+  }
+#endif
 }
 
 int64_t random_int(int64_t low, int64_t high) {

@@ -1,8 +1,12 @@
 #pragma once
 
+#include "Platform.hh"
+
 #include <stdint.h>
-#include <sys/socket.h>
 #include <sys/types.h>
+#ifndef PHOSG_WINDOWS
+#include <sys/socket.h>
+#endif
 
 #include <string>
 #include <unordered_map>
@@ -10,6 +14,7 @@
 
 namespace phosg {
 
+#ifndef PHOSG_WINDOWS
 std::pair<struct sockaddr_storage, size_t> make_sockaddr_storage(
     const std::string& addr, uint16_t port);
 
@@ -38,8 +43,7 @@ uint32_t resolve_ipv4(const std::string& addr);
  * The port argument may be negative to automatically choose a port (e.g. for
  * UDP sockets where we the caller doesn't need a fixed port number).
  */
-int listen(const std::string& addr, int port, int backlog,
-    bool nonblocking = true);
+int listen(const std::string& addr, int port, int backlog, bool nonblocking = true);
 
 /**
  * Connects to a listening socket, possibly on a remote host.
@@ -53,13 +57,13 @@ int listen(const std::string& addr, int port, int backlog,
  */
 int connect(const std::string& addr, int port, bool nonblocking = true);
 
-void get_socket_addresses(int fd, struct sockaddr_storage* local,
-    struct sockaddr_storage* remote);
+void get_socket_addresses(int fd, struct sockaddr_storage* local, struct sockaddr_storage* remote);
+#endif
 
 std::string render_netloc(const std::string& addr, int port);
-std::pair<std::string, uint16_t> parse_netloc(const std::string& netloc,
-    int default_port = 0);
+std::pair<std::string, uint16_t> parse_netloc(const std::string& netloc, int default_port = 0);
 
+#ifndef PHOSG_WINDOWS
 std::string gethostname();
 
 std::pair<int, int> socketpair(
@@ -68,5 +72,6 @@ std::pair<int, int> socketpair(
     int protocol = 0);
 
 std::unordered_map<std::string, struct sockaddr_storage> get_network_interfaces();
+#endif
 
 } // namespace phosg

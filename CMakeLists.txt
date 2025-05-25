@@ -46,6 +46,9 @@ add_library(
   src/Tools.cc
   src/UnitTest.cc
 )
+if (NOT WIN32)
+  target_sources(phosg PRIVATE src/Filesystem-Unix.cc)
+endif()
 target_link_libraries(phosg pthread z)
 target_include_directories(
   phosg PUBLIC

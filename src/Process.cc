@@ -9,8 +9,10 @@
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/wait.h>
 #include <unistd.h>
+#ifndef PHOSG_WINDOWS
+#include <sys/wait.h>
+#endif
 #ifdef PHOSG_MACOS
 #include <libproc.h>
 #include <sys/proc_info.h>
@@ -30,8 +32,8 @@ using namespace std;
 
 namespace phosg {
 
-unique_ptr<FILE, void (*)(FILE*)> popen_unique(const string& command,
-    const string& mode) {
+#ifndef PHOSG_WINDOWS
+unique_ptr<FILE, void (*)(FILE*)> popen_unique(const string& command, const string& mode) {
   unique_ptr<FILE, void (*)(FILE*)> f(
       popen(command.c_str(), mode.c_str()),
       [](FILE* f) {
@@ -157,7 +159,6 @@ bool pid_is_zombie(pid_t pid) {
 }
 #endif
 
-#ifndef PHOSG_WINDOWS
 uint64_t start_time_for_pid(pid_t pid, bool allow_zombie) {
 #ifdef PHOSG_MACOS
   (void)allow_zombie;
@@ -195,7 +196,6 @@ uint64_t start_time_for_pid(pid_t pid, bool allow_zombie) {
   return start_time;
 #endif
 }
-#endif
 
 static bool atfork_handler_added = false;
 static pid_t cached_this_process_pid = 0;
@@ -223,7 +223,6 @@ pid_t getpid_cached() {
   return cached_this_process_pid;
 }
 
-#ifndef PHOSG_WINDOWS
 uint64_t this_process_start_time() {
   if (!cached_this_process_start_time) {
     // don't need to call maybe_add_atfork_handler; getpid_cached will do it
@@ -231,7 +230,6 @@ uint64_t this_process_start_time() {
   }
   return cached_this_process_start_time;
 }
-#endif
 
 static void replace_fd(int oldfd, int newfd) {
   if (oldfd != newfd) {
@@ -613,5 +611,6 @@ SubprocessResult run_process(const vector<string>& cmd, const string* stdin_data
 
   return ret;
 }
+#endif
 
 } // namespace phosg

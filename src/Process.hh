@@ -13,6 +13,7 @@
 
 namespace phosg {
 
+#ifndef PHOSG_WINDOWS
 std::unique_ptr<FILE, void (*)(FILE*)> popen_unique(const std::string& command, const std::string& mode);
 
 std::string name_for_pid(pid_t pid);
@@ -25,14 +26,12 @@ bool pid_exists(pid_t pid);
 bool pid_is_zombie(pid_t pid);
 #endif
 
-#ifndef PHOSG_WINDOWS
 // returns the process' start time, in platform-dependent units. on linux, the
 // value is in nanoseconds since the epoch; on osx, it's in microseconds since
 // the epoch. if allow_zombie is true, returns the start time even if the
 // process is a zombie. allow_zombie is ignored on osx (it's always false).
 uint64_t start_time_for_pid(pid_t pid, bool allow_zombie = false);
 uint64_t this_process_start_time();
-#endif
 
 pid_t getpid_cached();
 
@@ -90,5 +89,6 @@ SubprocessResult run_process(const std::vector<std::string>& cmd,
     const std::string* cwd = nullptr,
     const std::unordered_map<std::string, std::string>* env = nullptr,
     size_t timeout_secs = 0);
+#endif
 
 } // namespace phosg
