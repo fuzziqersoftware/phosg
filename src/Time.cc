@@ -22,7 +22,11 @@ uint64_t now() {
 string format_time(uint64_t t) {
   time_t t_secs = t / 1000000;
   struct tm t_parsed;
+#ifndef PHOSG_WINDOWS
   gmtime_r(&t_secs, &t_parsed);
+#else
+  gmtime_s(&t_parsed, &t_secs);
+#endif
 
   string ret(128, 0);
   size_t len = strftime(ret.data(), ret.size(), "%Y-%m-%d %H:%M:%S", &t_parsed);
@@ -51,7 +55,11 @@ string format_time_natural(struct timeval* tv) {
 
   time_t sec = tv->tv_sec;
   struct tm cooked;
+#ifndef PHOSG_WINDOWS
   localtime_r(&sec, &cooked);
+#else
+  localtime_s(&cooked, &sec);
+#endif
 
   static const char* monthnames[] = {"January", "February", "March", "April",
       "May", "June", "July", "August", "September", "October", "November",

@@ -143,17 +143,17 @@ uint8_t value_for_hex_char(char x) {
 template <>
 LogLevel enum_for_name<LogLevel>(const char* name) {
   if (!strcmp(name, "USE_DEFAULT")) {
-    return LogLevel::USE_DEFAULT;
+    return LogLevel::L_USE_DEFAULT;
   } else if (!strcmp(name, "DEBUG")) {
-    return LogLevel::DEBUG;
+    return LogLevel::L_DEBUG;
   } else if (!strcmp(name, "INFO")) {
-    return LogLevel::INFO;
+    return LogLevel::L_INFO;
   } else if (!strcmp(name, "WARNING")) {
-    return LogLevel::WARNING;
+    return LogLevel::L_WARNING;
   } else if (!strcmp(name, "ERROR")) {
-    return LogLevel::ERROR;
+    return LogLevel::L_ERROR;
   } else if (!strcmp(name, "DISABLED")) {
-    return LogLevel::DISABLED;
+    return LogLevel::L_DISABLED;
   } else {
     throw invalid_argument("invalid LogLevel name");
   }
@@ -162,24 +162,24 @@ LogLevel enum_for_name<LogLevel>(const char* name) {
 template <>
 const char* name_for_enum<LogLevel>(LogLevel level) {
   switch (level) {
-    case LogLevel::USE_DEFAULT:
+    case LogLevel::L_USE_DEFAULT:
       return "USE_DEFAULT";
-    case LogLevel::DEBUG:
+    case LogLevel::L_DEBUG:
       return "DEBUG";
-    case LogLevel::INFO:
+    case LogLevel::L_INFO:
       return "INFO";
-    case LogLevel::WARNING:
+    case LogLevel::L_WARNING:
       return "WARNING";
-    case LogLevel::ERROR:
+    case LogLevel::L_ERROR:
       return "ERROR";
-    case LogLevel::DISABLED:
+    case LogLevel::L_DISABLED:
       return "DISABLED";
     default:
       throw invalid_argument("invalid LogLevel value");
   }
 }
 
-static LogLevel current_log_level = LogLevel::INFO;
+static LogLevel current_log_level = LogLevel::L_INFO;
 
 LogLevel log_level() {
   return current_log_level;
@@ -200,7 +200,11 @@ void print_log_prefix(FILE* stream, LogLevel level) {
   char time_buffer[32];
   time_t now_secs = time(nullptr);
   struct tm now_tm;
+#ifndef PHOSG_WINDOWS
   localtime_r(&now_secs, &now_tm);
+#else
+  localtime_s(&now_tm, &now_secs);
+#endif
   strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", &now_tm);
   char level_char = log_level_chars.at(static_cast<int>(level));
   fwrite_fmt(stream, "{:c} {} {} - ", level_char, getpid_cached(), time_buffer);
@@ -211,7 +215,7 @@ PrefixedLogger::PrefixedLogger(const string& prefix, LogLevel min_level)
       min_level(min_level) {}
 
 PrefixedLogger PrefixedLogger::sub(const std::string& prefix, LogLevel min_level) const {
-  return PrefixedLogger(this->prefix + prefix, min_level == LogLevel::USE_DEFAULT ? this->min_level : min_level);
+  return PrefixedLogger(this->prefix + prefix, min_level == LogLevel::L_USE_DEFAULT ? this->min_level : min_level);
 }
 
 vector<string> split(const string& s, char delim, size_t max_splits) {
@@ -406,7 +410,11 @@ size_t skip_word(const char* s, size_t offset) {
 
 string string_for_error(int error) {
   char buffer[1024] = "Unknown error";
+#ifndef PHOSG_WINDOWS
   strerror_r(error, buffer, sizeof(buffer));
+#else
+  strerror_s(buffer, sizeof(buffer), error);
+#endif
   return std::format("{} ({})", error, buffer);
 }
 

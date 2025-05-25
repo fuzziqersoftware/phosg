@@ -15,6 +15,16 @@
 #include "Filesystem.hh"
 #include "Platform.hh"
 
+#ifdef PHOSG_WINDOWS
+// Apparently Windows doesn't have iovec; we define it outside of the phosg
+// namespace so code that uses it won't have to special-case Windows or use
+// `using iovec = phosg::iovec'.
+struct iovec {
+  void* iov_base;
+  size_t iov_len;
+};
+#endif
+
 namespace phosg {
 
 template <typename... ArgTs>
@@ -120,13 +130,14 @@ inline std::string escape_controls_utf8(const std::string& s) {
 
 uint8_t value_for_hex_char(char x);
 
+// windows.h apparently #defines ERROR, hence the prefixes here :|
 enum class LogLevel : int {
-  USE_DEFAULT = -1,
-  DEBUG = 0,
-  INFO = 1,
-  WARNING = 2,
-  ERROR = 3,
-  DISABLED = 4,
+  L_USE_DEFAULT = -1,
+  L_DEBUG = 0,
+  L_INFO = 1,
+  L_WARNING = 2,
+  L_ERROR = 3,
+  L_DISABLED = 4,
 };
 
 template <>
@@ -160,31 +171,31 @@ bool log_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) {
 
 template <typename... ArgTs>
 bool log_debug_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) {
-  return log_f<LogLevel::DEBUG>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
+  return log_f<LogLevel::L_DEBUG>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
 }
 template <typename... ArgTs>
 bool log_info_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) {
-  return log_f<LogLevel::INFO>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
+  return log_f<LogLevel::L_INFO>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
 }
 template <typename... ArgTs>
 bool log_warning_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) {
-  return log_f<LogLevel::WARNING>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
+  return log_f<LogLevel::L_WARNING>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
 }
 template <typename... ArgTs>
 bool log_error_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) {
-  return log_f<LogLevel::ERROR>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
+  return log_f<LogLevel::L_ERROR>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
 }
 
 struct PrefixedLogger {
   std::string prefix;
   LogLevel min_level;
 
-  explicit PrefixedLogger(const std::string& prefix, LogLevel min_level = LogLevel::USE_DEFAULT);
+  explicit PrefixedLogger(const std::string& prefix, LogLevel min_level = LogLevel::L_USE_DEFAULT);
 
-  PrefixedLogger sub(const std::string& prefix, LogLevel min_level = LogLevel::USE_DEFAULT) const;
+  PrefixedLogger sub(const std::string& prefix, LogLevel min_level = LogLevel::L_USE_DEFAULT) const;
 
   inline LogLevel effective_level() const {
-    return this->min_level == LogLevel::USE_DEFAULT ? log_level() : this->min_level;
+    return this->min_level == LogLevel::L_USE_DEFAULT ? log_level() : this->min_level;
   }
 
   inline bool should_log(LogLevel incoming_level) const {
@@ -205,19 +216,19 @@ struct PrefixedLogger {
 
   template <typename... ArgTs>
   bool debug_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) const {
-    return this->log_f<LogLevel::DEBUG>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
+    return this->log_f<LogLevel::L_DEBUG>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
   }
   template <typename... ArgTs>
   bool info_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) const {
-    return this->log_f<LogLevel::INFO>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
+    return this->log_f<LogLevel::L_INFO>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
   }
   template <typename... ArgTs>
   bool warning_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) const {
-    return this->log_f<LogLevel::WARNING>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
+    return this->log_f<LogLevel::L_WARNING>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
   }
   template <typename... ArgTs>
   bool error_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) const {
-    return this->log_f<LogLevel::ERROR>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
+    return this->log_f<LogLevel::L_ERROR>(std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
   }
 };
 

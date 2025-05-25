@@ -13,6 +13,8 @@
 
 namespace phosg {
 
+pid_t getpid_cached();
+
 #ifndef PHOSG_WINDOWS
 std::unique_ptr<FILE, void (*)(FILE*)> popen_unique(const std::string& command, const std::string& mode);
 
@@ -32,8 +34,6 @@ bool pid_is_zombie(pid_t pid);
 // process is a zombie. allow_zombie is ignored on osx (it's always false).
 uint64_t start_time_for_pid(pid_t pid, bool allow_zombie = false);
 uint64_t this_process_start_time();
-
-pid_t getpid_cached();
 
 class Subprocess {
 public:

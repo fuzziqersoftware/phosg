@@ -4,24 +4,44 @@
 
 namespace phosg {
 
+enum class Platform {
+  MACOS = 0,
+  LINUX,
+  WINDOWS,
+  UNIX,
+  POSIX,
+};
+
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__) || defined(__CYGWIN__)
 #define PHOSG_WINDOWS
+constexpr Platform PLATFORM = Platform::WINDOWS;
 
 #elif __APPLE__
 #define PHOSG_MACOS
+constexpr Platform PLATFORM = Platform::MACOS;
 
 #elif __linux__
 #define PHOSG_LINUX
+constexpr Platform PLATFORM = Platform::LINUX;
 
 #elif __unix__
 #define PHOSG_UNIX
+constexpr Platform PLATFORM = Platform::UNIX;
 
 #elif defined(_POSIX_VERSION)
 #define PHOSG_POSIX
+constexpr Platform PLATFORM = Platform::POSIX;
 
 #else
 #error "Unknown platform"
 #endif
+
+constexpr inline bool is_windows() {
+  return PLATFORM == Platform::WINDOWS;
+}
+constexpr inline bool is_macos() {
+  return PLATFORM == Platform::MACOS;
+}
 
 // Try to determine endianess from GCC defines first. If they aren't available,
 // use some constants to try to figure it out

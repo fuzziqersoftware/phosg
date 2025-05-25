@@ -33,6 +33,38 @@ using namespace std;
 namespace phosg {
 
 #ifndef PHOSG_WINDOWS
+static bool atfork_handler_added = false;
+static pid_t cached_this_process_pid = 0;
+static uint64_t cached_this_process_start_time = 0;
+
+static void clear_cached_pid_vars() {
+  cached_this_process_pid = 0;
+  cached_this_process_start_time = 0;
+  // TODO: do pthread_atfork() handlers survive in the child process? if not,
+  // we should set atfork_handler_added to false here
+}
+
+static void maybe_add_atfork_handler() {
+  if (!atfork_handler_added) {
+    pthread_atfork(nullptr, nullptr, clear_cached_pid_vars);
+    atfork_handler_added = true;
+  }
+}
+#endif
+
+pid_t getpid_cached() {
+#ifndef PHOSG_WINDOWS
+  if (!cached_this_process_pid) {
+    maybe_add_atfork_handler();
+    cached_this_process_pid = getpid();
+  }
+  return cached_this_process_pid;
+#else
+  return _getpid();
+#endif
+}
+
+#ifndef PHOSG_WINDOWS
 unique_ptr<FILE, void (*)(FILE*)> popen_unique(const string& command, const string& mode) {
   unique_ptr<FILE, void (*)(FILE*)> f(
       popen(command.c_str(), mode.c_str()),
@@ -195,32 +227,6 @@ uint64_t start_time_for_pid(pid_t pid, bool allow_zombie) {
   }
   return start_time;
 #endif
-}
-
-static bool atfork_handler_added = false;
-static pid_t cached_this_process_pid = 0;
-static uint64_t cached_this_process_start_time = 0;
-
-static void clear_cached_pid_vars() {
-  cached_this_process_pid = 0;
-  cached_this_process_start_time = 0;
-  // TODO: do pthread_atfork() handlers survive in the child process? if not,
-  // we should set atfork_handler_added to false here
-}
-
-static void maybe_add_atfork_handler() {
-  if (!atfork_handler_added) {
-    pthread_atfork(nullptr, nullptr, clear_cached_pid_vars);
-    atfork_handler_added = true;
-  }
-}
-
-pid_t getpid_cached() {
-  if (!cached_this_process_pid) {
-    maybe_add_atfork_handler();
-    cached_this_process_pid = getpid();
-  }
-  return cached_this_process_pid;
 }
 
 uint64_t this_process_start_time() {

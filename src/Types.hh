@@ -2,6 +2,7 @@
 
 #include <compare>
 #include <stdexcept>
+#include <string>
 
 namespace phosg {
 

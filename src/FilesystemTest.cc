@@ -18,8 +18,8 @@ int main(int, char**) {
       save_file(filename, data);
       expect_eq("0123456789", load_file(filename));
 
-      expect_eq(data.size(), (size_t)stat(filename).st_size);
 #ifndef PHOSG_WINDOWS
+      expect_eq(data.size(), (size_t)stat(filename).st_size);
       expect_eq(data.size(), (size_t)lstat(filename).st_size);
 
       symlink(filename.c_str(), symlink_name.c_str());
@@ -30,8 +30,10 @@ int main(int, char**) {
 
       {
         auto f = fopen_unique(filename, "r+b");
+#ifndef PHOSG_WINDOWS
         expect_eq(data.size(), (size_t)fstat(f.get()).st_size);
         expect_eq(data.size(), (size_t)fstat(fileno(f.get())).st_size);
+#endif
         fseek(f.get(), 5, SEEK_SET);
         fwrite(data.data(), 1, data.size(), f.get());
       }

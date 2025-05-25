@@ -69,16 +69,21 @@ if("${CMAKE_HOST_SYSTEM_PROCESSOR}" STREQUAL "aarch64" OR "${IS_LINUX_ARMV}" GRE
 endif()
 
 add_executable(bindiff src/BinDiff.cc)
-target_link_libraries(bindiff phosg)
-
 add_executable(jsonformat src/JSONFormat.cc)
-target_link_libraries(jsonformat phosg)
-
 add_executable(parse-data src/ParseData.cc)
-target_link_libraries(parse-data phosg)
-
 add_executable(phosg-png-conv src/PhosgPNGConv.cc)
+
+target_link_libraries(bindiff phosg)
+target_link_libraries(jsonformat phosg)
+target_link_libraries(parse-data phosg)
 target_link_libraries(phosg-png-conv phosg)
+
+if (WIN32)
+  target_link_libraries(bindiff -static -static-libgcc -static-libstdc++)
+  target_link_libraries(jsonformat -static -static-libgcc -static-libstdc++)
+  target_link_libraries(parse-data -static -static-libgcc -static-libstdc++)
+  target_link_libraries(phosg-png-conv -static -static-libgcc -static-libstdc++)
+endif()
 
 
 
@@ -91,10 +96,16 @@ enable_testing()
 
 add_executable(ToolsTest src/ToolsTest.cc)
 target_link_libraries(ToolsTest phosg)
+if (WIN32)
+  target_link_libraries(ToolsTest -static -static-libgcc -static-libstdc++)
+endif()
 
 foreach(TestName IN ITEMS ArgumentsTest EncodingTest FilesystemTest HashTest ImageTest JSONTest KDTreeTest LRUMapTest LRUSetTest MathTest ProcessTest StringsTest TimeTest UnitTestTest)
   add_executable(${TestName} src/${TestName}.cc)
   target_link_libraries(${TestName} phosg)
+  if (WIN32)
+    target_link_libraries(${TestName} -static -static-libgcc -static-libstdc++)
+  endif()
   add_test(NAME ${TestName} COMMAND ${TestName})
 endforeach()
 

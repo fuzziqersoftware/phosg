@@ -140,10 +140,10 @@ F0 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
   string data2("\x80\x3F\0\0", 4);
   string data3("\0", 1);
   vector<struct iovec> iovs;
-  iovs.emplace_back(iovec{.iov_base = data1.data(), .iov_len = data1.size()});
-  iovs.emplace_back(iovec{.iov_base = data2.data(), .iov_len = data2.size()});
-  iovs.emplace_back(iovec{.iov_base = nullptr, .iov_len = 0});
-  iovs.emplace_back(iovec{.iov_base = data3.data(), .iov_len = data3.size()});
+  iovs.emplace_back(iovec{data1.data(), data1.size()});
+  iovs.emplace_back(iovec{data2.data(), data2.size()});
+  iovs.emplace_back(iovec{nullptr, 0});
+  iovs.emplace_back(iovec{data3.data(), data3.size()});
   print_data_test_case("\
 00 | 00 00 00 40 00 00 80 3F 00 00 00                |    @   ?        \n",
       iovs.data(), iovs.size(), 0, nullptr, 0, PrintDataFlags::PRINT_ASCII);
