@@ -207,7 +207,7 @@ void print_log_prefix(FILE* stream, LogLevel level) {
 #endif
   strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", &now_tm);
   char level_char = log_level_chars.at(static_cast<int>(level));
-  fwrite_fmt(stream, "{:c} {} {} - ", level_char, getpid_cached(), time_buffer);
+  fwrite_fmt(stream, "{:c} {} {} - ", level_char, getpid_cached(), &time_buffer[0]);
 }
 
 PrefixedLogger::PrefixedLogger(const string& prefix, LogLevel min_level)
