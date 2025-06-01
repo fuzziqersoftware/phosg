@@ -46,7 +46,7 @@ void print_binary_diff(
       print_color_escape(stream, color, TerminalFormat::END);
     }
     uint64_t address = base_offset + line_start_offset;
-    fwrite_fmt(stream, "{:c} {:0>{}X} |", left_ch, offset_width_digits, address);
+    fwrite_fmt(stream, "{:c} {:0>{}X} |", left_ch, address, offset_width_digits);
     for (size_t within_line_offset = 0; within_line_offset < 0x10; within_line_offset++) {
       size_t offset = (line_index * 0x10) + within_line_offset;
       if (offset < size) {

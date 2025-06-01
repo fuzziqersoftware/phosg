@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
     src_data = load_file(src_filename);
   }
 
-  string result = parse_data_string(src_data);
+  string result = parse_data_string(src_data, nullptr, ParseDataFlags::ALLOW_FILES);
 
   if (!dst_filename || !strcmp(dst_filename, "-")) {
     fwritex(stdout, result);
