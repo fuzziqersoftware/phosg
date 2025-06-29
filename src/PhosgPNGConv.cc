@@ -19,17 +19,18 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  Image img;
+  std::string data;
   if (!src_filename || !strcmp(src_filename, "-")) {
-    img = Image(stdin);
+    data = read_all(stdin);
   } else {
-    img = Image(src_filename);
+    data = load_file(src_filename);
   }
+  string png_data = ImageRGBA8888::from_file_data(data.data(), data.size()).serialize(ImageFormat::PNG);
 
   if (!dst_filename || !strcmp(dst_filename, "-")) {
-    img.save(stdout, Image::Format::PNG);
+    fwritex(stdout, png_data);
   } else {
-    img.save(dst_filename, Image::Format::PNG);
+    save_file(dst_filename, png_data);
   }
 
   return 0;

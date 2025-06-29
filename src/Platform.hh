@@ -48,8 +48,10 @@ constexpr inline bool is_macos() {
 // clang-format off
 #if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
   #define PHOSG_LITTLE_ENDIAN
+  static constexpr bool IS_BIG_ENDIAN = false;
 #elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
   #define PHOSG_BIG_ENDIAN
+  static constexpr bool IS_BIG_ENDIAN = true;
 
 #else
   #define PHOSG_LITTLE_ENDIAN_VALUE 0x31323334UL
@@ -58,8 +60,10 @@ constexpr inline bool is_macos() {
 
   #if PHOSG_ENDIAN_ORDER_VALUE == PHOSG_LITTLE_ENDIAN_VALUE
     #define PHOSG_LITTLE_ENDIAN
+    static constexpr bool IS_BIG_ENDIAN = false;
   #elif PHOSG_ENDIAN_ORDER_VALUE == PHOSG_BIG_ENDIAN_VALUE
     #define PHOSG_BIG_ENDIAN
+    static constexpr bool IS_BIG_ENDIAN = true;
   #else
     #error "Unrecognized host system endianness"
   #endif

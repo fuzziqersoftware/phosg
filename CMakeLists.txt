@@ -36,7 +36,6 @@ add_library(
   src/Encoding.cc
   src/Filesystem.cc
   src/Hash.cc
-  src/Image.cc
   src/JSON.cc
   src/Network.cc
   src/Process.cc
