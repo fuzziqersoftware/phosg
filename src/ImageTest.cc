@@ -41,127 +41,121 @@ static const vector<Color> colors({
 int main(int, char**) {
 
   for (uint8_t has_alpha = 0; has_alpha < 2; has_alpha++) {
-    for (uint8_t channel_width = 8; channel_width <= 64; channel_width <<= 1) {
-      const char* has_alpha_tag = has_alpha ? "alpha" : "no-alpha";
-      Image img(180, 190, has_alpha, channel_width);
+    const char* has_alpha_tag = has_alpha ? "alpha" : "no-alpha";
+    Image img(180, 190, has_alpha);
 
-      {
-        fwrite_fmt(stderr, "-- [Image:{}-bit/{}] metadata\n", channel_width, has_alpha_tag);
-        expect_eq(180, img.get_width());
-        expect_eq(190, img.get_height());
-        expect_eq(has_alpha, img.get_has_alpha());
-        expect_eq(channel_width, img.get_channel_width());
+    {
+      fwrite_fmt(stderr, "-- [Image:{}] metadata\n", has_alpha_tag);
+      expect_eq(180, img.get_width());
+      expect_eq(190, img.get_height());
+      expect_eq(has_alpha, img.get_has_alpha());
+    }
+
+    {
+      fwrite_fmt(stderr, "-- [Image:{}] clear\n", has_alpha_tag);
+      img.clear(0x20, 0x20, 0x20, 0x20);
+    }
+
+    {
+      fwrite_fmt(stderr, "-- [Image:{}] axis-aligned lines\n", has_alpha_tag);
+      for (size_t x = 0; x < 8; x++) {
+        const auto& c = colors[x];
+        img.draw_horizontal_line(5, 175, 90 + x, x, c.r, c.g, c.b, c.a);
+        img.draw_vertical_line(5 + x, 100, 185, x, c.r, c.g, c.b, c.a);
+      }
+    }
+
+    {
+      fwrite_fmt(stderr, "-- [Image:{}] rectangles\n", has_alpha_tag);
+      img.fill_rect(3, 98, 64, 64, 0xFF, 0xFF, 0xFF, 0x80);
+    }
+
+    {
+      fwrite_fmt(stderr, "-- [Image:{}] non-axis-aligned lines\n", has_alpha_tag);
+      const vector<pair<ssize_t, ssize_t>> points({
+          pair<ssize_t, ssize_t>(0, 0),
+          pair<ssize_t, ssize_t>(0, 20),
+          pair<ssize_t, ssize_t>(0, 40),
+          pair<ssize_t, ssize_t>(0, 60),
+          pair<ssize_t, ssize_t>(0, 80),
+          pair<ssize_t, ssize_t>(20, 80),
+          pair<ssize_t, ssize_t>(40, 80),
+          pair<ssize_t, ssize_t>(60, 80),
+          pair<ssize_t, ssize_t>(80, 80),
+          pair<ssize_t, ssize_t>(80, 60),
+          pair<ssize_t, ssize_t>(80, 40),
+          pair<ssize_t, ssize_t>(80, 20),
+          pair<ssize_t, ssize_t>(80, 0),
+          pair<ssize_t, ssize_t>(60, 0),
+          pair<ssize_t, ssize_t>(40, 0),
+          pair<ssize_t, ssize_t>(20, 0),
+      });
+      for (size_t x = 0; x < 8; x++) {
+        const auto& c = colors[x];
+        img.draw_line(points[x].first + 5, points[x].second + 5,
+            points[x + 8].first + 5, points[x + 8].second + 5, c.r, c.g, c.b, c.a);
+        img.draw_line(points[x + 8].first + 90, points[x + 8].second + 5,
+            points[x].first + 90, points[x].second + 5, c.r, c.g, c.b, c.a);
+      }
+    }
+
+    {
+      fwrite_fmt(stderr, "-- [Image:{}] blit\n", has_alpha_tag);
+      img.blit(img, 40, 105, 80, 80, 5, 5);
+    }
+
+    {
+      fwrite_fmt(stderr, "-- [Image:{}] mask_blit with color mask\n", has_alpha_tag);
+      img.mask_blit(img, 80, 105, 80, 80, 5, 5, 0x20, 0x20, 0x20);
+    }
+
+    {
+      fwrite_fmt(stderr, "-- [Image:{}] copy\n", has_alpha_tag);
+      Image img2(img);
+      expect_eq(img, img2);
+    }
+
+    vector<Image::Format> formats({Image::Format::COLOR_PPM, Image::Format::WINDOWS_BITMAP});
+
+    for (auto format : formats) {
+      const char* ext = Image::file_extension_for_format(format);
+      string reference_filename = std::format("reference/ImageTestReference.{}.{}", has_alpha_tag, ext);
+      string temp_filename = std::format("ImageTestImage.{}.{}", has_alpha_tag, ext);
+
+      string reference_data = std::filesystem::is_regular_file(reference_filename) ? load_file(reference_filename) : "";
+      if (reference_data.empty()) {
+        fwrite_fmt(stderr, "warning: reference file {} not found; skipping verification\n", reference_filename);
       }
 
       {
-        fwrite_fmt(stderr, "-- [Image:{}-bit/{}] clear\n", channel_width, has_alpha_tag);
-        img.clear(0x20, 0x20, 0x20, 0x20);
-      }
-
-      {
-        fwrite_fmt(stderr, "-- [Image:{}-bit/{}] axis-aligned lines\n", channel_width, has_alpha_tag);
-        for (size_t x = 0; x < 8; x++) {
-          const auto& c = colors[x];
-          img.draw_horizontal_line(5, 175, 90 + x, x, c.r, c.g, c.b, c.a);
-          img.draw_vertical_line(5 + x, 100, 185, x, c.r, c.g, c.b, c.a);
-        }
-      }
-
-      {
-        fwrite_fmt(stderr, "-- [Image:{}-bit/{}] rectangles\n", channel_width, has_alpha_tag);
-        img.fill_rect(3, 98, 64, 64, 0xFF, 0xFF, 0xFF, 0x80);
-      }
-
-      {
-        fwrite_fmt(stderr, "-- [Image:{}-bit/{}] non-axis-aligned lines\n", channel_width, has_alpha_tag);
-        const vector<pair<ssize_t, ssize_t>> points({
-            pair<ssize_t, ssize_t>(0, 0),
-            pair<ssize_t, ssize_t>(0, 20),
-            pair<ssize_t, ssize_t>(0, 40),
-            pair<ssize_t, ssize_t>(0, 60),
-            pair<ssize_t, ssize_t>(0, 80),
-            pair<ssize_t, ssize_t>(20, 80),
-            pair<ssize_t, ssize_t>(40, 80),
-            pair<ssize_t, ssize_t>(60, 80),
-            pair<ssize_t, ssize_t>(80, 80),
-            pair<ssize_t, ssize_t>(80, 60),
-            pair<ssize_t, ssize_t>(80, 40),
-            pair<ssize_t, ssize_t>(80, 20),
-            pair<ssize_t, ssize_t>(80, 0),
-            pair<ssize_t, ssize_t>(60, 0),
-            pair<ssize_t, ssize_t>(40, 0),
-            pair<ssize_t, ssize_t>(20, 0),
-        });
-        for (size_t x = 0; x < 8; x++) {
-          const auto& c = colors[x];
-          img.draw_line(points[x].first + 5, points[x].second + 5,
-              points[x + 8].first + 5, points[x + 8].second + 5, c.r, c.g, c.b, c.a);
-          img.draw_line(points[x + 8].first + 90, points[x + 8].second + 5,
-              points[x].first + 90, points[x].second + 5, c.r, c.g, c.b, c.a);
-        }
-      }
-
-      {
-        fwrite_fmt(stderr, "-- [Image:{}-bit/{}] blit\n", channel_width, has_alpha_tag);
-        img.blit(img, 40, 105, 80, 80, 5, 5);
-      }
-
-      {
-        fwrite_fmt(stderr, "-- [Image:{}-bit/{}] mask_blit with color mask\n", channel_width, has_alpha_tag);
-        img.mask_blit(img, 80, 105, 80, 80, 5, 5, 0x20, 0x20, 0x20);
-      }
-
-      {
-        fwrite_fmt(stderr, "-- [Image:{}-bit/{}] copy\n", channel_width, has_alpha_tag);
-        Image img2(img);
-        expect_eq(img, img2);
-      }
-
-      vector<Image::Format> formats({Image::Format::COLOR_PPM});
-      if (channel_width == 8) {
-        formats.emplace_back(Image::Format::WINDOWS_BITMAP);
-      }
-
-      for (auto format : formats) {
-        const char* ext = Image::file_extension_for_format(format);
-        string reference_filename = std::format("reference/ImageTestReference.{}.{}.{}", has_alpha_tag, channel_width, ext);
-        string temp_filename = std::format("ImageTestImage.{}.{}.{}", has_alpha_tag, channel_width, ext);
-
-        string reference_data = std::filesystem::is_regular_file(reference_filename) ? load_file(reference_filename) : "";
-        if (reference_data.empty()) {
-          fwrite_fmt(stderr, "warning: reference file {} not found; skipping verification\n", reference_filename);
-        }
-
-        {
-          fwrite_fmt(stderr, "-- [Image:{}-bit/{}/{}] save to disk\n", channel_width, has_alpha_tag, ext);
-          img.save(temp_filename.c_str(), format);
-          if (!reference_data.empty()) {
-            expect_eq(reference_data, load_file(temp_filename));
-          }
-        }
-
-        {
-          fwrite_fmt(stderr, "-- [Image:{}-bit/{}/{}] save in memory\n", channel_width, has_alpha_tag, ext);
-          string data = img.save(format);
-          if (!reference_data.empty()) {
-            expect_eq(reference_data, data);
-          }
-        }
-
-        {
-          fwrite_fmt(stderr, "-- [Image:{}-bit/{}/{}] compare with saved image\n", channel_width, has_alpha_tag, ext);
-          Image ref(temp_filename);
-          expect_eq(ref, img);
-        }
-
+        fwrite_fmt(stderr, "-- [Image:{}/{}] save to disk\n", has_alpha_tag, ext);
+        img.save(temp_filename.c_str(), format);
         if (!reference_data.empty()) {
-          fwrite_fmt(stderr, "-- [Image:{}-bit/{}/{}] compare with reference\n", channel_width, has_alpha_tag, ext);
-          Image ref(reference_filename);
-          expect_eq(ref, img);
+          expect_eq(reference_data, load_file(temp_filename));
         }
-
-        std::filesystem::remove(temp_filename);
       }
+
+      {
+        fwrite_fmt(stderr, "-- [Image:{}/{}] save in memory\n", has_alpha_tag, ext);
+        string data = img.save(format);
+        if (!reference_data.empty()) {
+          expect_eq(reference_data, data);
+        }
+      }
+
+      {
+        fwrite_fmt(stderr, "-- [Image:{}/{}] compare with saved image\n", has_alpha_tag, ext);
+        Image ref(temp_filename);
+        expect_eq(ref, img);
+      }
+
+      if (!reference_data.empty()) {
+        fwrite_fmt(stderr, "-- [Image:{}/{}] compare with reference\n", has_alpha_tag, ext);
+        Image ref(reference_filename);
+        expect_eq(ref, img);
+      }
+
+      std::filesystem::remove(temp_filename);
     }
   }
 

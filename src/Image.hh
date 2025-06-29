@@ -20,23 +20,28 @@ class Image {
 public:
   Image();
 
-  // Construct a black-filled Image
-  Image(size_t x, size_t y, bool has_alpha = false, uint8_t channel_width = 8);
+  // Construct an Image with an external data buffer. If copy_data is false, it
+  // is the caller's responsibility to free the data buffer and to ensure the
+  // Image isn't used after the data buffer is freed.
+  Image(void* raw_data, size_t w, size_t h, bool has_alpha = false, bool copy_data = true);
 
-  Image(const Image&);
-  Image(Image&&);
-  const Image& operator=(const Image& other);
-  Image& operator=(Image&& other);
+  // Construct a black-filled Image
+  Image(size_t x, size_t y, bool has_alpha = false);
 
   // Load a file (autodetect format)
   explicit Image(FILE* f);
   explicit Image(const char* filename);
   explicit Image(const std::string& filename);
 
-  // Load from a file (raw data)
-  Image(FILE* f, ssize_t width, ssize_t height, bool has_alpha = false, uint8_t channel_width = 0, uint64_t max_value = 0);
-  Image(const char* filename, ssize_t width, ssize_t height, bool has_alpha = false, uint8_t channel_width = 0, uint64_t max_value = 0);
-  Image(const std::string& filename, ssize_t width, ssize_t height, bool has_alpha = false, uint8_t channel_width = 0, uint64_t max_value = 0);
+  // Load from a file (raw data in RGB888 or RGBA8888 format)
+  Image(FILE* f, ssize_t width, ssize_t height, bool has_alpha = false);
+  Image(const char* filename, ssize_t width, ssize_t height, bool has_alpha = false);
+  Image(const std::string& filename, ssize_t width, ssize_t height, bool has_alpha = false);
+
+  Image(const Image&);
+  Image(Image&&);
+  const Image& operator=(const Image& other);
+  Image& operator=(Image&& other);
 
   ~Image();
 
@@ -58,11 +63,8 @@ public:
   inline const void* get_data() const {
     return this->data.raw;
   }
-  inline uint8_t get_channel_width() const {
-    return this->channel_width;
-  }
   inline size_t get_data_size() const {
-    return this->width * this->height * (3 + this->has_alpha) * (this->channel_width / 8);
+    return this->width * this->height * (3 + this->has_alpha);
   }
 
   inline bool empty() const {
@@ -102,15 +104,12 @@ public:
   void reverse_horizontal();
   void reverse_vertical();
   inline void set_dimensions(ssize_t new_w, ssize_t new_h) {
-    this->set_canvas_properties(new_w, new_h, this->has_alpha, this->channel_width);
+    this->set_canvas_properties(new_w, new_h, this->has_alpha);
   }
   inline void set_has_alpha(bool new_has_alpha) {
-    this->set_canvas_properties(this->width, this->height, new_has_alpha, this->channel_width);
+    this->set_canvas_properties(this->width, this->height, new_has_alpha);
   }
-  inline void set_channel_width(uint8_t new_width) {
-    this->set_canvas_properties(this->width, this->height, this->has_alpha, new_width);
-  }
-  void set_canvas_properties(ssize_t new_w, ssize_t new_h, bool new_has_alpha, uint8_t new_channel_width);
+  void set_canvas_properties(ssize_t new_w, ssize_t new_h, bool new_has_alpha);
   void set_alpha_from_mask_color(uint64_t r, uint64_t g, uint64_t b);
   void set_alpha_from_mask_color(uint32_t c);
 
@@ -194,9 +193,8 @@ private:
   ssize_t width;
   ssize_t height;
   bool has_alpha;
-  uint8_t channel_width;
-  uint64_t max_value;
   DataPtrs data;
+  bool data_owned;
 
   void load(FILE* f);
 
