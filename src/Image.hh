@@ -992,13 +992,13 @@ public:
   size_t get_height() const {
     return this->h;
   }
-  void* get_data() {
-    return this->data.raw;
+  DataT* get_data() {
+    return this->data;
   }
-  const void* get_data() const {
-    return this->data.raw;
+  const DataT* get_data() const {
+    return this->data;
   }
-  static size_t get_data_size(size_t w, size_t h) {
+  static constexpr size_t get_data_size(size_t w, size_t h) {
     return PixelBuffer<Format>::data_size(w, h);
   }
   size_t get_data_size() const {
@@ -1008,7 +1008,7 @@ public:
   /////////////////////////////////////////////////////////////////////////////
   // Manipulation functions
 
-  void resize(ssize_t new_w, ssize_t new_h) {
+  void resize(size_t new_w, size_t new_h) {
     if (new_w != this->w || new_h != this->h) {
       Image new_img(new_w, new_h);
       new_img.copy_from(*this, 0, 0, std::min<size_t>(this->w, new_w), std::min<size_t>(this->h, new_h), 0, 0);
@@ -1534,8 +1534,12 @@ protected:
 using ImageG1 = Image<PixelFormat::G1>;
 using ImageGA11 = Image<PixelFormat::GA11>;
 using ImageG8 = Image<PixelFormat::G8>;
-using ImageGA8 = Image<PixelFormat::GA88>;
+using ImageGA88 = Image<PixelFormat::GA88>;
+using ImageXRGB1555 = Image<PixelFormat::XRGB1555>;
+using ImageARGB1555 = Image<PixelFormat::ARGB1555>;
+using ImageRGB565 = Image<PixelFormat::RGB565>;
 using ImageRGB888 = Image<PixelFormat::RGB888>;
 using ImageRGBA8888 = Image<PixelFormat::RGBA8888>;
+using ImageARGB8888 = Image<PixelFormat::ARGB8888>;
 
 } // namespace phosg
