@@ -1238,7 +1238,7 @@ public:
   // Copies pixels from another image to this one, resizing the image using 2-D
   // nearest-neighbor resampling.
   template <PixelFormat SourceFormat>
-  void resize_blit(
+  void copy_from_with_resize(
       const Image<SourceFormat>& source,
       ssize_t x, ssize_t y, ssize_t w, ssize_t h,
       ssize_t sx, ssize_t sy, ssize_t sw, ssize_t sh) {
