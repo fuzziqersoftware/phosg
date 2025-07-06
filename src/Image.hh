@@ -1258,7 +1258,7 @@ public:
     // If the dimensions are the same, there's no need to do any floating-point
     // arithmetic; delegate to the faster method
     if (w == sw && h == sh) {
-      this->blit(source, x, y, w, h, sx, sy);
+      this->copy_from(source, x, y, w, h, sx, sy);
       return;
     }
 
