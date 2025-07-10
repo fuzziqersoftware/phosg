@@ -113,13 +113,13 @@ void test_pixel_format(const char* format_name) {
 
     if constexpr (Format == PixelFormat::G1) {
       fwrite_fmt(stderr, "-- [Image:{}/{}] colorize\n", format_name, ext);
-      ImageRGBA8888 color_img = img.template convert_monochrome_to_color<PixelFormat::RGBA8888>(0xFF00FFFF, 0x0000FFFF);
+      ImageRGBA8888N color_img = img.template convert_monochrome_to_color<PixelFormat::RGBA8888_NATIVE>(0xFF00FFFF, 0x0000FFFF);
 
       fwrite_fmt(stderr, "-- [Image:{}/{}] colorized serialize\n", format_name, ext);
       string color_serialized = color_img.serialize(format);
       if (format != ImageFormat::PNG) {
         fwrite_fmt(stderr, "-- [Image:{}/{}] colorized parse\n", format_name, ext);
-        expect_eq(Image<PixelFormat::RGBA8888>::from_file_data(color_serialized), color_img);
+        expect_eq(Image<PixelFormat::RGBA8888_NATIVE>::from_file_data(color_serialized), color_img);
       }
 
       string color_reference_filename = std::format("reference/ImageTestReference.{}.colorized.{}", format_name, ext);
@@ -137,13 +137,13 @@ int main(int, char**) {
   test_pixel_format<PixelFormat::G1>("g1");
   test_pixel_format<PixelFormat::GA11>("ga11");
   test_pixel_format<PixelFormat::G8>("g8");
-  test_pixel_format<PixelFormat::GA88>("ga88");
-  test_pixel_format<PixelFormat::XRGB1555>("xrgb1555");
-  test_pixel_format<PixelFormat::ARGB1555>("argb1555");
-  test_pixel_format<PixelFormat::RGB565>("rgb565");
+  test_pixel_format<PixelFormat::GA88_NATIVE>("ga88");
+  test_pixel_format<PixelFormat::XRGB1555_NATIVE>("xrgb1555");
+  test_pixel_format<PixelFormat::ARGB1555_NATIVE>("argb1555");
+  test_pixel_format<PixelFormat::RGB565_NATIVE>("rgb565");
   test_pixel_format<PixelFormat::RGB888>("rgb888");
-  test_pixel_format<PixelFormat::RGBA8888>("rgba8888");
-  test_pixel_format<PixelFormat::ARGB8888>("argb8888");
+  test_pixel_format<PixelFormat::RGBA8888_NATIVE>("rgba8888");
+  test_pixel_format<PixelFormat::ARGB8888_NATIVE>("argb8888");
   fwrite_fmt(stdout, "ImageTest: all tests passed\n");
   return 0;
 }

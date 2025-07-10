@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
   } else {
     data = load_file(src_filename);
   }
-  string png_data = ImageRGBA8888::from_file_data(data.data(), data.size()).serialize(ImageFormat::PNG);
+  string png_data = ImageRGBA8888N::from_file_data(data.data(), data.size()).serialize(ImageFormat::PNG);
 
   if (!dst_filename || !strcmp(dst_filename, "-")) {
     fwritex(stdout, png_data);
