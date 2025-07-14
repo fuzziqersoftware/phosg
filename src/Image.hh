@@ -1726,7 +1726,6 @@ public:
         std::forward<std::format_string<ArgTs...>>(fmt), std::forward<ArgTs>(args)...);
   }
 
-protected:
   void clamp_rect(ssize_t& x, ssize_t& y, ssize_t& w, ssize_t& h) {
     // Resize the rect if it's out of bounds
     if (x < 0) {
