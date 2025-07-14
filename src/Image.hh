@@ -1586,7 +1586,9 @@ public:
 
   // Uses the Bresenham algorithm to draw a line between the specified points.
   // The endpoints can be outside of the image.
-  void draw_line(ssize_t x0, ssize_t y0, ssize_t x1, ssize_t y1, uint32_t color) {
+  template <typename FnT>
+    requires(std::is_invocable_r_v<void, FnT, size_t, size_t>)
+  void draw_line_custom(ssize_t x0, ssize_t y0, ssize_t x1, ssize_t y1, FnT fn) {
     // If the line is too steep, we step along y rather than x
     bool steep = abs(y1 - y0) > abs(x1 - x0);
     if (steep) {
@@ -1618,11 +1620,11 @@ public:
     for (ssize_t x = x0; x <= x1; x++) {
       if (steep) {
         if (this->check(y, x)) {
-          this->write(y, x, color);
+          fn(y, x);
         }
       } else {
         if (this->check(x, y)) {
-          this->write(x, y, color);
+          fn(x, y);
         }
       }
       error += derror;
@@ -1633,6 +1635,12 @@ public:
         error -= 1.0;
       }
     }
+  }
+
+  void draw_line(ssize_t x0, ssize_t y0, ssize_t x1, ssize_t y1, uint32_t color) {
+    this->draw_line_custom(x0, y0, x1, y1, [this, color](size_t x, size_t y) -> void {
+      this->write(x, y, color);
+    });
   }
 
   void draw_horizontal_line(ssize_t x1, ssize_t x2, ssize_t y, ssize_t dash_length, uint32_t color) {
