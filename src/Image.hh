@@ -1245,14 +1245,6 @@ public:
     if ((this->w != other.w) || (this->h != other.h)) {
       return false;
     }
-    // NOCOMMIT
-    for (size_t y = 0; y < this->h; y++) {
-      for (size_t x = 0; x < this->w; x++) {
-        if (this->read(x, y) != other.read(x, y)) {
-          fwrite_fmt(stderr, "Difference at x={} y={}: {:08X} vs. {:08X}\n", x, y, this->read(x, y), other.read(x, y));
-        }
-      }
-    }
     return !memcmp(this->data, other.data, this->get_data_size());
   }
   bool operator!=(const Image<Format>& other) const {
