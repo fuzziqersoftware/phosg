@@ -1367,29 +1367,155 @@ public:
     requires std::is_invocable_r_v<uint32_t, FnT, uint32_t, uint32_t>
   void copy_from_with_custom(
       const Image<SourceFormat>& source,
-      ssize_t x,
-      ssize_t y,
-      ssize_t w,
-      ssize_t h,
-      ssize_t sx,
-      ssize_t sy,
+      ssize_t dst_x,
+      ssize_t dst_y,
+      ssize_t dst_w,
+      ssize_t dst_h,
+      ssize_t src_x,
+      ssize_t src_y,
+      ssize_t src_w,
+      ssize_t src_h,
+      bool tiled,
       FnT&& per_pixel_fn) {
-    this->clamp_blit_dimensions(source, x, y, w, h, sx, sy);
-    for (ssize_t yy = 0; yy < h; yy++) {
-      for (ssize_t xx = 0; xx < w; xx++) {
-        this->write(x + xx, y + yy, per_pixel_fn(this->read(x + xx, y + yy), source.read(sx + xx, sy + yy)));
+    if (src_w == dst_w && src_h == dst_h) {
+      // If the copy dimensions are equal, don't bother with any tiling logic
+      // or floating-point math
+      this->clamp_blit_dimensions(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h);
+      for (ssize_t y = 0; y < dst_h; y++) {
+        size_t src_row_y = src_y + y;
+        size_t dst_row_y = dst_y + y;
+        for (ssize_t x = 0; x < dst_w; x++) {
+          this->write(dst_x + x, dst_row_y,
+              per_pixel_fn(this->read(dst_x + x, dst_row_y), source.read(src_x + x, src_row_y)));
+        }
+      }
+
+    } else if (tiled) {
+      // Repeat the source image in both dimensions as needed
+      this->clamp_blit_dimensions(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h);
+      for (ssize_t y = 0; y < dst_h; y++) {
+        size_t src_row_y = src_y + (y % src_h);
+        size_t dst_row_y = dst_y + y;
+        for (ssize_t x = 0; x < dst_w; x++) {
+          this->write(dst_x + x, dst_row_y,
+              per_pixel_fn(this->read(dst_x + x, dst_row_y), source.read(src_x + (x % src_w), src_row_y)));
+        }
+      }
+
+    } else {
+      // Stretch the source image into the dest rect, using 2-D nearest-
+      // neighbor resampling
+      for (ssize_t y = 0; y < dst_h; y++) {
+        double y_rel_dist = static_cast<double>(y) / (dst_h - 1);
+        double source_y_progress = y_rel_dist * (src_h - 1);
+        size_t source_y1 = src_y + source_y_progress;
+        size_t source_y2 = source_y1 + 1;
+        double source_y2_factor = source_y_progress - source_y1;
+        double source_y1_factor = 1.0 - source_y2_factor;
+
+        for (ssize_t x = 0; x < dst_w; x++) {
+          double x_rel_dist = static_cast<double>(x) / (dst_w - 1);
+          double source_x_progress = x_rel_dist * (src_w - 1);
+          size_t source_x1 = src_x + source_x_progress;
+          size_t source_x2 = source_x1 + 1;
+          double source_x2_factor = source_x_progress - source_x1;
+          double source_x1_factor = 1.0 - source_x2_factor;
+
+          uint32_t s11 = source.read(source_x1, source_y1);
+          uint32_t s12 = source.read(source_x1, source_y2);
+          uint32_t s21 = source.read(source_x2, source_y1);
+          uint32_t s22 = source.read(source_x2, source_y2);
+
+          uint8_t dr = get_r(s11) * (source_x1_factor * source_y1_factor) +
+              get_r(s12) * (source_x1_factor * source_y2_factor) +
+              get_r(s21) * (source_x2_factor * source_y1_factor) +
+              get_r(s22) * (source_x2_factor * source_y2_factor);
+          uint8_t dg = get_g(s11) * (source_x1_factor * source_y1_factor) +
+              get_g(s12) * (source_x1_factor * source_y2_factor) +
+              get_g(s21) * (source_x2_factor * source_y1_factor) +
+              get_g(s22) * (source_x2_factor * source_y2_factor);
+          uint8_t db = get_b(s11) * (source_x1_factor * source_y1_factor) +
+              get_b(s12) * (source_x1_factor * source_y2_factor) +
+              get_b(s21) * (source_x2_factor * source_y1_factor) +
+              get_b(s22) * (source_x2_factor * source_y2_factor);
+          uint8_t da = get_a(s11) * (source_x1_factor * source_y1_factor) +
+              get_a(s12) * (source_x1_factor * source_y2_factor) +
+              get_a(s21) * (source_x2_factor * source_y1_factor) +
+              get_a(s22) * (source_x2_factor * source_y2_factor);
+
+          this->write(dst_x + x, dst_y + y, per_pixel_fn(this->read(dst_x + x, dst_y + y), rgba8888(dr, dg, db, da)));
+        }
       }
     }
+  }
+  template <PixelFormat SourceFormat, typename FnT>
+    requires std::is_invocable_r_v<uint32_t, FnT, uint32_t, uint32_t>
+  void copy_from_with_custom(
+      const Image<SourceFormat>& source,
+      ssize_t dst_x,
+      ssize_t dst_y,
+      ssize_t w,
+      ssize_t h,
+      ssize_t src_x,
+      ssize_t src_y,
+      FnT&& per_pixel_fn) {
+    this->copy_from_with_custom(source, dst_x, dst_y, w, h, src_x, src_y, w, h, false, per_pixel_fn);
   }
 
   // Copies pixels from another image to this one. No blending is performed.
   template <PixelFormat SourceFormat>
-  void copy_from(const Image<SourceFormat>& src, size_t dst_x, size_t dst_y, size_t w, size_t h, size_t src_x, size_t src_y) {
-    this->copy_from_with_custom(src, dst_x, dst_y, w, h, src_x, src_y, [](uint32_t, uint32_t src_color) -> uint32_t { return src_color; });
+  void copy_from(
+      const Image<SourceFormat>& src,
+      size_t dst_x,
+      size_t dst_y,
+      size_t dst_w,
+      size_t dst_h,
+      size_t src_x,
+      size_t src_y,
+      size_t src_w,
+      size_t src_h,
+      bool tiled = false) {
+    this->copy_from_with_custom(src, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h, tiled,
+        [](uint32_t, uint32_t src_color) -> uint32_t { return src_color; });
+  }
+  template <PixelFormat SourceFormat>
+  void copy_from(
+      const Image<SourceFormat>& src,
+      size_t dst_x,
+      size_t dst_y,
+      size_t w,
+      size_t h,
+      size_t src_x,
+      size_t src_y) {
+    this->copy_from(src, dst_x, dst_y, w, h, src_x, src_y, w, h);
   }
 
   // Copies pixels from another image to this one, blending with the given
   // alpha value. If the source image has an alpha channel, it is ignored.
+  template <PixelFormat SourceFormat>
+  void copy_from_with_alpha(
+      const Image<SourceFormat>& source,
+      ssize_t dst_x,
+      ssize_t dst_y,
+      ssize_t dst_w,
+      ssize_t dst_h,
+      ssize_t src_x,
+      ssize_t src_y,
+      ssize_t src_w,
+      ssize_t src_h,
+      uint8_t alpha,
+      bool tiled = false) {
+    if (alpha == 0) {
+      return;
+    } else if (alpha == 0xFF) {
+      this->copy_from(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h, tiled);
+    } else {
+      this->copy_from_with_custom(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h, tiled,
+          [alpha](uint32_t dest_color, uint32_t src_color) -> uint32_t {
+            return alpha_blend(dest_color, (src_color & 0xFFFFFF00) | alpha);
+          });
+    }
+  }
   template <PixelFormat SourceFormat>
   void copy_from_with_alpha(
       const Image<SourceFormat>& source,
@@ -1400,15 +1526,7 @@ public:
       ssize_t src_x,
       ssize_t src_y,
       uint8_t alpha) {
-    if (alpha == 0) {
-      return;
-    } else if (alpha == 0xFF) {
-      this->copy_from(source, dst_x, dst_y, w, h, src_x, src_y);
-    } else {
-      this->copy_from_with_custom(source, dst_x, dst_y, w, h, src_x, src_y, [alpha](uint32_t dest_color, uint32_t src_color) -> uint32_t {
-        return alpha_blend(dest_color, (src_color & 0xFFFFFF00) | alpha);
-      });
-    }
+    this->copy_from_with_alpha(source, dst_x, dst_y, w, h, src_x, src_y, w, h, alpha);
   }
 
   // Copies pixels from another image to this one, blending using the alpha
@@ -1416,19 +1534,40 @@ public:
   // equivalent to copy_from.
   template <PixelFormat SourceFormat>
   void copy_from_with_blend(
-      const Image<SourceFormat>& source, ssize_t dst_x, ssize_t dst_y, ssize_t w, ssize_t h, ssize_t src_x, ssize_t src_y) {
-    this->copy_from_with_custom(source, dst_x, dst_y, w, h, src_x, src_y, [](uint32_t dest_color, uint32_t src_color) -> uint32_t {
-      // a = 0 and a = FF are common so we special-case them before doing a
-      // bunch of arithmetic operations that aren't necessary in those cases
-      uint8_t a = get_a(src_color);
-      if (a == 0) {
-        return dest_color;
-      } else if (a == 0xFF) {
-        return src_color;
-      } else {
-        return alpha_blend(dest_color, src_color);
-      }
-    });
+      const Image<SourceFormat>& source,
+      ssize_t dst_x,
+      ssize_t dst_y,
+      ssize_t dst_w,
+      ssize_t dst_h,
+      ssize_t src_x,
+      ssize_t src_y,
+      ssize_t src_w,
+      ssize_t src_h,
+      bool tiled = false) {
+    this->copy_from_with_custom(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h, tiled,
+        [](uint32_t dest_color, uint32_t src_color) -> uint32_t {
+          // a = 0 and a = FF are common so we special-case them before doing a
+          // bunch of arithmetic operations that aren't necessary in those cases
+          uint8_t a = get_a(src_color);
+          if (a == 0) {
+            return dest_color;
+          } else if (a == 0xFF) {
+            return src_color;
+          } else {
+            return alpha_blend(dest_color, src_color);
+          }
+        });
+  }
+  template <PixelFormat SourceFormat>
+  void copy_from_with_blend(
+      const Image<SourceFormat>& source,
+      ssize_t dst_x,
+      ssize_t dst_y,
+      ssize_t w,
+      ssize_t h,
+      ssize_t src_x,
+      ssize_t src_y) {
+    this->copy_from_with_blend(source, dst_x, dst_y, w, h, src_x, src_y, w, h);
   }
 
   // Copies pixels from another image to this one, but does not copy pixels
@@ -1436,17 +1575,33 @@ public:
   template <PixelFormat SourceFormat>
   void copy_from_with_source_color_mask(
       const Image<SourceFormat>& source,
-      ssize_t x,
-      ssize_t y,
+      ssize_t dst_x,
+      ssize_t dst_y,
+      ssize_t dst_w,
+      ssize_t dst_h,
+      ssize_t src_x,
+      ssize_t src_y,
+      ssize_t src_w,
+      ssize_t src_h,
+      uint32_t transparent_color,
+      bool tiled = false) {
+    transparent_color &= 0xFFFFFF00;
+    this->copy_from_with_custom(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h, tiled,
+        [transparent_color](uint32_t dest_color, uint32_t src_color) -> uint32_t {
+          return ((src_color & 0xFFFFFF00) == transparent_color) ? dest_color : src_color;
+        });
+  }
+  template <PixelFormat SourceFormat>
+  void copy_from_with_source_color_mask(
+      const Image<SourceFormat>& source,
+      ssize_t dst_x,
+      ssize_t dst_y,
       ssize_t w,
       ssize_t h,
-      ssize_t sx,
-      ssize_t sy,
+      ssize_t src_x,
+      ssize_t src_y,
       uint32_t transparent_color) {
-    transparent_color &= 0xFFFFFF00;
-    this->copy_from_with_custom(source, x, y, w, h, sx, sy, [transparent_color](uint32_t dest_color, uint32_t src_color) -> uint32_t {
-      return ((src_color & 0xFFFFFF00) == transparent_color) ? dest_color : src_color;
-    });
+    this->copy_from_with_source_color_mask(source, dst_x, dst_y, w, h, src_x, src_y, w, h, transparent_color);
   }
 
   // Copies pixels from another image to this one, but does not overwrite
@@ -1454,17 +1609,33 @@ public:
   template <PixelFormat SourceFormat>
   void copy_from_with_dest_color_mask(
       const Image<SourceFormat>& source,
-      ssize_t x,
-      ssize_t y,
+      ssize_t dst_x,
+      ssize_t dst_y,
+      ssize_t dst_w,
+      ssize_t dst_h,
+      ssize_t src_x,
+      ssize_t src_y,
+      ssize_t src_w,
+      ssize_t src_h,
+      uint32_t transparent_color,
+      bool tiled = false) {
+    transparent_color &= 0xFFFFFF00;
+    this->copy_from_with_custom(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h, tiled,
+        [transparent_color](uint32_t dest_color, uint32_t src_color) -> uint32_t {
+          return ((dest_color & 0xFFFFFF00) == transparent_color) ? dest_color : src_color;
+        });
+  }
+  template <PixelFormat SourceFormat>
+  void copy_from_with_dest_color_mask(
+      const Image<SourceFormat>& source,
+      ssize_t dst_x,
+      ssize_t dst_y,
       ssize_t w,
       ssize_t h,
-      ssize_t sx,
-      ssize_t sy,
+      ssize_t src_x,
+      ssize_t src_y,
       uint32_t transparent_color) {
-    transparent_color &= 0xFFFFFF00;
-    this->copy_from_with_custom(source, x, y, w, h, sx, sy, [transparent_color](uint32_t dest_color, uint32_t src_color) -> uint32_t {
-      return ((dest_color & 0xFFFFFF00) == transparent_color) ? dest_color : src_color;
-    });
+    this->copy_from_with_dest_color_mask(source, dst_x, dst_y, w, h, src_x, src_y, w, h, transparent_color);
   }
 
   // Copies pixels from another image to this one, but only copies pixels for
@@ -1472,103 +1643,33 @@ public:
   template <PixelFormat SourceFormat, PixelFormat MaskFormat>
   void copy_from_with_mask_image(
       const Image<SourceFormat>& source,
-      ssize_t x,
-      ssize_t y,
+      ssize_t dst_x,
+      ssize_t dst_y,
       ssize_t w,
       ssize_t h,
-      ssize_t sx,
-      ssize_t sy,
+      ssize_t src_x,
+      ssize_t src_y,
       const Image<MaskFormat>& mask) {
     // We don't use copy_from_with_custom here because we would need the pixel
     // coordinates within the per-pixel function, and adding those would make
     // the code ugly
 
-    this->clamp_blit_dimensions(source, x, y, w, h, sx, sy);
+    this->clamp_blit_dimensions(source, dst_x, dst_y, w, h, src_x, src_y, w, h);
 
     // The mask image must cover the entire area to be blitted, but it does NOT
     // have to cover the entire destination or source image. The mask is indexed
     // in source-space, though, so its upper-left corner must be aligned with
     // the source image's upper-left corner.
-    if ((mask.get_width() < static_cast<size_t>(sx + w)) ||
-        (mask.get_height() < static_cast<size_t>(sy + h))) {
+    if ((mask.get_width() < static_cast<size_t>(src_x + w)) ||
+        (mask.get_height() < static_cast<size_t>(src_y + h))) {
       throw std::runtime_error("mask is too small to cover copied area");
     }
 
-    for (ssize_t yy = 0; yy < h; yy++) {
-      for (ssize_t xx = 0; xx < w; xx++) {
-        if ((mask.read(sx + xx, sy + yy) & 0xFFFFFF00) != 0xFFFFFF00) {
-          this->write(x + xx, y + yy, source.read(sx + xx, sy + yy));
+    for (ssize_t y = 0; y < h; y++) {
+      for (ssize_t x = 0; x < w; x++) {
+        if ((mask.read(src_x + x, src_y + y) & 0xFFFFFF00) != 0xFFFFFF00) {
+          this->write(dst_x + x, dst_y + y, source.read(src_x + x, src_y + y));
         }
-      }
-    }
-  }
-
-  // Copies pixels from another image to this one, resizing the image using 2-D
-  // nearest-neighbor resampling.
-  template <PixelFormat SourceFormat>
-  void copy_from_with_resize(
-      const Image<SourceFormat>& source,
-      ssize_t x, ssize_t y, ssize_t w, ssize_t h,
-      ssize_t sx, ssize_t sy, ssize_t sw, ssize_t sh) {
-    if (w < 0) {
-      w = this->w - x;
-    }
-    if (h < 0) {
-      h = this->h - y;
-    }
-    if (sw < 0) {
-      sw = source.w - sx;
-    }
-    if (sh < 0) {
-      sh = source.h - sy;
-    }
-
-    // If the dimensions are the same, there's no need to do any floating-point
-    // arithmetic; delegate to the faster method
-    if (w == sw && h == sh) {
-      this->copy_from(source, x, y, w, h, sx, sy);
-      return;
-    }
-
-    for (ssize_t yy = 0; yy < h; yy++) {
-      double y_rel_dist = static_cast<double>(yy) / (h - 1);
-      double source_y_progress = y_rel_dist * (sh - 1);
-      size_t source_y1 = sy + source_y_progress;
-      size_t source_y2 = source_y1 + 1;
-      double source_y2_factor = source_y_progress - source_y1;
-      double source_y1_factor = 1.0 - source_y2_factor;
-
-      for (ssize_t xx = 0; xx < w; xx++) {
-        double x_rel_dist = static_cast<double>(xx) / (w - 1);
-        double source_x_progress = x_rel_dist * (sw - 1);
-        size_t source_x1 = sx + source_x_progress;
-        size_t source_x2 = source_x1 + 1;
-        double source_x2_factor = source_x_progress - source_x1;
-        double source_x1_factor = 1.0 - source_x2_factor;
-
-        uint32_t s11 = source.read(source_x1, source_y1);
-        uint32_t s12 = (source_y2_factor != 0.0) ? source.read(source_x1, source_y2) : 0;
-        uint32_t s21 = (source_x2_factor != 0.0) ? source.read(source_x2, source_y1) : 0;
-        uint32_t s22 = (source_x2_factor != 0.0 && source_y2_factor != 0.0) ? source.read(source_x2, source_y2) : 0;
-
-        uint8_t dr = get_r(s11) * (source_x1_factor * source_y1_factor) +
-            get_r(s12) * (source_x1_factor * source_y2_factor) +
-            get_r(s21) * (source_x2_factor * source_y1_factor) +
-            get_r(s22) * (source_x2_factor * source_y2_factor);
-        uint8_t dg = get_g(s11) * (source_x1_factor * source_y1_factor) +
-            get_g(s12) * (source_x1_factor * source_y2_factor) +
-            get_g(s21) * (source_x2_factor * source_y1_factor) +
-            get_g(s22) * (source_x2_factor * source_y2_factor);
-        uint8_t db = get_b(s11) * (source_x1_factor * source_y1_factor) +
-            get_b(s12) * (source_x1_factor * source_y2_factor) +
-            get_b(s21) * (source_x2_factor * source_y1_factor) +
-            get_b(s22) * (source_x2_factor * source_y2_factor);
-        uint8_t da = get_a(s11) * (source_x1_factor * source_y1_factor) +
-            get_a(s12) * (source_x1_factor * source_y2_factor) +
-            get_a(s21) * (source_x2_factor * source_y1_factor) +
-            get_a(s22) * (source_x2_factor * source_y2_factor);
-
-        this->write(x + xx, y + yy, rgba8888(dr, dg, db, da));
       }
     }
   }
@@ -1749,59 +1850,75 @@ public:
       const Image<SourceFormat>& source,
       ssize_t& dst_x,
       ssize_t& dst_y,
-      ssize_t& w,
-      ssize_t& h,
+      ssize_t& dst_w,
+      ssize_t& dst_h,
       ssize_t& src_x,
-      ssize_t& src_y) {
-    // If the width or height are negative, use the entire source image
-    if (w < 0) {
-      w = source.w;
+      ssize_t& src_y,
+      ssize_t& src_w,
+      ssize_t& src_h) const {
+    // If the width or height are negative, use the remainder of the image
+    // (starting at x/y)
+    if (src_w < 0) {
+      src_w = source.w - src_x;
     }
-    if (h < 0) {
-      h = source.h;
+    if (src_h < 0) {
+      src_h = source.h - src_y;
     }
+    if (dst_w < 0) {
+      dst_w = this->w - dst_x;
+    }
+    if (dst_h < 0) {
+      dst_h = this->h - dst_y;
+    }
+
     // If the source coordinates are negative, trim off the left/top
     if (src_x < 0) {
       dst_x -= src_x;
-      w += src_x;
+      src_w += src_x;
       src_x = 0;
     }
     if (src_y < 0) {
       dst_y -= src_y;
-      h += src_y;
+      src_h += src_y;
       src_y = 0;
     }
     // If the dest coordinates are negative, trim off the left/top
     if (dst_x < 0) {
       src_x -= dst_x;
-      w += dst_x;
+      dst_w += dst_x;
       dst_x = 0;
     }
     if (dst_y < 0) {
       src_y -= dst_y;
-      h += dst_y;
+      dst_h += dst_y;
       dst_y = 0;
     }
     // If the area extends beyond the source, trim off the right/bottom
-    if (src_x + w > static_cast<ssize_t>(source.get_width())) {
-      w = source.get_width() - src_x;
+    if (src_x + src_w > static_cast<ssize_t>(source.w)) {
+      src_w = static_cast<ssize_t>(source.w) - src_x;
     }
-    if (src_y + h > static_cast<ssize_t>(source.get_height())) {
-      h = source.get_height() - src_y;
+    if (src_y + src_h > static_cast<ssize_t>(source.h)) {
+      src_h = static_cast<ssize_t>(source.h) - src_y;
     }
     // If the area extends beyond the dest, trim off the right/bottom
-    if (dst_x + w > static_cast<ssize_t>(this->w)) {
-      w = this->w - dst_x;
+    if (dst_x + dst_w > static_cast<ssize_t>(this->w)) {
+      dst_w = static_cast<ssize_t>(this->w) - dst_x;
     }
-    if (dst_y + h > static_cast<ssize_t>(this->h)) {
-      h = this->h - dst_y;
+    if (dst_y + dst_h > static_cast<ssize_t>(this->h)) {
+      dst_h = static_cast<ssize_t>(this->h) - dst_y;
     }
 
     // If either width or height are negative at this point, then the entire
     // area is out of bounds for either the source or dest; make the area empty
-    if (w < 0 || h < 0) {
-      w = 0;
-      h = 0;
+    if ((dst_w <= 0) || (dst_h <= 0) || (src_w <= 0) || (src_h <= 0)) {
+      dst_x = 0;
+      dst_y = 0;
+      dst_w = 0;
+      dst_h = 0;
+      src_x = 0;
+      src_y = 0;
+      src_w = 0;
+      src_h = 0;
     }
   }
 };
