@@ -692,6 +692,13 @@ struct PixelBuffer<PixelFormat::ARGB8888_BE> {
 
 /////////////////////////////////////////////////////////////////////////////
 
+enum class ResizeMode {
+  NONE = 0,
+  TILED,
+  NEAREST_NEIGHBOR,
+  LINEAR_INTERPOLATION,
+};
+
 enum class ImageFormat {
   GRAYSCALE_PPM = 0,
   COLOR_PPM,
@@ -1375,11 +1382,11 @@ public:
       ssize_t src_y,
       ssize_t src_w,
       ssize_t src_h,
-      bool tiled,
+      ResizeMode resize_mode,
       FnT&& per_pixel_fn) {
+    // If the copy dimensions are equal, don't bother with any resizing or
+    // tiling logic
     if (src_w == dst_w && src_h == dst_h) {
-      // If the copy dimensions are equal, don't bother with any tiling logic
-      // or floating-point math
       this->clamp_blit_dimensions(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h);
       for (ssize_t y = 0; y < dst_h; y++) {
         size_t src_row_y = src_y + y;
@@ -1390,61 +1397,81 @@ public:
         }
       }
 
-    } else if (tiled) {
-      // Repeat the source image in both dimensions as needed
-      this->clamp_blit_dimensions(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h);
-      for (ssize_t y = 0; y < dst_h; y++) {
-        size_t src_row_y = src_y + (y % src_h);
-        size_t dst_row_y = dst_y + y;
-        for (ssize_t x = 0; x < dst_w; x++) {
-          this->write(dst_x + x, dst_row_y,
-              per_pixel_fn(this->read(dst_x + x, dst_row_y), source.read(src_x + (x % src_w), src_row_y)));
-        }
-      }
-
     } else {
-      // Stretch the source image into the dest rect, using 2-D nearest-
-      // neighbor resampling
-      for (ssize_t y = 0; y < dst_h; y++) {
-        double y_rel_dist = static_cast<double>(y) / (dst_h - 1);
-        double source_y_progress = y_rel_dist * (src_h - 1);
-        size_t source_y1 = src_y + source_y_progress;
-        size_t source_y2 = source_y1 + 1;
-        double source_y2_factor = source_y_progress - source_y1;
-        double source_y1_factor = 1.0 - source_y2_factor;
+      switch (resize_mode) {
+        case ResizeMode::NONE:
+          throw std::runtime_error("Resize mode is NONE but source and destination dimensions are not equal");
 
-        for (ssize_t x = 0; x < dst_w; x++) {
-          double x_rel_dist = static_cast<double>(x) / (dst_w - 1);
-          double source_x_progress = x_rel_dist * (src_w - 1);
-          size_t source_x1 = src_x + source_x_progress;
-          size_t source_x2 = source_x1 + 1;
-          double source_x2_factor = source_x_progress - source_x1;
-          double source_x1_factor = 1.0 - source_x2_factor;
+        case ResizeMode::TILED:
+          // Repeat the source image in both dimensions as needed
+          this->clamp_blit_dimensions(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h);
+          for (ssize_t y = 0; y < dst_h; y++) {
+            size_t src_row_y = src_y + (y % src_h);
+            size_t dst_row_y = dst_y + y;
+            for (ssize_t x = 0; x < dst_w; x++) {
+              this->write(dst_x + x, dst_row_y,
+                  per_pixel_fn(this->read(dst_x + x, dst_row_y), source.read(src_x + (x % src_w), src_row_y)));
+            }
+          }
+          break;
 
-          uint32_t s11 = source.read(source_x1, source_y1);
-          uint32_t s12 = source.read(source_x1, source_y2);
-          uint32_t s21 = source.read(source_x2, source_y1);
-          uint32_t s22 = source.read(source_x2, source_y2);
+        case ResizeMode::NEAREST_NEIGHBOR:
+          // Stretch the source image into the dest rect, using 2-D nearest-neighbor resampling
+          for (ssize_t y = 0; y < dst_h; y++) {
+            size_t sy = round((src_h - 1) * static_cast<double>(y) / (dst_h - 1));
+            for (ssize_t x = 0; x < dst_w; x++) {
+              size_t sx = round((src_w - 1) * static_cast<double>(x) / (dst_w - 1));
+              this->write(dst_x + x, dst_y + y, per_pixel_fn(this->read(dst_x + x, dst_y + y), source.read(sx, sy)));
+            }
+          }
+          break;
 
-          uint8_t dr = get_r(s11) * (source_x1_factor * source_y1_factor) +
-              get_r(s12) * (source_x1_factor * source_y2_factor) +
-              get_r(s21) * (source_x2_factor * source_y1_factor) +
-              get_r(s22) * (source_x2_factor * source_y2_factor);
-          uint8_t dg = get_g(s11) * (source_x1_factor * source_y1_factor) +
-              get_g(s12) * (source_x1_factor * source_y2_factor) +
-              get_g(s21) * (source_x2_factor * source_y1_factor) +
-              get_g(s22) * (source_x2_factor * source_y2_factor);
-          uint8_t db = get_b(s11) * (source_x1_factor * source_y1_factor) +
-              get_b(s12) * (source_x1_factor * source_y2_factor) +
-              get_b(s21) * (source_x2_factor * source_y1_factor) +
-              get_b(s22) * (source_x2_factor * source_y2_factor);
-          uint8_t da = get_a(s11) * (source_x1_factor * source_y1_factor) +
-              get_a(s12) * (source_x1_factor * source_y2_factor) +
-              get_a(s21) * (source_x2_factor * source_y1_factor) +
-              get_a(s22) * (source_x2_factor * source_y2_factor);
+        case ResizeMode::LINEAR_INTERPOLATION:
+          // Stretch the source image into the dest rect, using 2-D linear interpolation
+          for (ssize_t y = 0; y < dst_h; y++) {
+            double y_rel_dist = static_cast<double>(y) / (dst_h - 1);
+            double source_y_progress = y_rel_dist * (src_h - 1);
+            size_t source_y1 = src_y + source_y_progress;
+            size_t source_y2 = source_y1 + 1;
+            double source_y2_factor = source_y_progress - source_y1;
+            double source_y1_factor = 1.0 - source_y2_factor;
 
-          this->write(dst_x + x, dst_y + y, per_pixel_fn(this->read(dst_x + x, dst_y + y), rgba8888(dr, dg, db, da)));
-        }
+            for (ssize_t x = 0; x < dst_w; x++) {
+              double x_rel_dist = static_cast<double>(x) / (dst_w - 1);
+              double source_x_progress = x_rel_dist * (src_w - 1);
+              size_t source_x1 = src_x + source_x_progress;
+              size_t source_x2 = source_x1 + 1;
+              double source_x2_factor = source_x_progress - source_x1;
+              double source_x1_factor = 1.0 - source_x2_factor;
+
+              uint32_t s11 = source.read(source_x1, source_y1);
+              uint32_t s12 = source.read(source_x1, source_y2);
+              uint32_t s21 = source.read(source_x2, source_y1);
+              uint32_t s22 = source.read(source_x2, source_y2);
+
+              uint8_t dr = get_r(s11) * (source_x1_factor * source_y1_factor) +
+                  get_r(s12) * (source_x1_factor * source_y2_factor) +
+                  get_r(s21) * (source_x2_factor * source_y1_factor) +
+                  get_r(s22) * (source_x2_factor * source_y2_factor);
+              uint8_t dg = get_g(s11) * (source_x1_factor * source_y1_factor) +
+                  get_g(s12) * (source_x1_factor * source_y2_factor) +
+                  get_g(s21) * (source_x2_factor * source_y1_factor) +
+                  get_g(s22) * (source_x2_factor * source_y2_factor);
+              uint8_t db = get_b(s11) * (source_x1_factor * source_y1_factor) +
+                  get_b(s12) * (source_x1_factor * source_y2_factor) +
+                  get_b(s21) * (source_x2_factor * source_y1_factor) +
+                  get_b(s22) * (source_x2_factor * source_y2_factor);
+              uint8_t da = get_a(s11) * (source_x1_factor * source_y1_factor) +
+                  get_a(s12) * (source_x1_factor * source_y2_factor) +
+                  get_a(s21) * (source_x2_factor * source_y1_factor) +
+                  get_a(s22) * (source_x2_factor * source_y2_factor);
+
+              this->write(dst_x + x, dst_y + y, per_pixel_fn(this->read(dst_x + x, dst_y + y), rgba8888(dr, dg, db, da)));
+            }
+          }
+          break;
+        default:
+          throw std::logic_error("Invalid resize mode");
       }
     }
   }
@@ -1459,7 +1486,7 @@ public:
       ssize_t src_x,
       ssize_t src_y,
       FnT&& per_pixel_fn) {
-    this->copy_from_with_custom(source, dst_x, dst_y, w, h, src_x, src_y, w, h, false, per_pixel_fn);
+    this->copy_from_with_custom(source, dst_x, dst_y, w, h, src_x, src_y, w, h, ResizeMode::NONE, per_pixel_fn);
   }
 
   // Copies pixels from another image to this one. No blending is performed.
@@ -1474,8 +1501,8 @@ public:
       size_t src_y,
       size_t src_w,
       size_t src_h,
-      bool tiled = false) {
-    this->copy_from_with_custom(src, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h, tiled,
+      ResizeMode resize_mode) {
+    this->copy_from_with_custom(src, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h, resize_mode,
         [](uint32_t, uint32_t src_color) -> uint32_t { return src_color; });
   }
   template <PixelFormat SourceFormat>
@@ -1487,7 +1514,7 @@ public:
       size_t h,
       size_t src_x,
       size_t src_y) {
-    this->copy_from(src, dst_x, dst_y, w, h, src_x, src_y, w, h);
+    this->copy_from(src, dst_x, dst_y, w, h, src_x, src_y, w, h, ResizeMode::NONE);
   }
 
   // Copies pixels from another image to this one, blending with the given
@@ -1504,13 +1531,13 @@ public:
       ssize_t src_w,
       ssize_t src_h,
       uint8_t alpha,
-      bool tiled = false) {
+      ResizeMode resize_mode) {
     if (alpha == 0) {
       return;
     } else if (alpha == 0xFF) {
-      this->copy_from(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h, tiled);
+      this->copy_from(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h, resize_mode);
     } else {
-      this->copy_from_with_custom(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h, tiled,
+      this->copy_from_with_custom(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h, resize_mode,
           [alpha](uint32_t dest_color, uint32_t src_color) -> uint32_t {
             return alpha_blend(dest_color, (src_color & 0xFFFFFF00) | alpha);
           });
@@ -1526,7 +1553,7 @@ public:
       ssize_t src_x,
       ssize_t src_y,
       uint8_t alpha) {
-    this->copy_from_with_alpha(source, dst_x, dst_y, w, h, src_x, src_y, w, h, alpha);
+    this->copy_from_with_alpha(source, dst_x, dst_y, w, h, src_x, src_y, w, h, alpha, ResizeMode::NONE);
   }
 
   // Copies pixels from another image to this one, blending using the alpha
@@ -1543,8 +1570,8 @@ public:
       ssize_t src_y,
       ssize_t src_w,
       ssize_t src_h,
-      bool tiled = false) {
-    this->copy_from_with_custom(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h, tiled,
+      ResizeMode resize_mode) {
+    this->copy_from_with_custom(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h, resize_mode,
         [](uint32_t dest_color, uint32_t src_color) -> uint32_t {
           // a = 0 and a = FF are common so we special-case them before doing a
           // bunch of arithmetic operations that aren't necessary in those cases
@@ -1567,7 +1594,7 @@ public:
       ssize_t h,
       ssize_t src_x,
       ssize_t src_y) {
-    this->copy_from_with_blend(source, dst_x, dst_y, w, h, src_x, src_y, w, h);
+    this->copy_from_with_blend(source, dst_x, dst_y, w, h, src_x, src_y, w, h, ResizeMode::NONE);
   }
 
   // Copies pixels from another image to this one, but does not copy pixels
@@ -1584,9 +1611,9 @@ public:
       ssize_t src_w,
       ssize_t src_h,
       uint32_t transparent_color,
-      bool tiled = false) {
+      ResizeMode resize_mode) {
     transparent_color &= 0xFFFFFF00;
-    this->copy_from_with_custom(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h, tiled,
+    this->copy_from_with_custom(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h, resize_mode,
         [transparent_color](uint32_t dest_color, uint32_t src_color) -> uint32_t {
           return ((src_color & 0xFFFFFF00) == transparent_color) ? dest_color : src_color;
         });
@@ -1601,7 +1628,7 @@ public:
       ssize_t src_x,
       ssize_t src_y,
       uint32_t transparent_color) {
-    this->copy_from_with_source_color_mask(source, dst_x, dst_y, w, h, src_x, src_y, w, h, transparent_color);
+    this->copy_from_with_source_color_mask(source, dst_x, dst_y, w, h, src_x, src_y, w, h, transparent_color, ResizeMode::NONE);
   }
 
   // Copies pixels from another image to this one, but does not overwrite
@@ -1618,9 +1645,9 @@ public:
       ssize_t src_w,
       ssize_t src_h,
       uint32_t transparent_color,
-      bool tiled = false) {
+      ResizeMode resize_mode) {
     transparent_color &= 0xFFFFFF00;
-    this->copy_from_with_custom(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h, tiled,
+    this->copy_from_with_custom(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h, resize_mode,
         [transparent_color](uint32_t dest_color, uint32_t src_color) -> uint32_t {
           return ((dest_color & 0xFFFFFF00) == transparent_color) ? dest_color : src_color;
         });
@@ -1635,7 +1662,7 @@ public:
       ssize_t src_x,
       ssize_t src_y,
       uint32_t transparent_color) {
-    this->copy_from_with_dest_color_mask(source, dst_x, dst_y, w, h, src_x, src_y, w, h, transparent_color);
+    this->copy_from_with_dest_color_mask(source, dst_x, dst_y, w, h, src_x, src_y, w, h, transparent_color, ResizeMode::NONE);
   }
 
   // Copies pixels from another image to this one, but only copies pixels for
