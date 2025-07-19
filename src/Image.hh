@@ -1384,10 +1384,11 @@ public:
       ssize_t src_h,
       ResizeMode resize_mode,
       FnT&& per_pixel_fn) {
+    this->clamp_blit_dimensions(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h);
+
     // If the copy dimensions are equal, don't bother with any resizing or
     // tiling logic
     if (src_w == dst_w && src_h == dst_h) {
-      this->clamp_blit_dimensions(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h);
       for (ssize_t y = 0; y < dst_h; y++) {
         size_t src_row_y = src_y + y;
         size_t dst_row_y = dst_y + y;
@@ -1399,12 +1400,23 @@ public:
 
     } else {
       switch (resize_mode) {
-        case ResizeMode::NONE:
-          throw std::runtime_error("Resize mode is NONE but source and destination dimensions are not equal");
+        case ResizeMode::NONE: {
+          // Just render as much data as available, anchored to the upper-left corner
+          ssize_t copy_w = std::min<ssize_t>(src_w, dst_w);
+          ssize_t copy_h = std::min<ssize_t>(src_h, dst_h);
+          for (ssize_t y = 0; y < copy_h; y++) {
+            size_t src_row_y = src_y + y;
+            size_t dst_row_y = dst_y + y;
+            for (ssize_t x = 0; x < copy_w; x++) {
+              this->write(dst_x + x, dst_row_y,
+                  per_pixel_fn(this->read(dst_x + x, dst_row_y), source.read(src_x + x, src_row_y)));
+            }
+          }
+          break;
+        }
 
         case ResizeMode::TILED:
           // Repeat the source image in both dimensions as needed
-          this->clamp_blit_dimensions(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h);
           for (ssize_t y = 0; y < dst_h; y++) {
             size_t src_row_y = src_y + (y % src_h);
             size_t dst_row_y = dst_y + y;
