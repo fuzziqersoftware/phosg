@@ -92,7 +92,7 @@ constexpr uint32_t alpha_blend(uint32_t orig_color, uint32_t new_color) {
       (a * get_r(new_color) + (0xFF - a) * get_r(orig_color)) / 0xFF,
       (a * get_g(new_color) + (0xFF - a) * get_g(orig_color)) / 0xFF,
       (a * get_b(new_color) + (0xFF - a) * get_b(orig_color)) / 0xFF,
-      (a * get_a(new_color) + (0xFF - a) * get_a(orig_color)) / 0xFF);
+      get_a(orig_color));
 }
 
 constexpr uint32_t invert(uint32_t color) {
@@ -1385,107 +1385,108 @@ public:
       ssize_t src_h,
       ResizeMode resize_mode,
       FnT&& per_pixel_fn) {
-    this->clamp_blit_dimensions(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h);
-
     // If the copy dimensions are equal, don't bother with any resizing or
-    // tiling logic
+    // tiling logic (it will be slower for the same result)
     if (src_w == dst_w && src_h == dst_h) {
-      for (ssize_t y = 0; y < dst_h; y++) {
-        size_t src_row_y = src_y + y;
-        size_t dst_row_y = dst_y + y;
-        for (ssize_t x = 0; x < dst_w; x++) {
-          this->write(dst_x + x, dst_row_y,
-              per_pixel_fn(this->read(dst_x + x, dst_row_y), source.read(src_x + x, src_row_y)));
+      resize_mode = ResizeMode::NONE;
+    }
+
+    switch (resize_mode) {
+      case ResizeMode::NONE: {
+        // Just render as much data as available, anchored to the upper-left corner
+        for (ssize_t y = 0; y < dst_h; y++) {
+          size_t src_row_y = src_y + y;
+          size_t dst_row_y = dst_y + y;
+          for (ssize_t x = 0; x < dst_w; x++) {
+            ssize_t src_col_x = src_x + x;
+            ssize_t dst_col_x = dst_x + x;
+            if (this->check(dst_col_x, dst_row_y) && source.check(src_col_x, src_row_y)) {
+              this->write(dst_col_x, dst_row_y,
+                  per_pixel_fn(this->read(dst_col_x, dst_row_y), source.read(src_col_x, src_row_y)));
+            }
+          }
         }
+        break;
       }
 
-    } else {
-      switch (resize_mode) {
-        case ResizeMode::NONE: {
-          // Just render as much data as available, anchored to the upper-left corner
-          ssize_t copy_w = std::min<ssize_t>(src_w, dst_w);
-          ssize_t copy_h = std::min<ssize_t>(src_h, dst_h);
-          for (ssize_t y = 0; y < copy_h; y++) {
-            size_t src_row_y = src_y + y;
-            size_t dst_row_y = dst_y + y;
-            for (ssize_t x = 0; x < copy_w; x++) {
-              this->write(dst_x + x, dst_row_y,
-                  per_pixel_fn(this->read(dst_x + x, dst_row_y), source.read(src_x + x, src_row_y)));
+      case ResizeMode::TILED:
+        // Repeat the source image in both dimensions as needed
+        for (ssize_t y = 0; y < dst_h; y++) {
+          size_t src_row_y = src_y + (y % src_h);
+          size_t dst_row_y = dst_y + y;
+          for (ssize_t x = 0; x < dst_w; x++) {
+            ssize_t src_col_x = src_x + (x % src_w);
+            ssize_t dst_col_x = dst_x + x;
+            if (this->check(dst_col_x, dst_row_y) && source.check(src_col_x, src_row_y)) {
+              this->write(dst_col_x, dst_row_y,
+                  per_pixel_fn(this->read(dst_col_x, dst_row_y), source.read(src_col_x, src_row_y)));
             }
           }
-          break;
         }
+        break;
 
-        case ResizeMode::TILED:
-          // Repeat the source image in both dimensions as needed
-          for (ssize_t y = 0; y < dst_h; y++) {
-            size_t src_row_y = src_y + (y % src_h);
-            size_t dst_row_y = dst_y + y;
-            for (ssize_t x = 0; x < dst_w; x++) {
-              this->write(dst_x + x, dst_row_y,
-                  per_pixel_fn(this->read(dst_x + x, dst_row_y), source.read(src_x + (x % src_w), src_row_y)));
+      case ResizeMode::NEAREST_NEIGHBOR:
+        // Stretch the source image into the dest rect, using 2-D nearest-neighbor resampling
+        for (ssize_t y = 0; y < dst_h; y++) {
+          size_t src_row_y = src_y + round((src_h - 1) * static_cast<double>(y) / (dst_h - 1));
+          size_t dst_row_y = dst_y + y;
+          for (ssize_t x = 0; x < dst_w; x++) {
+            ssize_t src_col_x = src_x + round((src_w - 1) * static_cast<double>(x) / (dst_w - 1));
+            ssize_t dst_col_x = dst_x + x;
+            if (this->check(dst_col_x, dst_row_y) && source.check(src_col_x, src_row_y)) {
+              this->write(dst_col_x, dst_row_y,
+                  per_pixel_fn(this->read(dst_col_x, dst_row_y), source.read(src_col_x, src_row_y)));
             }
           }
-          break;
+        }
+        break;
 
-        case ResizeMode::NEAREST_NEIGHBOR:
-          // Stretch the source image into the dest rect, using 2-D nearest-neighbor resampling
-          for (ssize_t y = 0; y < dst_h; y++) {
-            size_t sy = src_y + round((src_h - 1) * static_cast<double>(y) / (dst_h - 1));
-            for (ssize_t x = 0; x < dst_w; x++) {
-              size_t sx = src_x + round((src_w - 1) * static_cast<double>(x) / (dst_w - 1));
-              this->write(dst_x + x, dst_y + y, per_pixel_fn(this->read(dst_x + x, dst_y + y), source.read(sx, sy)));
-            }
+      case ResizeMode::LINEAR_INTERPOLATION:
+        // Stretch the source image into the dest rect, using 2-D linear interpolation
+        for (ssize_t y = 0; y < dst_h; y++) {
+          double y_rel_dist = static_cast<double>(y) / (dst_h - 1);
+          double source_y_progress = y_rel_dist * (src_h - 1);
+          size_t source_y1 = src_y + source_y_progress;
+          size_t source_y2 = source_y1 + 1;
+          double source_y2_factor = source_y_progress - source_y1;
+          double source_y1_factor = 1.0 - source_y2_factor;
+
+          for (ssize_t x = 0; x < dst_w; x++) {
+            double x_rel_dist = static_cast<double>(x) / (dst_w - 1);
+            double source_x_progress = x_rel_dist * (src_w - 1);
+            size_t source_x1 = src_x + source_x_progress;
+            size_t source_x2 = source_x1 + 1;
+            double source_x2_factor = source_x_progress - source_x1;
+            double source_x1_factor = 1.0 - source_x2_factor;
+
+            uint32_t s11 = source.check(source_x1, source_y1) ? source.read(source_x1, source_y1) : 0x00000000;
+            uint32_t s12 = source.check(source_x1, source_y2) ? source.read(source_x1, source_y2) : 0x00000000;
+            uint32_t s21 = source.check(source_x2, source_y1) ? source.read(source_x2, source_y1) : 0x00000000;
+            uint32_t s22 = source.check(source_x2, source_y2) ? source.read(source_x2, source_y2) : 0x00000000;
+
+            uint8_t dr = get_r(s11) * (source_x1_factor * source_y1_factor) +
+                get_r(s12) * (source_x1_factor * source_y2_factor) +
+                get_r(s21) * (source_x2_factor * source_y1_factor) +
+                get_r(s22) * (source_x2_factor * source_y2_factor);
+            uint8_t dg = get_g(s11) * (source_x1_factor * source_y1_factor) +
+                get_g(s12) * (source_x1_factor * source_y2_factor) +
+                get_g(s21) * (source_x2_factor * source_y1_factor) +
+                get_g(s22) * (source_x2_factor * source_y2_factor);
+            uint8_t db = get_b(s11) * (source_x1_factor * source_y1_factor) +
+                get_b(s12) * (source_x1_factor * source_y2_factor) +
+                get_b(s21) * (source_x2_factor * source_y1_factor) +
+                get_b(s22) * (source_x2_factor * source_y2_factor);
+            uint8_t da = get_a(s11) * (source_x1_factor * source_y1_factor) +
+                get_a(s12) * (source_x1_factor * source_y2_factor) +
+                get_a(s21) * (source_x2_factor * source_y1_factor) +
+                get_a(s22) * (source_x2_factor * source_y2_factor);
+
+            this->write(dst_x + x, dst_y + y, per_pixel_fn(this->read(dst_x + x, dst_y + y), rgba8888(dr, dg, db, da)));
           }
-          break;
-
-        case ResizeMode::LINEAR_INTERPOLATION:
-          // Stretch the source image into the dest rect, using 2-D linear interpolation
-          for (ssize_t y = 0; y < dst_h; y++) {
-            double y_rel_dist = static_cast<double>(y) / (dst_h - 1);
-            double source_y_progress = y_rel_dist * (src_h - 1);
-            size_t source_y1 = src_y + source_y_progress;
-            size_t source_y2 = source_y1 + 1;
-            double source_y2_factor = source_y_progress - source_y1;
-            double source_y1_factor = 1.0 - source_y2_factor;
-
-            for (ssize_t x = 0; x < dst_w; x++) {
-              double x_rel_dist = static_cast<double>(x) / (dst_w - 1);
-              double source_x_progress = x_rel_dist * (src_w - 1);
-              size_t source_x1 = src_x + source_x_progress;
-              size_t source_x2 = source_x1 + 1;
-              double source_x2_factor = source_x_progress - source_x1;
-              double source_x1_factor = 1.0 - source_x2_factor;
-
-              uint32_t s11 = source.read(source_x1, source_y1);
-              uint32_t s12 = source.read(source_x1, source_y2);
-              uint32_t s21 = source.read(source_x2, source_y1);
-              uint32_t s22 = source.read(source_x2, source_y2);
-
-              uint8_t dr = get_r(s11) * (source_x1_factor * source_y1_factor) +
-                  get_r(s12) * (source_x1_factor * source_y2_factor) +
-                  get_r(s21) * (source_x2_factor * source_y1_factor) +
-                  get_r(s22) * (source_x2_factor * source_y2_factor);
-              uint8_t dg = get_g(s11) * (source_x1_factor * source_y1_factor) +
-                  get_g(s12) * (source_x1_factor * source_y2_factor) +
-                  get_g(s21) * (source_x2_factor * source_y1_factor) +
-                  get_g(s22) * (source_x2_factor * source_y2_factor);
-              uint8_t db = get_b(s11) * (source_x1_factor * source_y1_factor) +
-                  get_b(s12) * (source_x1_factor * source_y2_factor) +
-                  get_b(s21) * (source_x2_factor * source_y1_factor) +
-                  get_b(s22) * (source_x2_factor * source_y2_factor);
-              uint8_t da = get_a(s11) * (source_x1_factor * source_y1_factor) +
-                  get_a(s12) * (source_x1_factor * source_y2_factor) +
-                  get_a(s21) * (source_x2_factor * source_y1_factor) +
-                  get_a(s22) * (source_x2_factor * source_y2_factor);
-
-              this->write(dst_x + x, dst_y + y, per_pixel_fn(this->read(dst_x + x, dst_y + y), rgba8888(dr, dg, db, da)));
-            }
-          }
-          break;
-        default:
-          throw std::logic_error("Invalid resize mode");
-      }
+        }
+        break;
+      default:
+        throw std::logic_error("Invalid resize mode");
     }
   }
   template <PixelFormat SourceFormat, typename FnT>
@@ -1679,7 +1680,8 @@ public:
   }
 
   // Copies pixels from another image to this one, but only copies pixels for
-  // which the corresponding pixel in the mask image is not white (FFFFFF).
+  // which the corresponding pixel in the mask image is not white (FFFFFF). The
+  // mask image is indexed in source-space.
   template <PixelFormat SourceFormat, PixelFormat MaskFormat>
   void copy_from_with_mask_image(
       const Image<SourceFormat>& source,
@@ -1693,22 +1695,17 @@ public:
     // We don't use copy_from_with_custom here because we would need the pixel
     // coordinates within the per-pixel function, and adding those would make
     // the code ugly
-
-    this->clamp_blit_dimensions(source, dst_x, dst_y, w, h, src_x, src_y, w, h);
-
-    // The mask image must cover the entire area to be blitted, but it does NOT
-    // have to cover the entire destination or source image. The mask is indexed
-    // in source-space, though, so its upper-left corner must be aligned with
-    // the source image's upper-left corner.
-    if ((mask.get_width() < static_cast<size_t>(src_x + w)) ||
-        (mask.get_height() < static_cast<size_t>(src_y + h))) {
-      throw std::runtime_error("mask is too small to cover copied area");
-    }
-
     for (ssize_t y = 0; y < h; y++) {
+      size_t src_row_y = src_y + y;
+      size_t dst_row_y = dst_y + y;
       for (ssize_t x = 0; x < w; x++) {
-        if ((mask.read(src_x + x, src_y + y) & 0xFFFFFF00) != 0xFFFFFF00) {
-          this->write(dst_x + x, dst_y + y, source.read(src_x + x, src_y + y));
+        ssize_t src_col_x = src_x + x;
+        ssize_t dst_col_x = dst_x + x;
+        if (this->check(dst_col_x, dst_row_y) &&
+            source.check(src_col_x, src_row_y) &&
+            mask.check(src_col_x, src_row_y) &&
+            ((mask.read(src_col_x, src_row_y) & 0xFFFFFF00) != 0xFFFFFF00)) {
+          this->write(dst_col_x, dst_row_y, source.read(src_col_x, src_row_y));
         }
       }
     }
@@ -1882,83 +1879,6 @@ public:
     }
     if (y + h > static_cast<ssize_t>(this->h)) {
       h = this->h - y;
-    }
-  }
-
-  template <PixelFormat SourceFormat>
-  void clamp_blit_dimensions(
-      const Image<SourceFormat>& source,
-      ssize_t& dst_x,
-      ssize_t& dst_y,
-      ssize_t& dst_w,
-      ssize_t& dst_h,
-      ssize_t& src_x,
-      ssize_t& src_y,
-      ssize_t& src_w,
-      ssize_t& src_h) const {
-    // If the width or height are negative, use the remainder of the image
-    // (starting at x/y)
-    if (src_w < 0) {
-      src_w = source.w - src_x;
-    }
-    if (src_h < 0) {
-      src_h = source.h - src_y;
-    }
-    if (dst_w < 0) {
-      dst_w = this->w - dst_x;
-    }
-    if (dst_h < 0) {
-      dst_h = this->h - dst_y;
-    }
-
-    // If the source coordinates are negative, trim off the left/top
-    if (src_x < 0) {
-      dst_x -= src_x;
-      src_w += src_x;
-      src_x = 0;
-    }
-    if (src_y < 0) {
-      dst_y -= src_y;
-      src_h += src_y;
-      src_y = 0;
-    }
-    // If the dest coordinates are negative, trim off the left/top
-    if (dst_x < 0) {
-      src_x -= dst_x;
-      dst_w += dst_x;
-      dst_x = 0;
-    }
-    if (dst_y < 0) {
-      src_y -= dst_y;
-      dst_h += dst_y;
-      dst_y = 0;
-    }
-    // If the area extends beyond the source, trim off the right/bottom
-    if (src_x + src_w > static_cast<ssize_t>(source.w)) {
-      src_w = static_cast<ssize_t>(source.w) - src_x;
-    }
-    if (src_y + src_h > static_cast<ssize_t>(source.h)) {
-      src_h = static_cast<ssize_t>(source.h) - src_y;
-    }
-    // If the area extends beyond the dest, trim off the right/bottom
-    if (dst_x + dst_w > static_cast<ssize_t>(this->w)) {
-      dst_w = static_cast<ssize_t>(this->w) - dst_x;
-    }
-    if (dst_y + dst_h > static_cast<ssize_t>(this->h)) {
-      dst_h = static_cast<ssize_t>(this->h) - dst_y;
-    }
-
-    // If either width or height are negative at this point, then the entire
-    // area is out of bounds for either the source or dest; make the area empty
-    if ((dst_w <= 0) || (dst_h <= 0) || (src_w <= 0) || (src_h <= 0)) {
-      dst_x = 0;
-      dst_y = 0;
-      dst_w = 0;
-      dst_h = 0;
-      src_x = 0;
-      src_y = 0;
-      src_w = 0;
-      src_h = 0;
     }
   }
 };
