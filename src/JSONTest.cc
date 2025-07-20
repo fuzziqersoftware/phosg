@@ -47,6 +47,7 @@ const char* phosg::name_for_enum<JSONTestEnum>(JSONTestEnum v) {
 int main(int, char**) {
   uint32_t hex_option = JSON::SerializeOption::HEX_INTEGERS;
   uint32_t format_option = JSON::SerializeOption::FORMAT;
+  uint32_t expand_option = JSON::SerializeOption::EXPAND_LEAF_CONTAINERS;
   uint32_t one_char_trivial_option = JSON::SerializeOption::ONE_CHARACTER_TRIVIAL_CONSTANTS;
 
   fwrite_fmt(stderr, "-- construction\n");
@@ -631,9 +632,14 @@ int main(int, char**) {
   expect_eq(root.at("float1").serialize(format_option), "1.5");
   expect_eq(root.at("float2").serialize(format_option), "-10.5");
   expect_eq(root.at("list0").serialize(format_option), "[]");
-  expect_eq(root.at("list1").serialize(format_option), "[\n  1\n]");
+  expect_eq(root.at("list0").serialize(format_option | expand_option), "[]");
+  expect_eq(root.at("list1").serialize(format_option), "[1]");
+  expect_eq(root.at("list1").serialize(format_option | expand_option), "[\n  1\n]");
   expect_eq(root.at("dict0").serialize(format_option), "{}");
-  expect_eq(root.at("dict1").serialize(format_option), "{\n  \"one\": 1\n}");
+  expect_eq(root.at("dict0").serialize(format_option | expand_option), "{}");
+  phosg::fwrite_fmt(stderr, "{}\n", root.at("dict1").serialize(format_option));
+  expect_eq(root.at("dict1").serialize(format_option), "{\"one\": 1}");
+  expect_eq(root.at("dict1").serialize(format_option | expand_option), "{\n  \"one\": 1\n}");
 
   fwrite_fmt(stderr, "-- parse\n");
   expect_eq(root.at("null"), JSON::parse("null"));

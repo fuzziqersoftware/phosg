@@ -146,6 +146,10 @@ public:
     // This option adds whitespace and line breaks to the output to make it
     // easier for humans to read. The output is still standard-compliant.
     FORMAT = 0x04,
+    // This option makes lists and dictionaries that don't contain other lists
+    // or dictionaries render on multiple lines instead of a single line. No
+    // effect if FORMAT is not enabled.
+    EXPAND_LEAF_CONTAINERS = 0x40,
     // If this is enabled, all integers are serialized in hexadecimal. This is
     // not standard-compliant, but JSON::parse can parse output generated with
     // this option if disable_extensions is false (the default).

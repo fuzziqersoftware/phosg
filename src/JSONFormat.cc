@@ -37,6 +37,8 @@ int main(int argc, char** argv) {
         return 1;
       } else if (!strcmp(argv[x], "--format")) {
         options |= JSON::SerializeOption::FORMAT;
+      } else if (!strcmp(argv[x], "--expand-leaf-containers")) {
+        options |= JSON::SerializeOption::EXPAND_LEAF_CONTAINERS;
       } else if (!strcmp(argv[x], "--compress")) {
         options &= ~JSON::SerializeOption::FORMAT;
       } else if (!strcmp(argv[x], "--hex-integers")) {

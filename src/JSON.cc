@@ -330,7 +330,7 @@ string JSON::serialize(uint32_t options, size_t indent_level) const {
     case 3: { // double
       string ret = std::format("{:.17g}", this->as_float());
       if (ret.find('.') == string::npos) {
-        return ret + ".0";
+        ret += ".0";
       }
       return ret;
     }
@@ -339,48 +339,71 @@ string JSON::serialize(uint32_t options, size_t indent_level) const {
       return "\"" + JSON::escape_string(this->as_string(), escape_mode) + "\"";
 
     case 5: { // list_type
-      bool format = options & SerializeOption::FORMAT;
-
       const auto& list = this->as_list();
       if (list.empty()) {
         return "[]";
       }
 
+      bool format = options & SerializeOption::FORMAT;
+      bool render_multiline = options & SerializeOption::EXPAND_LEAF_CONTAINERS;
+      if (format && !render_multiline) {
+        for (const unique_ptr<JSON>& o : list) {
+          if ((o->is_list() || o->is_dict()) && !o->empty()) {
+            render_multiline = true;
+            break;
+          }
+        }
+      }
+
       string ret = "[";
       for (const unique_ptr<JSON>& o : list) {
         if (ret.size() > 1) {
-          ret += ',';
+          ret += (format && !render_multiline) ? ", " : ",";
         }
-        if (format) {
+        if (render_multiline) {
           ret += '\n' + string(indent_level + 2, ' ') + o->serialize(options, indent_level + 2);
         } else {
           ret += o->serialize(options);
         }
       }
-      if (format) {
-        return ret + '\n' + string(indent_level, ' ') + "]";
+      if (render_multiline) {
+        ret += '\n' + string(indent_level, ' ') + "]";
       } else {
-        return ret + "]";
+        ret.push_back(']');
       }
+
+      return ret;
     }
 
     case 6: { // dict_type
-      bool format = options & SerializeOption::FORMAT;
-      bool sort_keys = options & SerializeOption::SORT_DICT_KEYS;
 
       const auto& dict = this->as_dict();
       if (dict.empty()) {
         return "{}";
       }
 
+      bool format = options & SerializeOption::FORMAT;
+      bool render_multiline = options & SerializeOption::EXPAND_LEAF_CONTAINERS;
+      bool sort_keys = options & SerializeOption::SORT_DICT_KEYS;
+      if (format && !render_multiline) {
+        for (const auto& [k, v] : dict) {
+          if ((v->is_list() || v->is_dict()) && !v->empty()) {
+            render_multiline = true;
+            break;
+          }
+        }
+      }
+
       string ret = "{";
       auto add_key = [&](const string& key, const JSON& value) -> void {
         if (ret.size() > 1) {
-          ret += ',';
+          ret += (format && !render_multiline) ? ", " : ",";
         }
         string escaped_key = JSON::escape_string(key, escape_mode);
-        if (format) {
+        if (render_multiline) {
           ret += '\n' + string(indent_level + 2, ' ') + "\"" + escaped_key + "\": " + value.serialize(options, indent_level + 2);
+        } else if (format) {
+          ret += "\"" + escaped_key + "\": " + value.serialize(options);
         } else {
           ret += "\"" + escaped_key + "\":" + value.serialize(options);
         }
@@ -403,7 +426,7 @@ string JSON::serialize(uint32_t options, size_t indent_level) const {
           add_key(o.first, *o.second);
         }
       }
-      if (format) {
+      if (render_multiline) {
         return ret + '\n' + string(indent_level, ' ') + "}";
       } else {
         return ret + "}";
