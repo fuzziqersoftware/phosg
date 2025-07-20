@@ -1245,7 +1245,7 @@ public:
   /////////////////////////////////////////////////////////////////////////////
   // Comparators & basic introspection
 
-  bool check(size_t x, size_t y) {
+  bool check(size_t x, size_t y) const {
     return (x < this->w) && (y < this->h);
   }
 
@@ -1431,9 +1431,9 @@ public:
         case ResizeMode::NEAREST_NEIGHBOR:
           // Stretch the source image into the dest rect, using 2-D nearest-neighbor resampling
           for (ssize_t y = 0; y < dst_h; y++) {
-            size_t sy = round((src_h - 1) * static_cast<double>(y) / (dst_h - 1));
+            size_t sy = src_y + round((src_h - 1) * static_cast<double>(y) / (dst_h - 1));
             for (ssize_t x = 0; x < dst_w; x++) {
-              size_t sx = round((src_w - 1) * static_cast<double>(x) / (dst_w - 1));
+              size_t sx = src_x + round((src_w - 1) * static_cast<double>(x) / (dst_w - 1));
               this->write(dst_x + x, dst_y + y, per_pixel_fn(this->read(dst_x + x, dst_y + y), source.read(sx, sy)));
             }
           }
