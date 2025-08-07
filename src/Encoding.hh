@@ -102,30 +102,31 @@ static inline uint64_t bswap64(uint64_t a) {
 
 static inline float bswap32f(uint32_t a) {
   float f;
-  *(uint32_t*)(&f) = bswap32(a);
+  uint32_t* fu = (uint32_t*)(&f);
+  *fu = bswap32(a);
   return f;
 }
 
 static inline double bswap64f(uint64_t a) {
   double d;
-  *(uint64_t*)(&d) = bswap64(a);
+  uint64_t* du = (uint64_t*)(&d);
+  *du = bswap64(a);
   return d;
 }
 
 static inline uint32_t bswap32f(float a) {
-  uint32_t i = *(uint32_t*)(&a);
-  return bswap32(i);
+  uint32_t* au = (uint32_t*)(&a);
+  return bswap32(*au);
 }
 
 static inline uint64_t bswap64f(double a) {
-  uint64_t i = *(uint64_t*)(&a);
-  return bswap64(i);
+  uint64_t* au = (uint64_t*)(&a);
+  return bswap64(*au);
 }
 
 template <typename ArgT, typename ResultT = ArgT>
 ResultT bswap(ArgT) {
-  static_assert(always_false<ArgT, ResultT>::v,
-      "unspecialized bswap should never be called");
+  static_assert(always_false<ArgT, ResultT>::v, "unspecialized bswap should never be called");
 }
 
 template <>

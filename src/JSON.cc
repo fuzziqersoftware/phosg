@@ -376,7 +376,6 @@ string JSON::serialize(uint32_t options, size_t indent_level) const {
     }
 
     case 6: { // dict_type
-
       const auto& dict = this->as_dict();
       if (dict.empty()) {
         return "{}";
