@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.22)
 
 
 
-
 # Project setup
 
 if(APPLE AND NOT CMAKE_OSX_ARCHITECTURES)
