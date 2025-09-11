@@ -504,6 +504,19 @@ public:
     return ret;
   }
 
+  template <typename T>
+  const T* pget_array(size_t offset, size_t count) {
+    return reinterpret_cast<const T*>(this->pgetv(offset, count * sizeof(T)));
+  }
+  template <typename T>
+  const T* get_array(size_t count, bool advance = true) {
+    const T* ret = this->pget_array<T>(this->offset, count);
+    if (advance) {
+      this->offset += count * sizeof(T);
+    }
+    return ret;
+  }
+
   inline uint8_t get_u8(bool advance = true) { return this->get<uint8_t>(advance); }
   inline int8_t get_s8(bool advance = true) { return this->get<int8_t>(advance); }
   inline uint8_t pget_u8(size_t offset) const { return this->pget<uint8_t>(offset); }
