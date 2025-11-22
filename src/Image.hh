@@ -931,7 +931,8 @@ public:
             uint8_t b_v = r.get_u8();
             uint8_t g_v = r.get_u8();
             uint8_t r_v = r.get_u8();
-            ret.write(x, target_y, rgba8888(r_v, g_v, b_v, 0xFF));
+            uint8_t a_v = (header.info_header.bit_depth == 32) ? r.get_u8() : 0xFF;
+            ret.write(x, target_y, rgba8888(r_v, g_v, b_v, a_v));
           }
           r.skip(row_padding_bytes);
         }
