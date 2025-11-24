@@ -354,6 +354,17 @@ void print_data(
     const void* prev = nullptr,
     uint64_t flags = PrintDataFlags::PRINT_ASCII);
 
+// Returns true if the data blocks are identical
+bool print_binary_diff(
+    FILE* stream,
+    const void* data1v,
+    size_t size1,
+    const void* data2v,
+    size_t size2,
+    bool use_color,
+    size_t context_lines,
+    uint64_t base_offset = 0);
+
 std::string format_data(
     const struct iovec* iovs,
     size_t num_iovs,
