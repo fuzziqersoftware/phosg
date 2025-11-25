@@ -423,19 +423,35 @@ int main(int, char**) {
   }
 
   {
-    fwrite_fmt(stderr, "-- strip_multiline_comments\n");
+    fwrite_fmt(stderr, "-- strip_comments\n");
 
-    string s = "abc/*def*/ghi";
-    strip_multiline_comments(s);
-    expect_eq(s, "abcghi");
+    string s = "abc/*d\nef*/ghi\nabc//def\nabc#def\nabc;def\nabc--def\n\"abc/*def*/ghi\"\n\"ab\\\"c/*def*/ghi";
+    strip_comments_inplace(s, StripCommentsFlag::ALL);
+    print_data(stderr, s);
+    expect_eq(s, "abcghi\nabc\nabc\nabc\nabc\n\"abc/*def*/ghi\"\n\"ab\\\"c/*def*/ghi");
+    s = "abc\nd//ef\nghi";
+    strip_comments_inplace(s);
+    expect_eq(s, "abc\nd\nghi");
+    s = "abc\nd#ef\nghi";
+    strip_comments_inplace(s);
+    expect_eq(s, "abc\nd\nghi");
+    s = "abc\nd--ef\nghi";
+    strip_comments_inplace(s);
+    expect_eq(s, "abc\nd--ef\nghi");
+    s = "abc\nd;ef\nghi";
+    strip_comments_inplace(s, StripCommentsFlag::SQL_STYLE_INLINE);
+    expect_eq(s, "abc\nd;ef\nghi");
+    s = "abc\nd--ef\nghi";
+    strip_comments_inplace(s, StripCommentsFlag::SQL_STYLE_INLINE);
+    expect_eq(s, "abc\nd\nghi");
 
     s = "/*abc*/def\r\n";
-    strip_multiline_comments(s);
+    strip_comments_inplace(s);
     expect_eq(s, "def\r\n");
 
     s = "abc\n/*def\nghi*/\njkl";
-    strip_multiline_comments(s);
-    expect_eq(s, "abc\n\n\njkl");
+    strip_comments_inplace(s);
+    expect_eq(s, "abc\n\njkl");
   }
 
   {

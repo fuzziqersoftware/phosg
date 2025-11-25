@@ -87,34 +87,86 @@ void strip_whitespace(StrT& s) {
   }
 }
 
+enum StripCommentsFlag : uint8_t {
+  TRACK_QUOTES = 0x01, // Comments cannot begin if inside a quoted string
+  C_STYLE_MULTILINE = 0x02, // Removes comments like /* this */ (including across multiple lines)
+  CC_STYLE_INLINE = 0x04, // Removes comments like // this
+  PY_STYLE_INLINE = 0x08, // Removes comments like # this
+  ASM_STYLE_INLINE = 0x10, // Removes comments like ; this
+  SQL_STYLE_INLINE = 0x20, // Removes comments like -- this
+  DEFAULT = 0x0F,
+  ALL = 0x3F,
+};
+
 template <typename StrT>
-void strip_multiline_comments(StrT& s, bool allow_unterminated = false) {
-  bool is_in_comment = false;
+void strip_comments_inplace(StrT& s, uint8_t flags = StripCommentsFlag::DEFAULT) {
+  using Flag = StripCommentsFlag;
+  enum class Phase {
+    TEXT = 0,
+    C_STYLE_MULTILINE,
+    INLINE,
+    SINGLE_QUOTE_STRING,
+    DOUBLE_QUOTE_STRING,
+  };
+  Phase phase = Phase::TEXT;
+
   size_t write_offset = 0;
   for (size_t z = 0; z < s.size();) {
-    if (!is_in_comment) {
-      if ((s[z] == '/') && (z + 1 < s.size()) && (s[z + 1] == '*')) {
-        is_in_comment = true;
-        z += 2;
-      } else {
-        s[write_offset++] = s[z++];
-      }
-    } else {
-      if ((s[z] == '*') && (z + 1 < s.size()) && (s[z + 1] == '/')) {
-        is_in_comment = false;
-        z += 2;
-      } else {
+    switch (phase) {
+      case Phase::TEXT:
+        if ((flags & Flag::C_STYLE_MULTILINE) && (s[z] == '/') && (z + 1 < s.size()) && (s[z + 1] == '*')) {
+          phase = Phase::C_STYLE_MULTILINE;
+          z += 2;
+        } else if (
+            ((flags & Flag::CC_STYLE_INLINE) && (s[z] == '/') && (z + 1 < s.size()) && (s[z + 1] == '/')) ||
+            ((flags & Flag::SQL_STYLE_INLINE) && (s[z] == '-') && (z + 1 < s.size()) && (s[z + 1] == '-')) ||
+            ((flags & Flag::PY_STYLE_INLINE) && (s[z] == '#')) ||
+            ((flags & Flag::ASM_STYLE_INLINE) && (s[z] == ';'))) {
+          phase = Phase::INLINE;
+          z += 2;
+        } else if ((flags & Flag::TRACK_QUOTES) && ((s[z] == '\'') || (s[z] == '\"'))) {
+          phase = (s[z] == '\'') ? Phase::SINGLE_QUOTE_STRING : Phase::DOUBLE_QUOTE_STRING;
+          s[write_offset++] = s[z++];
+        } else {
+          s[write_offset++] = s[z++];
+        }
+        break;
+
+      case Phase::C_STYLE_MULTILINE:
+        if ((s[z] == '*') && (z + 1 < s.size()) && (s[z + 1] == '/')) {
+          phase = Phase::TEXT;
+          z += 2;
+        } else {
+          z++;
+        }
+        break;
+
+      case Phase::INLINE:
         if (s[z++] == '\n') {
           s[write_offset++] = '\n';
+          phase = Phase::TEXT;
         }
-      }
+        break;
+
+      case Phase::SINGLE_QUOTE_STRING:
+      case Phase::DOUBLE_QUOTE_STRING:
+        char quote_ch = (phase == Phase::SINGLE_QUOTE_STRING) ? '\'' : '\"';
+        if (s[z] == '\\') {
+          s[write_offset++] = s[z++];
+          if (z < s.size()) {
+            s[write_offset++] = s[z++];
+          }
+        } else if (s[z] == quote_ch) {
+          s[write_offset++] = s[z++];
+          phase = Phase::TEXT;
+        } else {
+          s[write_offset++] = s[z++];
+        }
+        break;
     }
   }
-  s.resize(write_offset);
 
-  if (!allow_unterminated && is_in_comment) {
-    throw std::runtime_error("unterminated multiline comment");
-  }
+  s.resize(write_offset);
 }
 
 std::string escape_quotes(const std::string& s);
