@@ -427,8 +427,7 @@ int main(int, char**) {
 
     string s = "abc/*d\nef*/ghi\nabc//def\nabc#def\nabc;def\nabc--def\n\"abc/*def*/ghi\"\n\"ab\\\"c/*def*/ghi";
     strip_comments_inplace(s, StripCommentsFlag::ALL);
-    print_data(stderr, s);
-    expect_eq(s, "abcghi\nabc\nabc\nabc\nabc\n\"abc/*def*/ghi\"\n\"ab\\\"c/*def*/ghi");
+    expect_eq(s, "abc\nghi\nabc\nabc\nabc\nabc\n\"abc/*def*/ghi\"\n\"ab\\\"c/*def*/ghi");
     s = "abc\nd//ef\nghi";
     strip_comments_inplace(s);
     expect_eq(s, "abc\nd\nghi");
@@ -451,7 +450,7 @@ int main(int, char**) {
 
     s = "abc\n/*def\nghi*/\njkl";
     strip_comments_inplace(s);
-    expect_eq(s, "abc\n\njkl");
+    expect_eq(s, "abc\n\n\njkl");
   }
 
   {

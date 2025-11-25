@@ -136,6 +136,8 @@ void strip_comments_inplace(StrT& s, uint8_t flags = StripCommentsFlag::DEFAULT)
         if ((s[z] == '*') && (z + 1 < s.size()) && (s[z + 1] == '/')) {
           phase = Phase::TEXT;
           z += 2;
+        } else if (s[z] == '\n') {
+          s[write_offset++] = s[z++];
         } else {
           z++;
         }
