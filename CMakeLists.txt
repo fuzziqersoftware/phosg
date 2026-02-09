@@ -48,11 +48,8 @@ if (NOT WIN32)
   target_sources(phosg PRIVATE src/Filesystem-Unix.cc)
 endif()
 target_link_libraries(phosg PUBLIC pthread z)
-target_include_directories(
-  phosg PUBLIC
-  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
-)
+target_include_directories(phosg PUBLIC ${CMAKE_INSTALL_FULL_INCLUDEDIR})
+target_link_directories(phosg PUBLIC ${CMAKE_INSTALL_FULL_LIBDIR})
 if("${PHOSG_SKIP_PROCESS_TEST}" EQUAL 1)
   target_compile_definitions(phosg PUBLIC -DPHOSG_SKIP_PROCESS_TEST)
 endif()
