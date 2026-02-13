@@ -60,7 +60,7 @@ message(STATUS "Target architecture is ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 string(FIND ${CMAKE_HOST_SYSTEM_PROCESSOR} "armv" IS_LINUX_ARMV)
 if("${CMAKE_HOST_SYSTEM_PROCESSOR}" STREQUAL "aarch64" OR "${IS_LINUX_ARMV}" GREATER_EQUAL 0
   OR "${CMAKE_OSX_ARCHITECTURES}" STREQUAL "ppc")
-  target_link_libraries(phosg atomic)
+  target_link_libraries(phosg PUBLIC atomic)
 endif()
 
 add_executable(bindiff src/BinDiff.cc)
