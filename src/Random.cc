@@ -21,6 +21,11 @@ using namespace std;
 
 namespace phosg {
 
+#ifndef PHOSG_WINDOWS
+static scoped_fd random_fd("/dev/urandom", O_RDONLY);
+static thread_local string buffer;
+#endif
+
 string random_data(size_t bytes) {
   string ret(bytes, '\0');
   random_data(ret.data(), ret.size());
@@ -29,14 +34,11 @@ string random_data(size_t bytes) {
 
 void random_data(void* data, size_t bytes) {
 #ifndef PHOSG_WINDOWS
-  static scoped_fd fd("/dev/urandom", O_RDONLY);
-  static thread_local string buffer;
-
   while (buffer.size() < bytes) {
     memcpy(data, buffer.data(), buffer.size());
     bytes -= buffer.size();
     data = reinterpret_cast<void*>(reinterpret_cast<uint8_t*>(data) + buffer.size());
-    buffer = readx(fd, 4096);
+    buffer = readx(random_fd, 4096);
   }
 
   if (bytes) {
@@ -62,6 +64,12 @@ int64_t random_int(int64_t low, int64_t high) {
   } else {
     return low + (random_object<uint8_t>() % range);
   }
+}
+
+void close_random_device() {
+#ifndef PHOSG_WINDOWS
+  random_fd.close();
+#endif
 }
 
 } // namespace phosg

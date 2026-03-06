@@ -19,4 +19,6 @@ T random_object() {
 
 int64_t random_int(int64_t low, int64_t high);
 
+void close_random_device();
+
 } // namespace phosg
