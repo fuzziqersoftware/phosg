@@ -7,6 +7,15 @@
 using namespace std;
 using namespace phosg;
 
+enum class TestEnum {
+  MIN_VALUE = 0,
+  FIRST = 0,
+  SECOND,
+  THIRD,
+  FOURTH,
+  MAX_VALUE,
+};
+
 int main(int, char**) {
   {
     fwrite_fmt(stderr, "-- on_close_scope\n");
@@ -148,6 +157,19 @@ int main(int, char**) {
     expect(found.count(target_value1));
     expect(found.count(target_value2));
     expect(found.count(target_value3));
+  }
+
+  {
+    fwrite_fmt(stderr, "-- EnumRange\n");
+    std::vector<TestEnum> seen_values;
+    for (auto e : EnumRange<TestEnum>()) {
+      seen_values.emplace_back(e);
+    }
+    expect_eq(4, seen_values.size());
+    expect_eq(TestEnum::FIRST, seen_values[0]);
+    expect_eq(TestEnum::SECOND, seen_values[1]);
+    expect_eq(TestEnum::THIRD, seen_values[2]);
+    expect_eq(TestEnum::FOURTH, seen_values[3]);
   }
 
   fwrite_fmt(stderr, "ToolsTest: all tests passed\n");

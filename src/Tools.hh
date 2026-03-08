@@ -223,4 +223,35 @@ std::unordered_set<IntT> parallel_range_blocks_multi(
   return ret;
 }
 
+// Enables iteration over an enum using a range-based for loop. The enum must contain members named MIN_VALUE and
+// MAX_VALUE (the latter of which will not be iterated over), but these names can be overridden via the template
+// arguments.
+template <typename E, E StartValue = E::MIN_VALUE, E EndValue = E::MAX_VALUE>
+struct EnumRange {
+  struct iterator {
+    using IntT = std::underlying_type_t<E>;
+    E current_value;
+
+    E operator*() const {
+      return this->current_value;
+    }
+    void operator++() {
+      this->current_value = static_cast<E>(static_cast<IntT>(this->current_value) + 1);
+    }
+    bool operator==(const iterator& other) const {
+      return this->current_value == other.current_value;
+    }
+    bool operator!=(const iterator& other) const {
+      return this->current_value != other.current_value;
+    }
+  };
+
+  iterator begin() const {
+    return {StartValue};
+  }
+  iterator end() const {
+    return {EndValue};
+  }
+};
+
 } // namespace phosg
