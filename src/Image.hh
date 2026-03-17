@@ -842,10 +842,14 @@ public:
         // According to the docs, the end of the header line is "usually" a
         // newline but can technically be any whitespace character. Here we
         // assume it's always a \n, which will probably fail in rare cases
-        std::string header_line = r.get_line();
-        auto tokens = split(header_line, ' ');
+        std::vector<std::string> tokens;
+        while (tokens.size() < 4) {
+          std::string line = r.get_line();
+          auto line_tokens = split(header_line, ' ');
+          tokens.insert(std::make_move_iterator(line_tokens.begin()), std::make_move_iterator(line_tokens.end()));
+        }
         if (tokens.size() != 4) {
-          throw std::runtime_error(std::format("invalid PPM header line: {}", header_line));
+          throw std::runtime_error("invalid PPM header");
         }
         if (tokens[0] != "P6") {
           throw std::logic_error("incorrect header token for P6 PPM: " + tokens[0]);
