@@ -844,9 +844,11 @@ public:
         // assume it's always a \n, which will probably fail in rare cases
         std::vector<std::string> tokens;
         while (tokens.size() < 4) {
-          std::string line = r.get_line();
-          auto line_tokens = split(header_line, ' ');
-          tokens.insert(std::make_move_iterator(line_tokens.begin()), std::make_move_iterator(line_tokens.end()));
+          auto line_tokens = split(r.get_line(), ' ');
+          tokens.insert(
+              tokens.end(),
+              std::make_move_iterator(line_tokens.begin()),
+              std::make_move_iterator(line_tokens.end()));
         }
         if (tokens.size() != 4) {
           throw std::runtime_error("invalid PPM header");

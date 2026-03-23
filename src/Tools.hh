@@ -31,7 +31,11 @@ inline CallOnDestroy on_close_scope(std::function<void()> f) {
 }
 
 template <typename IntT>
-void parallel_range_default_progress_fn(IntT start_value, IntT end_value, IntT current_value, uint64_t start_time) {
+void parallel_noop_progress_fn(IntT, IntT, IntT, uint64_t) {
+}
+
+template <typename IntT>
+void parallel_default_progress_fn(IntT start_value, IntT end_value, IntT current_value, uint64_t start_time) {
   uint64_t elapsed_time = now() - start_time;
   std::string elapsed_str = format_duration(elapsed_time);
 
@@ -47,13 +51,10 @@ void parallel_range_default_progress_fn(IntT start_value, IntT end_value, IntT c
   fwritex(stderr, std::format("... {:08X} ({} / {})\r", current_value, elapsed_str, remaining_str));
 }
 
-template <typename IntT>
-void parallel_range_thread_fn(
-    std::function<bool(IntT, size_t thread_num)>& fn,
-    std::atomic<IntT>& current_value,
-    std::atomic<IntT>& result_value,
-    IntT end_value,
-    size_t thread_num) {
+template <typename IntT, typename FnT>
+  requires(std::is_invocable_r_v<bool, FnT, IntT, size_t>)
+void parallel_thread_fn(
+    FnT& fn, std::atomic<IntT>& current_value, std::atomic<IntT>& result_value, IntT end_value, size_t thread_num) {
   IntT v;
   while ((v = current_value.fetch_add(1)) < end_value) {
     if (fn(v, thread_num)) {
@@ -63,21 +64,23 @@ void parallel_range_thread_fn(
   }
 }
 
-// This function runs a function in parallel, using the specified number of
-// threads. If the thread count is 0, the function uses the same number of
-// threads as there are CPU cores in the system. If any instance of the callback
-// returns true, the entire job ends early and all threads stop (after finishing
-// their current call to fn, if any). parallel_range returns the value for which
-// fn returned true, or it returns end_value if fn never returned true. If
-// multiple calls to fn return true, it is not guaranteed which of those values
-// is returned (it is often, but not always, the lowest one).
-template <typename IntT = uint64_t>
-IntT parallel_range(
-    std::function<bool(IntT value, size_t thread_num)> fn,
+// This function runs a function in parallel, using the specified number of threads. If the thread count is 0, the
+// function uses the same number of threads as there are CPU cores in the system. If any instance of the callback
+// returns true, the entire job ends early and all threads stop (after finishing their current call to fn, if any).
+// parallel returns the value for which fn returned true, or it returns end_value if fn never returned true. If
+// multiple calls to fn return true, it is not guaranteed which of those values is returned (it is often, but not
+// always, the lowest one).
+template <typename IntT = uint64_t, typename FnT, typename ProgressFnT = void (*)(IntT, IntT, IntT, uint64_t)>
+  requires(
+      std::is_invocable_r_v<bool, FnT, IntT, size_t> &&
+      std::is_invocable_v<ProgressFnT, IntT, IntT, IntT, uint64_t>)
+IntT parallel(
+    FnT&& fn,
     IntT start_value,
     IntT end_value,
     size_t num_threads = 0,
-    std::function<void(IntT start_value, IntT end_value, IntT current_value, uint64_t start_time_usecs)> progress_fn = parallel_range_default_progress_fn<IntT>) {
+    ProgressFnT&& progress_fn = parallel_default_progress_fn<IntT>,
+    bool use_progress_fn = true) {
   if (num_threads == 0) {
     num_threads = std::thread::hardware_concurrency();
   }
@@ -87,7 +90,7 @@ IntT parallel_range(
   std::vector<std::thread> threads;
   while (threads.size() < num_threads) {
     threads.emplace_back(
-        parallel_range_thread_fn<IntT>,
+        parallel_thread_fn<IntT, FnT>,
         std::ref(fn),
         std::ref(current_value),
         std::ref(result_value),
@@ -95,7 +98,7 @@ IntT parallel_range(
         threads.size());
   }
 
-  if (progress_fn != nullptr) {
+  if (use_progress_fn) {
     uint64_t start_time = now();
     IntT progress_current_value;
     while ((progress_current_value = current_value.load()) < end_value) {
@@ -111,9 +114,19 @@ IntT parallel_range(
   return result_value;
 }
 
-template <typename IntT>
-void parallel_range_blocks_thread_fn(
-    std::function<bool(IntT, size_t thread_num)>& fn,
+// This is a bit of a hack, but it allows us to implement a shorthand for suppressing the default status reporting by
+// passing nullptr for the status function (even though it's not a callable according to the `requires` condition).
+template <typename IntT = uint64_t, typename FnT>
+  requires(std::is_invocable_r_v<bool, FnT, IntT, size_t>)
+IntT parallel(FnT&& fn, IntT start_value, IntT end_value, size_t num_threads, std::nullptr_t) {
+  return parallel<IntT, FnT>(
+      std::forward<FnT>(fn), start_value, end_value, num_threads, parallel_noop_progress_fn<IntT>, false);
+}
+
+template <typename IntT, typename FnT>
+  requires(std::is_invocable_r_v<bool, FnT, IntT, size_t>)
+void parallel_blocks_thread_fn(
+    FnT& fn,
     std::atomic<IntT>& current_value,
     std::atomic<IntT>& result_value,
     IntT end_value,
@@ -132,22 +145,25 @@ void parallel_range_blocks_thread_fn(
   }
 }
 
-// Like parallel_range, but faster since due to fewer atomic memory operations.
-// block_size must evenly divide the input range, but it is not required that
-// start_value or end_value themselves be multiples of block_size. For example,
-// the following are both valid inputs:
+// Like parallel, but faster due to fewer atomic memory operations. block_size must evenly divide the input value
+// range, but it is not required that start_value or end_value themselves be multiples of block_size. For example, the
+// following are both valid inputs:
 //   start_value = 0x00000000, end_value = 0x10000000, block_size = 0x1000
 //   start_value = 0x47F92AC2, end_value = 0x67F92AC2, block_size = 0x10000
 // However, this would be invalid:
 //   start_value = 0x0000004F, end_value = 0x10000059, block_size = 0x10000
-template <typename IntT = uint64_t>
-IntT parallel_range_blocks(
-    std::function<bool(IntT value, size_t thread_num)> fn,
+template <typename IntT = uint64_t, typename FnT, typename ProgressFnT = void (*)(IntT, IntT, IntT, uint64_t)>
+  requires(
+      std::is_invocable_r_v<bool, FnT, IntT, size_t> &&
+      std::is_invocable_v<ProgressFnT, IntT, IntT, IntT, uint64_t>)
+IntT parallel_blocks(
+    FnT&& fn,
     IntT start_value,
     IntT end_value,
     IntT block_size,
     size_t num_threads = 0,
-    std::function<void(IntT start_value, IntT end_value, IntT current_value, uint64_t start_time_usecs)> progress_fn = parallel_range_default_progress_fn<IntT>) {
+    ProgressFnT&& progress_fn = parallel_default_progress_fn<IntT>,
+    bool use_progress_fn = true) {
   if ((end_value - start_value) % block_size) {
     throw std::logic_error("block_size must evenly divide the entire range");
   }
@@ -164,7 +180,7 @@ IntT parallel_range_blocks(
   std::vector<std::thread> threads;
   while (threads.size() < num_threads) {
     threads.emplace_back(
-        parallel_range_blocks_thread_fn<IntT>,
+        parallel_blocks_thread_fn<IntT, FnT>,
         std::ref(fn),
         std::ref(current_value),
         std::ref(result_value),
@@ -173,7 +189,7 @@ IntT parallel_range_blocks(
         threads.size());
   }
 
-  if (progress_fn != nullptr) {
+  if (use_progress_fn) {
     uint64_t start_time = now();
     IntT progress_current_value;
     while ((progress_current_value = current_value.load()) < end_value) {
@@ -189,30 +205,41 @@ IntT parallel_range_blocks(
   return result_value;
 }
 
-// Like parallel_range_blocks, but returns all values for which fn returned
-// true. (Unlike the other parallel_range functions, this one does not return
-// early.)
-template <typename IntT = uint64_t, typename RetT = std::unordered_set<IntT>>
-std::unordered_set<IntT> parallel_range_blocks_multi(
-    std::function<bool(IntT value, size_t thread_num)> fn,
+template <typename IntT = uint64_t, typename FnT>
+  requires(std::is_invocable_r_v<bool, FnT, IntT, size_t>)
+IntT parallel_blocks(
+    FnT&& fn, IntT start_value, IntT end_value, IntT block_size, size_t num_threads, std::nullptr_t) {
+  return parallel_blocks<IntT, FnT>(
+      std::forward<FnT>(fn), start_value, end_value, block_size, num_threads, parallel_noop_progress_fn<IntT>, false);
+}
+
+// Like parallel_blocks, but returns all values for which fn returned true. (Unlike the other parallel functions, this
+// one does not return early.)
+template <typename IntT = uint64_t, typename RetT = std::unordered_set<IntT>, typename FnT, typename ProgressFnT = void (*)(IntT, IntT, IntT, uint64_t)>
+  requires(
+      std::is_invocable_r_v<bool, FnT, IntT, size_t> &&
+      std::is_invocable_v<ProgressFnT, IntT, IntT, IntT, uint64_t>)
+std::unordered_set<IntT> parallel_blocks_multi(
+    FnT&& fn,
     IntT start_value,
     IntT end_value,
     IntT block_size,
     size_t num_threads = 0,
-    std::function<void(IntT start_value, IntT end_value, IntT current_value, uint64_t start_time_usecs)> progress_fn = parallel_range_default_progress_fn<IntT>) {
+    ProgressFnT&& progress_fn = parallel_default_progress_fn<IntT>,
+    bool use_progress_fn = true) {
 
   if (num_threads == 0) {
     num_threads = std::thread::hardware_concurrency();
   }
 
   std::vector<RetT> thread_rets(num_threads);
-  parallel_range_blocks<IntT>([&](IntT z, size_t thread_num) {
+  parallel_blocks<IntT>([&](IntT z, size_t thread_num) {
     if (fn(z, thread_num)) {
       thread_rets[thread_num].emplace(z);
     }
     return false;
   },
-      start_value, end_value, block_size, num_threads, progress_fn);
+      start_value, end_value, block_size, num_threads, progress_fn, use_progress_fn);
 
   RetT ret = std::move(thread_rets[0]);
   for (size_t z = 1; z < thread_rets.size(); z++) {
@@ -221,6 +248,31 @@ std::unordered_set<IntT> parallel_range_blocks_multi(
   }
 
   return ret;
+}
+
+template <typename IntT = uint64_t, typename RetT = std::unordered_set<IntT>, typename FnT>
+  requires(std::is_invocable_r_v<bool, FnT, IntT, size_t>)
+std::unordered_set<IntT> parallel_blocks_multi(
+    FnT&& fn, IntT start_value, IntT end_value, IntT block_size, size_t num_threads, std::nullptr_t) {
+  return parallel_blocks_multi<IntT, RetT, FnT>(
+      std::forward<FnT>(fn), start_value, end_value, block_size, num_threads, parallel_noop_progress_fn<IntT>, false);
+}
+
+// Like parallel, but iterates over a range. The range can be, for example, a std::vector or std::array.
+template <std::ranges::sized_range RangeT, typename FnT>
+  requires(
+      std::ranges::random_access_range<RangeT> &&
+      std::ranges::sized_range<RangeT> &&
+      std::is_invocable_r_v<bool, FnT&, std::ranges::range_reference_t<RangeT>, size_t>)
+size_t parallel_range(RangeT&& range, FnT&& fn, size_t num_threads = 0) {
+  return parallel<size_t>(
+      [&range, &fn](size_t z, size_t thread_num) -> bool {
+        return fn(range[z], thread_num);
+      },
+      0,
+      std::ranges::size(range),
+      num_threads,
+      parallel_noop_progress_fn<size_t>);
 }
 
 // Enables iteration over an enum using a range-based for loop. The enum must contain members named MIN_VALUE and
