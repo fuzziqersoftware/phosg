@@ -570,7 +570,7 @@ public:
   }
 
   template <typename T>
-  const T* pget_array(size_t offset, size_t count) {
+  const T* pget_array(size_t offset, size_t count) const {
     return reinterpret_cast<const T*>(this->pgetv(offset, count * sizeof(T)));
   }
   template <typename T>
