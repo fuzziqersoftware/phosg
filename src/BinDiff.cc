@@ -55,6 +55,7 @@ int main(int argc, char** argv) {
   string data1 = (filename1 == "-") ? read_all(stdin) : load_file(filename1);
   string data2 = (filename2 == "-") ? read_all(stdin) : load_file(filename2);
 
-  print_binary_diff(stdout, data1.data(), data1.size(), data2.data(), data2.size(), use_color, context_lines, base_offset);
-  return 0;
+  bool is_identical = print_binary_diff(
+      stdout, data1.data(), data1.size(), data2.data(), data2.size(), use_color, context_lines, base_offset);
+  return is_identical ? 0 : 1;
 }
