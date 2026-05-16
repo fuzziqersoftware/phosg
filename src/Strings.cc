@@ -454,273 +454,6 @@ void print_indent(FILE* stream, int indent_level) {
   }
 }
 
-// TODO: generalize these classes
-class RedBoldTerminalGuard {
-public:
-  RedBoldTerminalGuard(function<void(const void*, size_t)> write_data, bool active = true)
-      : write_data(write_data),
-        active(active) {
-    if (this->active) {
-      string e = format_color_escape(
-          TerminalFormat::BOLD, TerminalFormat::FG_RED, TerminalFormat::END);
-      this->write_data(e.data(), e.size());
-    }
-  }
-  ~RedBoldTerminalGuard() {
-    if (this->active) {
-      string e = format_color_escape(TerminalFormat::NORMAL, TerminalFormat::END);
-      this->write_data(e.data(), e.size());
-    }
-  }
-
-private:
-  function<void(const void*, size_t)> write_data;
-  bool active;
-};
-
-class InverseTerminalGuard {
-public:
-  InverseTerminalGuard(function<void(const void*, size_t)> write_data, bool active = true)
-      : write_data(write_data),
-        active(active) {
-    if (this->active) {
-      string e = format_color_escape(TerminalFormat::INVERSE, TerminalFormat::END);
-      this->write_data(e.data(), e.size());
-    }
-  }
-  ~InverseTerminalGuard() {
-    if (this->active) {
-      string e = format_color_escape(TerminalFormat::NORMAL, TerminalFormat::END);
-      this->write_data(e.data(), e.size());
-    }
-  }
-
-private:
-  function<void(const void*, size_t)> write_data;
-  bool active;
-};
-
-void format_data(
-    function<void(const void*, size_t)> write_data,
-    const struct iovec* iovs,
-    size_t num_iovs,
-    uint64_t start_address,
-    const struct iovec* prev_iovs,
-    size_t num_prev_iovs,
-    uint64_t flags) {
-  if (num_iovs == 0) {
-    return;
-  }
-
-  size_t total_size = 0;
-  for (size_t x = 0; x < num_iovs; x++) {
-    total_size += iovs[x].iov_len;
-  }
-  if (total_size == 0) {
-    return;
-  }
-
-  if (num_prev_iovs) {
-    size_t total_prev_size = 0;
-    for (size_t x = 0; x < num_prev_iovs; x++) {
-      total_prev_size += prev_iovs[x].iov_len;
-    }
-    if (total_prev_size != total_size) {
-      throw runtime_error("previous iovs given, but data size does not match");
-    }
-  }
-
-  uint64_t end_address = start_address + total_size;
-
-  int width_digits;
-  if (flags & PrintDataFlags::OFFSET_8_BITS) {
-    width_digits = 2;
-  } else if (flags & PrintDataFlags::OFFSET_16_BITS) {
-    width_digits = 4;
-  } else if (flags & PrintDataFlags::OFFSET_32_BITS) {
-    width_digits = 8;
-  } else if (flags & PrintDataFlags::OFFSET_64_BITS) {
-    width_digits = 16;
-  } else if (end_address > 0x100000000) {
-    width_digits = 16;
-  } else if (end_address > 0x10000) {
-    width_digits = 8;
-  } else if (end_address > 0x100) {
-    width_digits = 4;
-  } else {
-    width_digits = 2;
-  }
-
-  bool use_color = flags & PrintDataFlags::USE_COLOR;
-  bool print_ascii = flags & PrintDataFlags::PRINT_ASCII;
-  bool collapse_zero_lines = flags & PrintDataFlags::COLLAPSE_ZERO_LINES;
-  bool skip_separator = flags & PrintDataFlags::SKIP_SEPARATOR;
-
-  // Reserve space for the current/previous line data
-  uint8_t line_buf[0x10];
-  memset(line_buf, 0, sizeof(line_buf));
-
-  uint8_t prev_line_buf[0x10];
-  uint8_t* prev_line_data = prev_line_buf;
-  if (num_prev_iovs) {
-    memset(prev_line_buf, 0, sizeof(prev_line_buf));
-  } else {
-    prev_line_data = line_buf;
-  }
-
-  size_t current_iov_index = 0;
-  size_t current_iov_bytes = 0;
-  size_t prev_iov_index = 0;
-  size_t prev_iov_bytes = 0;
-  for (uint64_t line_start_address = start_address & (~0x0F);
-      line_start_address < end_address;
-      line_start_address += 0x10) {
-
-    // Figure out the boundaries of the current line
-    uint64_t line_end_address = line_start_address + 0x10;
-    uint8_t line_invalid_start_bytes = max<int64_t>(start_address - line_start_address, 0);
-    uint8_t line_invalid_end_bytes = max<int64_t>(line_end_address - end_address, 0);
-    uint8_t line_bytes = 0x10 - line_invalid_end_bytes - line_invalid_start_bytes;
-
-    // Read the current and previous data for this line
-    for (size_t x = 0; x < line_bytes; x++) {
-      while (current_iov_bytes >= iovs[current_iov_index].iov_len) {
-        current_iov_bytes = 0;
-        current_iov_index++;
-        if (current_iov_index >= num_iovs) {
-          throw logic_error("reads exceeded final iov");
-        }
-      }
-      line_buf[x + line_invalid_start_bytes] = reinterpret_cast<const uint8_t*>(
-          iovs[current_iov_index].iov_base)[current_iov_bytes];
-      current_iov_bytes++;
-    }
-    if (num_prev_iovs) {
-      for (size_t x = 0; x < line_bytes; x++) {
-        while (prev_iov_bytes >= prev_iovs[prev_iov_index].iov_len) {
-          prev_iov_bytes = 0;
-          prev_iov_index++;
-          if (prev_iov_index >= num_prev_iovs) {
-            throw logic_error("reads exceeded final prev iov");
-          }
-        }
-        prev_line_buf[x + line_invalid_start_bytes] = reinterpret_cast<const uint8_t*>(
-            prev_iovs[prev_iov_index].iov_base)[prev_iov_bytes];
-        prev_iov_bytes++;
-      }
-    }
-
-    if (collapse_zero_lines && (line_start_address > start_address) && (line_end_address < end_address) &&
-        !memcmp(line_buf, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 16) &&
-        !memcmp(prev_line_data, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 16)) {
-      continue;
-    }
-
-    string line = std::format("{:0>{}X}{}", line_start_address, width_digits, skip_separator ? "" : " |");
-    write_data(line.data(), line.size());
-
-    {
-      size_t x = 0;
-      for (; x < line_invalid_start_bytes; x++) {
-        write_data("   ", 3);
-      }
-      for (; x < static_cast<size_t>(0x10 - line_invalid_end_bytes); x++) {
-        uint8_t current_value = line_buf[x];
-        uint8_t previous_value = prev_line_data[x];
-
-        RedBoldTerminalGuard g(write_data, use_color && (previous_value != current_value));
-        string field = std::format(" {:02X}", current_value);
-        write_data(field.data(), field.size());
-      }
-      for (; x < 0x10; x++) {
-        write_data("   ", 3);
-      }
-    }
-
-    if (print_ascii) {
-      write_data(" | ", skip_separator ? 1 : 3);
-
-      size_t x = 0;
-      for (; x < line_invalid_start_bytes; x++) {
-        write_data(" ", 1);
-      }
-      for (; x < static_cast<size_t>(0x10 - line_invalid_end_bytes); x++) {
-        uint8_t current_value = line_buf[x];
-        uint8_t previous_value = prev_line_data[x];
-
-        RedBoldTerminalGuard g1(write_data, use_color && (previous_value != current_value));
-        if ((current_value < 0x20) || (current_value >= 0x7F)) {
-          InverseTerminalGuard g2(write_data, use_color);
-          write_data(" ", 1);
-        } else {
-          write_data(&current_value, 1);
-        }
-      }
-      for (; x < 0x10; x++) {
-        write_data(" ", 1);
-      }
-    }
-
-    write_data("\n", 1);
-  }
-}
-
-void print_data(
-    FILE* stream,
-    const struct iovec* iovs,
-    size_t num_iovs,
-    uint64_t start_address,
-    const struct iovec* prev_iovs,
-    size_t num_prev_iovs,
-    uint64_t flags) {
-  if (!(flags & (PrintDataFlags::USE_COLOR | PrintDataFlags::DISABLE_COLOR))) {
-    if (isatty(fileno(stream))) {
-      flags |= PrintDataFlags::USE_COLOR;
-    } else {
-      flags |= PrintDataFlags::DISABLE_COLOR;
-    }
-  }
-  auto write_data = [&](const void* data, size_t size) -> void {
-    fwrite(data, size, 1, stream);
-  };
-  format_data(write_data, iovs, num_iovs, start_address, prev_iovs, num_prev_iovs, flags);
-}
-
-void print_data(
-    FILE* stream,
-    const vector<struct iovec>& iovs,
-    uint64_t start_address,
-    const vector<struct iovec>* prev_iovs,
-    uint64_t flags) {
-  if (prev_iovs) {
-    print_data(stream, iovs.data(), iovs.size(), start_address,
-        prev_iovs->data(), prev_iovs->size(), flags);
-  } else {
-    print_data(stream, iovs.data(), iovs.size(), start_address, nullptr, 0,
-        flags);
-  }
-}
-
-void print_data(FILE* stream, const void* data, uint64_t size,
-    uint64_t start_address, const void* prev, uint64_t flags) {
-  iovec iov;
-  iov.iov_base = const_cast<void*>(data);
-  iov.iov_len = size;
-  if (prev) {
-    iovec prev_iov;
-    prev_iov.iov_base = const_cast<void*>(prev);
-    prev_iov.iov_len = size;
-    print_data(stream, &iov, 1, start_address, &prev_iov, 1, flags);
-  } else {
-    print_data(stream, &iov, 1, start_address, nullptr, 0, flags);
-  }
-}
-
-void print_data(FILE* stream, const string& data, uint64_t address,
-    const void* prev, uint64_t flags) {
-  print_data(stream, data.data(), data.size(), address, prev, flags);
-}
-
 bool print_binary_diff(
     FILE* stream,
     const void* data1v,
@@ -859,53 +592,6 @@ bool print_binary_diff(
     fwrite_fmt(stream, "  ...\n");
   }
   return is_identical;
-}
-
-string format_data(
-    const struct iovec* iovs,
-    size_t num_iovs,
-    uint64_t start_address,
-    const struct iovec* prev_iovs,
-    size_t num_prev_iovs,
-    uint64_t flags) {
-  StringWriter w;
-  // StringWriter::write is overloaded, so we have to static_cast here to
-  // specify which variant should be used
-  auto write_data = bind(
-      static_cast<void (StringWriter::*)(const void*, size_t)>(&StringWriter::write),
-      &w, placeholders::_1, placeholders::_2);
-  format_data(write_data, iovs, num_iovs, start_address, prev_iovs, num_prev_iovs, flags);
-  return std::move(w.str());
-}
-
-string format_data(
-    const vector<struct iovec>& iovs,
-    uint64_t start_address,
-    const vector<struct iovec>* prev_iovs,
-    uint64_t flags) {
-  if (prev_iovs) {
-    return format_data(iovs.data(), iovs.size(), start_address, prev_iovs->data(), prev_iovs->size(), flags);
-  } else {
-    return format_data(iovs.data(), iovs.size(), start_address, nullptr, 0, flags);
-  }
-}
-
-string format_data(const void* data, uint64_t size, uint64_t start_address, const void* prev, uint64_t flags) {
-  iovec iov;
-  iov.iov_base = const_cast<void*>(data);
-  iov.iov_len = size;
-  if (prev) {
-    iovec prev_iov;
-    prev_iov.iov_base = const_cast<void*>(prev);
-    prev_iov.iov_len = size;
-    return format_data(&iov, 1, start_address, &prev_iov, 1, flags);
-  } else {
-    return format_data(&iov, 1, start_address, nullptr, 0, flags);
-  }
-}
-
-string format_data(const string& data, uint64_t address, const void* prev, uint64_t flags) {
-  return format_data(data.data(), data.size(), address, prev, flags);
 }
 
 static inline void add_mask_bits(string* mask, bool mask_enabled, size_t num_bytes) {
@@ -1173,7 +859,7 @@ string format_data_string(const void* vdata, size_t size, const void* vmask, uin
   const uint8_t* mask = reinterpret_cast<const uint8_t*>(vmask);
 
   // If all bytes are ASCII-printable, render as a string instead
-  bool is_printable = !(flags & FormatDataFlags::SKIP_STRINGS);
+  bool is_printable = !(flags & FormatDataStringFlags::SKIP_STRINGS);
   if (is_printable) {
     for (size_t z = 0; z < size && is_printable; z++) {
       if (data[z] != '\r' && data[z] != '\n' && data[z] != '\t' && (data[z] < 0x20 || data[z] > 0x7E)) {
@@ -1465,6 +1151,27 @@ void BitWriter::write(bool v) {
     this->data.push_back(v ? 0x80 : 0x00);
     this->last_byte_unset_bits = 7;
   }
+}
+
+IOVecByteReader::IOVecByteReader(const struct iovec* iovs, size_t num_iovs) : iovs(iovs), num_iovs(num_iovs) {}
+
+uint8_t IOVecByteReader::get_u8() {
+  uint8_t ret = reinterpret_cast<const uint8_t*>(this->iovs[this->current_iov].iov_base)[this->offset_within_iov];
+  this->offset_within_iov++;
+  while ((this->current_iov < this->num_iovs) &&
+      (this->offset_within_iov >= this->iovs[this->current_iov].iov_len)) {
+    this->current_iov++;
+    this->offset_within_iov = 0;
+  }
+  return ret;
+}
+
+size_t IOVecByteReader::size() const {
+  size_t ret = 0;
+  for (size_t z = 0; z < this->num_iovs; z++) {
+    ret += this->iovs[z].iov_len;
+  }
+  return ret;
 }
 
 StringReader::StringReader()

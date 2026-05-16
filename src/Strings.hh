@@ -352,99 +352,37 @@ std::string vformat_color_escape(TerminalFormat color, va_list va);
 std::string format_color_escape(TerminalFormat color, ...);
 void print_color_escape(FILE* stream, TerminalFormat color, ...);
 
+template <typename WriteFnT, TerminalFormat... Formats>
+  requires std::is_invocable_r_v<void, WriteFnT, const void*, size_t>
+class TerminalFormatGuard {
+public:
+  TerminalFormatGuard(WriteFnT& write_data, bool active = true) : write_data(write_data), active(active) {
+    if (this->active) {
+      std::string e = format_color_escape(Formats..., TerminalFormat::END);
+      this->write_data(e.data(), e.size());
+    }
+  }
+  ~TerminalFormatGuard() {
+    if (this->active) {
+      std::string e = format_color_escape(TerminalFormat::NORMAL, TerminalFormat::END);
+      this->write_data(e.data(), e.size());
+    }
+  }
+
+private:
+  WriteFnT& write_data;
+  bool active;
+};
+
 void print_indent(FILE* stream, int indent_level);
-
-enum PrintDataFlags {
-  USE_COLOR = 0x0001, // Force color output (for diffs and non-ASCII)
-  PRINT_ASCII = 0x0002, // Print ASCII view on the right
-  COLLAPSE_ZERO_LINES = 0x0020, // Skip lines of all zeroes
-  SKIP_SEPARATOR = 0x0040, // Instead of " | ", print just " "
-  DISABLE_COLOR = 0x0080, // Never use color output
-  OFFSET_8_BITS = 0x0100, // Always use 2 hex digits in offset column
-  OFFSET_16_BITS = 0x0200, // Always use 4 hex digits in offset column
-  OFFSET_32_BITS = 0x0400, // Always use 8 hex digits in offset column
-  OFFSET_64_BITS = 0x0800, // Always use 16 hex digits in offset column
-};
-
-enum FormatDataFlags {
-  SKIP_STRINGS = 0x0001,
-  HEX_ONLY = 0x0001,
-};
-
-void format_data(
-    std::function<void(const void*, size_t)> write_data,
-    const struct iovec* iovs,
-    size_t num_iovs,
-    uint64_t start_address,
-    const struct iovec* prev_iovs,
-    size_t num_prev_iovs,
-    uint64_t flags);
-
-void print_data(
-    FILE* stream,
-    const struct iovec* iovs,
-    size_t num_iovs,
-    uint64_t start_address = 0,
-    const struct iovec* prev_iovs = nullptr,
-    size_t num_prev_iovs = 0,
-    uint64_t flags = PrintDataFlags::PRINT_ASCII);
-void print_data(
-    FILE* stream,
-    const std::vector<struct iovec>& iovs,
-    uint64_t start_address = 0,
-    const std::vector<struct iovec>* prev_iovs = nullptr,
-    uint64_t flags = PrintDataFlags::PRINT_ASCII);
-void print_data(
-    FILE* stream,
-    const void* _data,
-    uint64_t size,
-    uint64_t address = 0,
-    const void* _prev = nullptr,
-    uint64_t flags = PrintDataFlags::PRINT_ASCII);
-void print_data(
-    FILE* stream,
-    const std::string& data,
-    uint64_t address = 0,
-    const void* prev = nullptr,
-    uint64_t flags = PrintDataFlags::PRINT_ASCII);
-
-// Returns true if the data blocks are identical
-bool print_binary_diff(
-    FILE* stream,
-    const void* data1v,
-    size_t size1,
-    const void* data2v,
-    size_t size2,
-    bool use_color,
-    size_t context_lines,
-    uint64_t base_offset = 0);
-
-std::string format_data(
-    const struct iovec* iovs,
-    size_t num_iovs,
-    uint64_t start_address = 0,
-    const struct iovec* prev_iovs = nullptr,
-    size_t num_prev_iovs = 0,
-    uint64_t flags = PrintDataFlags::PRINT_ASCII);
-std::string format_data(
-    const std::vector<struct iovec>& iovs,
-    uint64_t start_address,
-    const std::vector<struct iovec>* prev_iovs = nullptr,
-    uint64_t flags = PrintDataFlags::PRINT_ASCII);
-std::string format_data(
-    const void* data,
-    uint64_t size,
-    uint64_t start_address = 0,
-    const void* prev = nullptr,
-    uint64_t flags = PrintDataFlags::PRINT_ASCII);
-std::string format_data(
-    const std::string& data,
-    uint64_t address = 0,
-    const void* prev = nullptr,
-    uint64_t flags = PrintDataFlags::PRINT_ASCII);
 
 enum ParseDataFlags {
   ALLOW_FILES = 1,
+};
+
+enum FormatDataStringFlags {
+  SKIP_STRINGS = 0x0001,
+  HEX_ONLY = 0x0001,
 };
 
 std::string parse_data_string(const std::string& s, std::string* mask = nullptr, uint64_t flags = 0);
@@ -502,6 +440,21 @@ public:
 private:
   std::string data;
   uint8_t last_byte_unset_bits;
+};
+
+struct IOVecByteReader {
+  const struct iovec* iovs = nullptr;
+  size_t num_iovs = 0;
+  size_t current_iov = 0;
+  size_t offset_within_iov = 0;
+
+  IOVecByteReader() = default;
+  IOVecByteReader(const struct iovec* iovs, size_t num_iovs);
+  inline bool eof() const {
+    return (this->current_iov >= this->num_iovs);
+  }
+  uint8_t get_u8();
+  size_t size() const;
 };
 
 class StringReader {
@@ -991,5 +944,320 @@ T* data_at(std::string& s, size_t offset = 0) {
 }
 
 size_t count_zeroes(const void* vdata, size_t size, size_t stride = 1);
+
+bool print_binary_diff(
+    FILE* stream,
+    const void* data1v,
+    size_t size1,
+    const void* data2v,
+    size_t size2,
+    bool use_color,
+    size_t context_lines = 3,
+    uint64_t base_offset = 0);
+
+enum FormatDataFlags {
+  USE_COLOR = 0x0001, // Force color output (for diffs and non-ASCII)
+  PRINT_ASCII = 0x0002, // Print ASCII view on the right
+  COLLAPSE_ZERO_LINES = 0x0020, // Skip lines of all zeroes
+  SKIP_SEPARATOR = 0x0040, // Instead of " | ", print just " "
+  OFFSET_8_BITS = 0x0100, // Always use 2 hex digits in offset column
+  OFFSET_16_BITS = 0x0200, // Always use 4 hex digits in offset column
+  OFFSET_32_BITS = 0x0400, // Always use 8 hex digits in offset column
+  OFFSET_64_BITS = 0x0800, // Always use 16 hex digits in offset column
+};
+
+constexpr uint64_t DEFAULT_FORMAT_DATA_FLAGS = FormatDataFlags::PRINT_ASCII;
+
+template <typename T>
+concept WriteFn = ::std::invocable<T, const void*, size_t>;
+template <typename T>
+concept DataReader = requires(T r) {
+  { r.get_u8() } -> std::convertible_to<uint8_t>;
+  { r.size() } -> std::convertible_to<size_t>;
+};
+
+// Abstract cases of format_data (with arbitrary reader types)
+
+template <WriteFn WriteFnT, DataReader DataReaderT, DataReader PrevReaderT, DataReader CensorReaderT>
+void format_data_custom(
+    WriteFnT& write_data,
+    DataReaderT data_r,
+    uint64_t start_address,
+    PrevReaderT prev_r,
+    CensorReaderT censor_r,
+    uint64_t flags = DEFAULT_FORMAT_DATA_FLAGS) {
+  union LineData {
+    char c[0x10];
+    uint8_t u8[0x10];
+    uint16_t u16[8];
+    uint32_t u32[4];
+    uint64_t u64[2];
+    float f32[4];
+    double f64[2];
+    be_uint16_t u16b[8];
+    be_uint32_t u32b[4];
+    be_uint64_t u64b[2];
+    be_float f32b[4];
+    be_double f64b[2];
+    le_uint16_t u16l[8];
+    le_uint32_t u32l[4];
+    le_uint64_t u64l[2];
+    le_float f32l[4];
+    le_double f64l[2];
+  };
+  static_assert(sizeof(LineData) == 0x10, "LineData is not 16 bytes");
+
+  size_t total_size = data_r.size();
+  if (total_size == 0) {
+    return;
+  }
+
+  uint64_t end_address = start_address + total_size;
+
+  int addr_width_digits;
+  if (flags & FormatDataFlags::OFFSET_8_BITS) {
+    addr_width_digits = 2;
+  } else if (flags & FormatDataFlags::OFFSET_16_BITS) {
+    addr_width_digits = 4;
+  } else if (flags & FormatDataFlags::OFFSET_32_BITS) {
+    addr_width_digits = 8;
+  } else if (flags & FormatDataFlags::OFFSET_64_BITS) {
+    addr_width_digits = 16;
+  } else if (end_address > 0x100000000) {
+    addr_width_digits = 16;
+  } else if (end_address > 0x10000) {
+    addr_width_digits = 8;
+  } else if (end_address > 0x100) {
+    addr_width_digits = 4;
+  } else {
+    addr_width_digits = 2;
+  }
+
+  bool use_color = flags & FormatDataFlags::USE_COLOR;
+  bool print_ascii = flags & FormatDataFlags::PRINT_ASCII;
+  bool collapse_zero_lines = flags & FormatDataFlags::COLLAPSE_ZERO_LINES;
+  bool skip_separator = flags & FormatDataFlags::SKIP_SEPARATOR;
+
+  LineData line_data;
+  LineData prev_data;
+  LineData censor_data;
+  for (uint64_t line_start_address = start_address & (~0x0F);
+      line_start_address < end_address;
+      line_start_address += 0x10) {
+
+    // Find the boundaries of the current line
+    uint64_t line_end_address = line_start_address + 0x10;
+    uint8_t line_invalid_start_bytes = std::max<int64_t>(start_address - line_start_address, 0);
+    uint8_t line_invalid_end_bytes = std::max<int64_t>(line_end_address - end_address, 0);
+    uint8_t line_bytes = 0x10 - line_invalid_end_bytes - line_invalid_start_bytes;
+
+    // Read the data, previous, and censor for this line
+    for (size_t z = 0; z < line_bytes; z++) {
+      uint8_t data_v = data_r.get_u8();
+      line_data.u8[z + line_invalid_start_bytes] = data_v;
+      prev_data.u8[z + line_invalid_start_bytes] = prev_r.eof() ? data_v : prev_r.get_u8();
+      censor_data.u8[z + line_invalid_start_bytes] = censor_r.eof() ? 0 : censor_r.get_u8();
+    }
+
+    // If the line is all zeroes, matches the previous, and is not censored, hide it
+    if (collapse_zero_lines && (line_start_address > start_address) && (line_end_address < end_address) &&
+        (line_data.u64[0] == 0) && (line_data.u64[1] == 0) &&
+        (prev_data.u64[0] == 0) && (prev_data.u64[1] == 0) &&
+        (censor_data.u64[0] == 0) && (censor_data.u64[1] == 0)) {
+      continue;
+    }
+
+    std::string line = std::format("{:0>{}X}{}", line_start_address, addr_width_digits, skip_separator ? "" : " |");
+    write_data(line.data(), line.size());
+
+    {
+      size_t x = 0;
+      for (; x < line_invalid_start_bytes; x++) {
+        write_data("   ", 3);
+      }
+      for (; x < static_cast<size_t>(0x10 - line_invalid_end_bytes); x++) {
+        uint8_t current_value = line_data.u8[x];
+        uint8_t previous_value = prev_data.u8[x];
+        uint8_t censor_value = censor_data.u8[x];
+
+        if (censor_value) {
+          write_data(" --", 3);
+        } else {
+          TerminalFormatGuard<WriteFnT, TerminalFormat::FG_RED, TerminalFormat::BOLD> g(
+              write_data, use_color && (previous_value != current_value));
+          std::string field = std::format(" {:02X}", current_value);
+          write_data(field.data(), field.size());
+        }
+      }
+      for (; x < 0x10; x++) {
+        write_data("   ", 3);
+      }
+    }
+
+    if (print_ascii) {
+      write_data(" | ", skip_separator ? 1 : 3);
+
+      size_t x = 0;
+      for (; x < line_invalid_start_bytes; x++) {
+        write_data(" ", 1);
+      }
+      for (; x < static_cast<size_t>(0x10 - line_invalid_end_bytes); x++) {
+        uint8_t current_value = line_data.u8[x];
+        uint8_t previous_value = prev_data.u8[x];
+        uint8_t censor_value = censor_data.u8[x];
+
+        if (censor_value) {
+          write_data("-", 1);
+        } else {
+          TerminalFormatGuard<WriteFnT, TerminalFormat::FG_RED, TerminalFormat::BOLD> g1(
+              write_data, use_color && (previous_value != current_value));
+          if ((current_value < 0x20) || (current_value >= 0x7F)) {
+            TerminalFormatGuard<WriteFnT, TerminalFormat::INVERSE> g2(write_data, use_color);
+            write_data(" ", 1);
+          } else {
+            write_data(&current_value, 1);
+          }
+        }
+      }
+      for (; x < 0x10; x++) {
+        write_data(" ", 1);
+      }
+    }
+
+    write_data("\n", 1);
+  }
+}
+
+template <WriteFn WriteFnT, DataReader DataReaderT, DataReader PrevReaderT>
+void format_data_custom(
+    WriteFnT& write_data, DataReaderT data_r, uint64_t start_address, PrevReaderT prev_r, uint64_t flags) {
+  return format_data_custom(write_data, data_r, start_address, prev_r, StringReader(), flags);
+}
+template <WriteFn WriteFnT, DataReader DataReaderT>
+void format_data_custom(
+    WriteFnT& write_data, DataReaderT data_r, uint64_t start_address, uint64_t flags) {
+  return format_data_custom(write_data, data_r, start_address, StringReader(), StringReader(), flags);
+}
+
+// Concrete cases of format_data_custom
+
+template <WriteFn WriteFnT>
+void format_data_custom(
+    WriteFnT& write_data,
+    const struct iovec* iovs,
+    size_t num_iovs,
+    uint64_t start_address,
+    const struct iovec* prev_iovs,
+    size_t num_prev_iovs,
+    const struct iovec* censor_iovs,
+    size_t num_censor_iovs,
+    uint64_t flags = DEFAULT_FORMAT_DATA_FLAGS) {
+  format_data_custom(write_data, IOVecByteReader(iovs, num_iovs), start_address,
+      IOVecByteReader(prev_iovs, num_prev_iovs), IOVecByteReader(censor_iovs, num_censor_iovs), flags);
+}
+template <WriteFn WriteFnT>
+void format_data_custom(
+    WriteFnT& write_data,
+    const struct iovec* iovs,
+    size_t num_iovs,
+    uint64_t start_address,
+    const struct iovec* prev_iovs,
+    size_t num_prev_iovs,
+    uint64_t flags = DEFAULT_FORMAT_DATA_FLAGS) {
+  format_data_custom(write_data, IOVecByteReader(iovs, num_iovs), start_address,
+      IOVecByteReader(prev_iovs, num_prev_iovs), StringReader(), flags);
+}
+template <WriteFn WriteFnT>
+void format_data_custom(
+    WriteFnT& write_data,
+    const struct iovec* iovs,
+    size_t num_iovs,
+    uint64_t start_address = 0,
+    uint64_t flags = DEFAULT_FORMAT_DATA_FLAGS) {
+  format_data_custom(write_data, IOVecByteReader(iovs, num_iovs), start_address, StringReader(), StringReader(), flags);
+}
+
+template <WriteFn WriteFnT>
+void format_data_custom(
+    WriteFnT& write_data,
+    const void* data,
+    size_t size,
+    uint64_t start_address,
+    const void* prev_data,
+    size_t prev_size,
+    const void* censor_data,
+    size_t censor_size,
+    uint64_t flags = DEFAULT_FORMAT_DATA_FLAGS) {
+  format_data_custom(write_data, StringReader(data, size), start_address, StringReader(prev_data, prev_size),
+      StringReader(censor_data, censor_size), flags);
+}
+template <WriteFn WriteFnT>
+void format_data_custom(
+    WriteFnT& write_data,
+    const void* data,
+    size_t size,
+    uint64_t start_address,
+    const void* prev_data,
+    size_t prev_size,
+    uint64_t flags = DEFAULT_FORMAT_DATA_FLAGS) {
+  format_data_custom(write_data, StringReader(data, size), start_address, StringReader(prev_data, prev_size),
+      StringReader(), flags);
+}
+template <WriteFn WriteFnT>
+void format_data_custom(
+    WriteFnT& write_data,
+    const void* data,
+    size_t size,
+    uint64_t start_address = 0,
+    uint64_t flags = DEFAULT_FORMAT_DATA_FLAGS) {
+  format_data_custom(write_data, StringReader(data, size), start_address, StringReader(), StringReader(), flags);
+}
+
+template <WriteFn WriteFnT>
+void format_data_custom(
+    WriteFnT& write_data,
+    const std::string& data,
+    uint64_t start_address,
+    const std::string& prev_data,
+    const std::string& censor_data,
+    uint64_t flags = DEFAULT_FORMAT_DATA_FLAGS) {
+  format_data_custom(write_data, StringReader(data), start_address, StringReader(prev_data), StringReader(censor_data),
+      flags);
+}
+template <WriteFn WriteFnT>
+void format_data_custom(
+    WriteFnT& write_data,
+    const std::string& data,
+    uint64_t start_address,
+    const std::string& prev_data,
+    uint64_t flags = DEFAULT_FORMAT_DATA_FLAGS) {
+  format_data_custom(write_data, StringReader(data), start_address, StringReader(prev_data), StringReader(), flags);
+}
+template <WriteFn WriteFnT>
+void format_data_custom(
+    WriteFnT& write_data,
+    const std::string& data,
+    uint64_t start_address = 0,
+    uint64_t flags = DEFAULT_FORMAT_DATA_FLAGS) {
+  format_data_custom(write_data, StringReader(data), start_address, StringReader(), StringReader(), flags);
+}
+
+template <typename... ArgTs>
+std::string format_data(ArgTs... args) {
+  StringWriter w;
+  auto write_data = [&](const void* data, size_t size) {
+    w.write(data, size);
+  };
+  format_data_custom(write_data, args...);
+  return std::move(w.str());
+}
+
+template <typename... ArgTs>
+void print_data(FILE* stream, ArgTs... args) {
+  auto write_data = [&](const void* data, size_t size) {
+    fwritex(stream, data, size);
+  };
+  format_data_custom(write_data, args...);
+}
 
 } // namespace phosg

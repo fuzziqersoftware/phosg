@@ -13,8 +13,7 @@ using namespace phosg;
 template <typename... ArgTs>
 void print_data_test_case(const string& expected_output, ArgTs... args) {
 
-  // macOS doesn't have fmemopen, so we just write to a file because I'm too
-  // lazy to use funopen()
+  // macOS doesn't have fmemopen, so we just write to a file because I'm too lazy to use funopen()
   {
     auto f = fopen_unique("StringsTest-data", "w");
     print_data(f.get(), args...);
@@ -58,19 +57,19 @@ void print_data_test() {
   fwrite_fmt(stderr, "-- [print_data] with offset width flags\n");
   print_data_test_case("\
 00 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
-      first_bytes, 0, "", PrintDataFlags::OFFSET_8_BITS | PrintDataFlags::PRINT_ASCII);
+      first_bytes, 0, "", FormatDataFlags::OFFSET_8_BITS | FormatDataFlags::PRINT_ASCII);
   print_data_test_case("\
 200 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
-      first_bytes, 0x200, "", PrintDataFlags::OFFSET_8_BITS | PrintDataFlags::PRINT_ASCII);
+      first_bytes, 0x200, "", FormatDataFlags::OFFSET_8_BITS | FormatDataFlags::PRINT_ASCII);
   print_data_test_case("\
 0000 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
-      first_bytes, 0, "", PrintDataFlags::OFFSET_16_BITS | PrintDataFlags::PRINT_ASCII);
+      first_bytes, 0, "", FormatDataFlags::OFFSET_16_BITS | FormatDataFlags::PRINT_ASCII);
   print_data_test_case("\
 00000000 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
-      first_bytes, 0, "", PrintDataFlags::OFFSET_32_BITS | PrintDataFlags::PRINT_ASCII);
+      first_bytes, 0, "", FormatDataFlags::OFFSET_32_BITS | FormatDataFlags::PRINT_ASCII);
   print_data_test_case("\
 0000000000000000 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
-      first_bytes, 0, "", PrintDataFlags::OFFSET_64_BITS | PrintDataFlags::PRINT_ASCII);
+      first_bytes, 0, "", FormatDataFlags::OFFSET_64_BITS | FormatDataFlags::PRINT_ASCII);
   fwrite_fmt(stderr, "-- [print_data] automatic offset width\n");
   print_data_test_case("\
 F0 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
@@ -125,6 +124,21 @@ F0 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
 3FFF3039AEC14EE0 |          61 63 65                              \n",
       "ace", 0x3FFF3039AEC14EE3, "", 0);
 
+  // with censorship
+  fwrite_fmt(stderr, "-- [print_data] with censorship\n");
+  print_data_test_case("\
+3FFF3039AEC14EE0 | 00 01 -- 03 04 05 -- 07 08 09 0A 0B 0C 0D 0E 0F |   -   -         \n",
+      string("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 0x10),
+      0x3FFF3039AEC14EE0, "", string("\x00\x00\x01\x00\x00\x00\x01", 7));
+  print_data_test_case("\
+3FFF3039AEC14EE0 |          00 01 -- 03 04 05 -- 07 08 09 0A 0B 0C |      -   -      \n\
+3FFF3039AEC14EF0 | 0D 0E 0F                                        |                 \n",
+      string("\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F", 0x10),
+      0x3FFF3039AEC14EE3, "", string("\x00\x00\x01\x00\x00\x00\x01", 7));
+  print_data_test_case("\
+3FFF3039AEC14EE0 |          -- 63 --                               |    -c-          \n",
+      "ace", 0x3FFF3039AEC14EE3, "", string("\x01\x00\x01", 3));
+
   // float data
   fwrite_fmt(stderr, "-- [print_data] float data\n");
   string float_data("\0\0\0\0\x56\x6F\x6D\xC3\0\0\0\0\xA5\x5B\xC8\x40\0\0\0\0\0\0\0\0\x6E\x37\x9F\x43\x3E\x51\x3F\x40", 0x20);
@@ -132,7 +146,7 @@ F0 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
 0000000107B50FE0 |                                     00 00 00 00 |                 \n\
 0000000107B50FF0 | 56 6F 6D C3 00 00 00 00 A5 5B C8 40 00 00 00 00 | Vom      [ @    \n\
 0000000107B51000 | 00 00 00 00 6E 37 9F 43 3E 51 3F 40             |     n7 C>Q?@    \n",
-      float_data, 0x0000000107B50FEC, "", PrintDataFlags::PRINT_ASCII);
+      float_data, 0x0000000107B50FEC, "", FormatDataFlags::PRINT_ASCII);
 
   // iovecs
   fwrite_fmt(stderr, "-- [print_data] with iovecs\n");
@@ -146,10 +160,10 @@ F0 | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F |                 \n",
   iovs.emplace_back(iovec{data3.data(), data3.size()});
   print_data_test_case("\
 00 | 00 00 00 40 00 00 80 3F 00 00 00                |    @   ?        \n",
-      iovs.data(), iovs.size(), 0, nullptr, 0, PrintDataFlags::PRINT_ASCII);
+      iovs.data(), iovs.size(), 0, nullptr, 0, FormatDataFlags::PRINT_ASCII);
   print_data_test_case("\
 00 |             00 00 00 40 00 00 80 3F 00 00 00    |        @   ?    \n",
-      iovs.data(), iovs.size(), 4, nullptr, 0, PrintDataFlags::PRINT_ASCII);
+      iovs.data(), iovs.size(), 4, nullptr, 0, FormatDataFlags::PRINT_ASCII);
 
   // TODO: test diffing
 }
@@ -597,7 +611,7 @@ int main(int, char**) {
     string formatted = format_data_string(input);
     expect_eq(expected_formatted, formatted);
     expect_eq(input, parse_data_string(formatted));
-    string formatted_hex = format_data_string(input, nullptr, FormatDataFlags::HEX_ONLY);
+    string formatted_hex = format_data_string(input, nullptr, FormatDataStringFlags::HEX_ONLY);
     expect_eq(expected_formatted_hex, formatted_hex);
     expect_eq(input, parse_data_string(formatted_hex));
   }
