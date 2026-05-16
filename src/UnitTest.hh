@@ -27,7 +27,7 @@ public:
 #define expect_le(a, b) expect_msg((a) <= (b), #a " > " #b)
 #define expect(pred) expect_msg((pred), "!(" #pred ")")
 
-#define expect_msg(pred, msg) expect_generic((pred), (msg), __FILE__, __LINE__)
+#define expect_msg(pred, msg) phosg::expect_generic((pred), (msg), __FILE__, __LINE__)
 
 void expect_generic(bool pred, const char* msg, const char* file, uint64_t line);
 
@@ -52,6 +52,6 @@ void expect_raises_fn(const char* file, uint64_t line, std::function<void()> fn)
 template <>
 void expect_raises_fn<std::exception>(const char* file, uint64_t line, std::function<void()> fn);
 
-#define expect_raises(type, fn) expect_raises_fn<type>(__FILE__, __LINE__, fn)
+#define expect_raises(type, fn) phosg::expect_raises_fn<type>(__FILE__, __LINE__, fn)
 
 } // namespace phosg
