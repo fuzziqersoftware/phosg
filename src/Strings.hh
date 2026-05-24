@@ -1260,4 +1260,47 @@ void print_data(FILE* stream, ArgTs... args) {
   format_data_custom(write_data, args...);
 }
 
+template <typename... ArgTs, size_t... Is>
+  requires(std::is_lvalue_reference_v<ArgTs> && ...)
+void parse_positional_impl(const std::vector<std::string>& tokens, std::index_sequence<Is...>, ArgTs&&... args) {
+  (
+      [&tokens]<typename T>(T&& arg, size_t z) -> void {
+        if constexpr (std::is_integral_v<std::remove_reference_t<T>> && !std::is_const_v<std::remove_reference_t<T>>) {
+          if constexpr (std::is_signed_v<T>) {
+            arg = std::stoll(tokens[z], nullptr, 0);
+          } else {
+            arg = std::stoull(tokens[z], nullptr, 0);
+          }
+        } else if constexpr (std::is_same_v<T, std::string&>) {
+          arg = tokens[z];
+        } else {
+          if (tokens[z] != arg) {
+            throw std::invalid_argument(std::format("Expected \"{}\" at position {}", arg, z));
+          }
+        }
+      }.template operator()<ArgTs>(args, Is),
+      ...);
+}
+
+template <typename StrT, typename... ArgTs>
+  requires((std::is_lvalue_reference_v<ArgTs>) && ...)
+void parse_positional(const StrT& s, ArgTs&&... args) {
+  auto tokens = split_context(s, ' ');
+  if (tokens.size() != sizeof...(ArgTs)) {
+    throw std::invalid_argument("Incorrect token count");
+  }
+  parse_positional_impl<ArgTs...>(tokens, std::index_sequence_for<ArgTs...>{}, args...);
+}
+
+template <typename StrT, typename... ArgTs>
+  requires((std::is_lvalue_reference_v<ArgTs>) && ...)
+bool try_parse_positional(const StrT& s, ArgTs&&... args) {
+  try {
+    parse_positional<StrT, ArgTs...>(s, std::forward<ArgTs>(args)...);
+    return true;
+  } catch (const std::exception&) {
+    return false;
+  }
+}
+
 } // namespace phosg

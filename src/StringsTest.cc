@@ -667,6 +667,26 @@ int main(int, char**) {
 
   test_string_reader();
 
+  fwrite_fmt(stderr, "-- parse_positional\n");
+  {
+    size_t s1 = 0;
+    size_t s2 = 0;
+    ssize_t ss1 = 0;
+    ssize_t ss2 = 0;
+    std::string str;
+    expect_eq(true, try_parse_positional("EXAMPLE 1 3 CONST -5 \"string with spaces\"", "EXAMPLE", s1, s2, "CONST", ss1, str));
+    expect_eq(1, s1);
+    expect_eq(3, s2);
+    expect_eq(-5, ss1);
+    expect_eq(0, ss2);
+    expect_eq("\"string with spaces\"", str);
+    expect_eq(false, try_parse_positional("incorrect token count", "incorrect"));
+    expect_eq(1, s1);
+    expect_eq(3, s2);
+    expect_eq(-5, ss1);
+    expect_eq(0, ss2);
+  }
+
   // TODO: test log_level, set_log_level, log
   // TODO: test get_time_string
   // TODO: test string_for_error
