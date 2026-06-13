@@ -5,6 +5,7 @@
 #include <atomic>
 #include <format>
 #include <functional>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -56,7 +57,7 @@ template <typename IntT, typename FnT>
 void parallel_thread_fn(
     FnT& fn, std::atomic<IntT>& current_value, std::atomic<IntT>& result_value, IntT end_value, size_t thread_num) {
   IntT v;
-  while ((v = current_value.fetch_add(1)) < end_value) {
+  while ((v = current_value.fetch_add(1, std::memory_order_relaxed)) < end_value) {
     if (fn(v, thread_num)) {
       result_value = v;
       current_value = end_value;
@@ -133,7 +134,7 @@ void parallel_blocks_thread_fn(
     IntT block_size,
     size_t thread_num) {
   IntT block_start;
-  while ((block_start = current_value.fetch_add(block_size)) < end_value) {
+  while ((block_start = current_value.fetch_add(block_size, std::memory_order_relaxed)) < end_value) {
     IntT block_end = block_start + block_size;
     for (IntT z = block_start; z < block_end; z++) {
       if (fn(z, thread_num)) {
@@ -258,26 +259,62 @@ std::unordered_set<IntT> parallel_blocks_multi(
       std::forward<FnT>(fn), start_value, end_value, block_size, num_threads, parallel_noop_progress_fn<IntT>, false);
 }
 
-// Like parallel, but iterates over a range. The range can be, for example, a std::vector or std::array.
+// The main parallel implementation uses integer indexes and blocks for efficiency; however, this means it can only
+// support random access ranges. To support those, we implement them separately here. This function returns a pointer
+// to the value for which fn first returns true (which is usually, but not always, the first one in the range) and
+// stops iterating early when that happens. If fn never returns true, this function returns null.
 template <std::ranges::sized_range RangeT, typename FnT>
   requires(
-      std::ranges::random_access_range<RangeT> &&
+      std::ranges::input_range<RangeT> &&
       std::ranges::sized_range<RangeT> &&
-      std::is_invocable_r_v<bool, FnT&, std::ranges::range_reference_t<RangeT>, size_t>)
-size_t parallel_range(RangeT&& range, FnT&& fn, size_t num_threads = 0) {
-  return parallel<size_t>(
-      [&range, &fn](size_t z, size_t thread_num) -> bool {
-        return fn(range[z], thread_num);
-      },
-      0,
-      std::ranges::size(range),
-      num_threads,
-      parallel_noop_progress_fn<size_t>);
+      (std::is_invocable_r_v<bool, FnT&, std::ranges::range_reference_t<RangeT>, size_t> ||
+          std::is_invocable_r_v<void, FnT&, std::ranges::range_reference_t<RangeT>, size_t>))
+std::ranges::range_value_t<RangeT>* parallel_range(RangeT&& range, FnT&& fn, size_t num_threads = 0) {
+  if (num_threads == 0) {
+    num_threads = std::thread::hardware_concurrency();
+  }
+
+  std::mutex lock;
+  auto it = range.begin();
+  std::ranges::range_value_t<RangeT>* result_value = nullptr;
+
+  auto parallel_thread_fn = [&](size_t thread_num) -> void {
+    for (;;) {
+      std::ranges::range_value_t<RangeT>* v;
+      {
+        std::lock_guard<std::mutex> g(lock);
+        if (it == range.end()) {
+          return;
+        }
+        v = &(*(it++));
+      }
+      if constexpr (std::is_invocable_r_v<bool, FnT&, std::ranges::range_reference_t<RangeT>, size_t>) {
+        if (fn(*v, thread_num)) {
+          std::lock_guard g(lock);
+          result_value = v;
+          it = range.end();
+          return;
+        }
+      } else {
+        fn(*v, thread_num);
+      }
+    }
+  };
+
+  std::vector<std::thread> threads;
+  while (threads.size() < num_threads) {
+    threads.emplace_back(parallel_thread_fn, threads.size());
+  }
+  for (auto& t : threads) {
+    t.join();
+  }
+
+  return result_value;
 }
 
 // Enables iteration over an enum using a range-based for loop. The enum must contain members named MIN_VALUE and
 // MAX_VALUE (the latter of which will not be iterated over), but these names can be overridden via the template
-// arguments.
+// arguments. It is assumed that there are no gaps in values between MIN_VALUE and MAX_VALUE.
 template <typename E, E StartValue = E::MIN_VALUE, E EndValue = E::MAX_VALUE>
 struct EnumRange {
   struct iterator {

@@ -82,7 +82,7 @@ int main(int, char**) {
       return false;
     };
     uint64_t start_time = now();
-    parallel_blocks<uint64_t>(handle_value, 0, hits.size(), 0x1000, num_threads, nullptr);
+    parallel_blocks<uint64_t>(handle_value, 0, hits.size(), 0x100, num_threads, nullptr);
     uint64_t duration = now() - start_time;
     fwrite_fmt(stderr, "---- time: {}\n", duration);
 
@@ -107,14 +107,13 @@ int main(int, char**) {
     auto is_equal = [&](uint64_t v, size_t) -> bool {
       return (v == target_value);
     };
-    expect_eq((parallel_blocks<uint64_t>(is_equal, 0, 0x100000, 0x1000, num_threads, nullptr)), target_value);
-    // Note: We can't check that parallel ends early when fn returns true
-    // because it's not actually guaranteed to do so - it's only guaranteed to
-    // return any of the values for which fn returns true. One could imagine a sequence of events in
-    // which the target value's call takes a very long time, and all other threads
-    // could finish checking all other values before the target one returns true.
+    expect_eq((parallel_blocks<uint64_t>(is_equal, 0, 0x100000, 0x100, num_threads, nullptr)), target_value);
+    // Note: We can't check that parallel ends early when fn returns true because it's not actually guaranteed to do so
+    // - it's only guaranteed to return any of the values for which fn returns true. One could imagine a sequence of
+    // events in which the target value's call takes a very long time, and all other threads could finish checking all
+    // other values before the target one returns true.
     target_value = 0xCCC349; // > end_value; should not be found
-    expect_eq((parallel_blocks<uint64_t>(is_equal, 0, 0x100000, 0x1000, num_threads, nullptr)), 0x100000);
+    expect_eq((parallel_blocks<uint64_t>(is_equal, 0, 0x100000, 0x100, num_threads, nullptr)), 0x100000);
   }
 
   {
@@ -160,7 +159,7 @@ int main(int, char**) {
   }
 
   {
-    fwrite_fmt(stderr, "-- parallel_range\n");
+    fwrite_fmt(stderr, "-- parallel_range (random access range)\n");
     vector<uint8_t> hits(0x1000000, 0);
     auto handle_value = [&](uint8_t& v, size_t thread_num) -> bool {
       v = thread_num + 1;
@@ -175,6 +174,36 @@ int main(int, char**) {
     for (size_t x = 0; x < hits.size(); x++) {
       expect_ne(hits[x], 0);
       thread_counts.at(hits[x] - 1)++;
+    }
+
+    size_t sum = 0;
+    for (size_t x = 0; x < thread_counts.size(); x++) {
+      expect_ne(thread_counts[x], 0);
+      fwrite_fmt(stderr, "---- thread {}: {}\n", x, thread_counts[x]);
+      sum += thread_counts[x];
+    }
+    expect_eq(sum, hits.size());
+  }
+
+  {
+    fwrite_fmt(stderr, "-- parallel_range (non-random access range)\n");
+    std::unordered_map<size_t, size_t> hits;
+    while (hits.size() < 0x1000000) {
+      hits.emplace(hits.size(), 0);
+    }
+    auto handle_value = [&](std::unordered_map<size_t, size_t>::value_type& entry, size_t thread_num) -> bool {
+      entry.second = thread_num + 1;
+      return false;
+    };
+    uint64_t start_time = now();
+    parallel_range(hits, handle_value, num_threads);
+    uint64_t duration = now() - start_time;
+    fwrite_fmt(stderr, "---- time: {}\n", duration);
+
+    vector<size_t> thread_counts(num_threads, 0);
+    for (const auto& it : hits) {
+      expect_ne(it.second, 0);
+      thread_counts.at(it.second - 1)++;
     }
 
     size_t sum = 0;
