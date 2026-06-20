@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stdarg.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/types.h>
@@ -183,6 +182,25 @@ inline std::string escape_controls_utf8(const std::string& s) {
 }
 
 uint8_t value_for_hex_char(char x);
+
+template <std::integral T>
+  requires(std::is_unsigned_v<T>)
+std::string hex(T value) {
+  return std::format("0x{:0{}X}", value, sizeof(T) * 2);
+}
+
+template <std::integral T>
+  requires(std::is_signed_v<T>)
+std::string hex(T value) {
+  using U = std::make_unsigned_t<T>;
+  U value_u = (value < 0) ? (U{} - static_cast<U>(value)) : static_cast<U>(value);
+  return std::format("{}0x{:0{}X}", (value < 0) ? "-" : "", value_u, sizeof(T) * 2);
+}
+
+template <ConvertedEndian T>
+std::string hex(T&& value) {
+  return hex<typename T::ExposedType>(value);
+}
 
 // windows.h apparently #defines ERROR, hence the prefixes here :|
 enum class LogLevel : int {

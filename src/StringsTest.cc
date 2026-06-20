@@ -360,6 +360,45 @@ void test_string_reader() {
 
 int main(int, char**) {
   {
+    fwrite_fmt(stderr, "-- hex/short_hex\n");
+    expect_eq("0x05", hex<uint8_t>(5));
+    expect_eq("0x05", hex<int8_t>(5));
+    expect_eq("0x0005", hex<uint16_t>(5));
+    expect_eq("0x0005", hex<be_uint16_t>(5));
+    expect_eq("0x0005", hex<int16_t>(5));
+    expect_eq("0x0005", hex<be_int16_t>(5));
+    expect_eq("0x00000005", hex<uint32_t>(5));
+    expect_eq("0x00000005", hex<be_uint32_t>(5));
+    expect_eq("0x00000005", hex<int32_t>(5));
+    expect_eq("0x00000005", hex<be_int32_t>(5));
+    expect_eq("0x0000000000000005", hex<uint64_t>(5));
+    expect_eq("0x0000000000000005", hex<be_uint64_t>(5));
+    expect_eq("0x0000000000000005", hex<int64_t>(5));
+    expect_eq("0x0000000000000005", hex<be_int64_t>(5));
+    expect_eq("0xFB", hex<uint8_t>(-5));
+    expect_eq("-0x05", hex<int8_t>(-5));
+    expect_eq("0xFFFB", hex<uint16_t>(-5));
+    expect_eq("0xFFFB", hex<be_uint16_t>(-5));
+    expect_eq("-0x0005", hex<int16_t>(-5));
+    expect_eq("-0x0005", hex<be_int16_t>(-5));
+    expect_eq("0xFFFFFFFB", hex<uint32_t>(-5));
+    expect_eq("0xFFFFFFFB", hex<be_uint32_t>(-5));
+    expect_eq("-0x00000005", hex<int32_t>(-5));
+    expect_eq("-0x00000005", hex<be_int32_t>(-5));
+    expect_eq("0xFFFFFFFFFFFFFFFB", hex<uint64_t>(-5));
+    expect_eq("0xFFFFFFFFFFFFFFFB", hex<be_uint64_t>(-5));
+    expect_eq("-0x0000000000000005", hex<int64_t>(-5));
+    expect_eq("-0x0000000000000005", hex<be_int64_t>(-5));
+    expect_eq("-0x80", hex<int8_t>(0x80));
+    expect_eq("-0x8000", hex<int16_t>(0x8000));
+    expect_eq("-0x8000", hex<be_int16_t>(0x8000));
+    expect_eq("-0x80000000", hex<int32_t>(0x80000000));
+    expect_eq("-0x80000000", hex<be_int32_t>(0x80000000));
+    expect_eq("-0x8000000000000000", hex<int64_t>(0x8000000000000000));
+    expect_eq("-0x8000000000000000", hex<be_int64_t>(0x8000000000000000));
+  }
+
+  {
     fwrite_fmt(stderr, "-- str_replace_all\n");
     expect_eq("", str_replace_all(string(""), "def", "xyz"));
     expect_eq("abcdef", str_replace_all(string("abcdef"), "efg", "xyz"));

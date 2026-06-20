@@ -209,6 +209,9 @@ private:
   StoredT value;
 
 public:
+  using StoredType = StoredT;
+  using ExposedType = ExposedT;
+
   converted_endian() = default;
   converted_endian(ExposedT v) : value(OnStoreSt::fn(v)) {}
   converted_endian(const converted_endian& other) = default;
@@ -309,6 +312,15 @@ public:
     return ret;
   }
 } __attribute__((packed));
+
+template <typename T>
+struct is_converted_endian : std::false_type {};
+template <typename ExposedT, typename StoredT, typename OnStoreSt, typename OnLoadSt>
+struct is_converted_endian<converted_endian<ExposedT, StoredT, OnStoreSt, OnLoadSt>> : std::true_type {};
+template <typename T>
+inline constexpr bool is_converted_endian_v = is_converted_endian<std::remove_cvref_t<T>>::value;
+template <typename T>
+concept ConvertedEndian = is_converted_endian_v<T>;
 
 template <typename ExposedT, typename StoredT = ExposedT>
 using reverse_endian = converted_endian<ExposedT, StoredT, bswap_st<ExposedT, StoredT>, bswap_st<StoredT, ExposedT>>;
