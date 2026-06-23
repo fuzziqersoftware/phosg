@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/types.h>
 
+#include <cstdarg>
 #include <deque>
 #include <memory>
 #include <stdexcept>
