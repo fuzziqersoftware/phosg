@@ -512,6 +512,10 @@ int main(int, char**) {
     expect_eq(vector<string>({"12", "34", "567", "", ""}), split("12,34,567,,", ','));
     expect_eq(vector<string>({""}), split("", ','));
     expect_eq(vector<string>({"a", "b", "c d e f"}), split("a b c d e f", ' ', 2));
+    expect_eq(vector<string_view>({"12", "34", "567", "abc"}), split_view("12,34,567,abc", ','));
+    expect_eq(vector<string_view>({"12", "34", "567", "", ""}), split_view("12,34,567,,", ','));
+    expect_eq(vector<string_view>({""}), split_view("", ','));
+    expect_eq(vector<string_view>({"a", "b", "c d e f"}), split_view("a b c d e f", ' ', 2));
   }
 
   {
@@ -520,8 +524,7 @@ int main(int, char**) {
     expect_eq(vector<string>({"12", "34", "567", "", ""}), split_context("12,34,567,,", ','));
     expect_eq(vector<string>({""}), split_context("", ','));
     expect_eq(vector<string>({"a", "b", "c d e f"}), split_context("a b c d e f", ' ', 2));
-    expect_eq(vector<string>({"12", "3(4,56)7", "ab[c,]d", "e{fg(h,),}"}),
-        split_context("12,3(4,56)7,ab[c,]d,e{fg(h,),}", ','));
+    expect_eq(vector<string>({"12", "3(4,56)7", "ab[c,]d", "e{fg(h,),}"}), split_context("12,3(4,56)7,ab[c,]d,e{fg(h,),}", ','));
     expect_eq(vector<string>({"12", "(34,567)", "abc"}), split_context("12,(34,567),abc", ','));
     expect_eq(vector<string>({"12(,(34),567)", "abc"}), split_context("12(,(34),567),abc", ','));
     expect_eq(vector<string>({"12", "(,567)", "abc"}), split_context("12,(,567),abc", ','));
@@ -529,6 +532,18 @@ int main(int, char**) {
     expect_eq(vector<string>({"12", "(,)", "abc"}), split_context("12,(,),abc", ','));
     expect_eq(vector<string>({"12", "(34,567),abc"}), split_context("12,(34,567),abc", ',', 1));
     expect_eq(vector<string>({"(12,34)", "567,abc"}), split_context("(12,34),567,abc", ',', 1));
+    expect_eq(vector<string_view>({"12", "34", "567", "abc"}), split_context_view("12,34,567,abc", ','));
+    expect_eq(vector<string_view>({"12", "34", "567", "", ""}), split_context_view("12,34,567,,", ','));
+    expect_eq(vector<string_view>({""}), split_context_view("", ','));
+    expect_eq(vector<string_view>({"a", "b", "c d e f"}), split_context_view("a b c d e f", ' ', 2));
+    expect_eq(vector<string_view>({"12", "3(4,56)7", "ab[c,]d", "e{fg(h,),}"}), split_context_view("12,3(4,56)7,ab[c,]d,e{fg(h,),}", ','));
+    expect_eq(vector<string_view>({"12", "(34,567)", "abc"}), split_context_view("12,(34,567),abc", ','));
+    expect_eq(vector<string_view>({"12(,(34),567)", "abc"}), split_context_view("12(,(34),567),abc", ','));
+    expect_eq(vector<string_view>({"12", "(,567)", "abc"}), split_context_view("12,(,567),abc", ','));
+    expect_eq(vector<string_view>({"12", "(34,)", "abc"}), split_context_view("12,(34,),abc", ','));
+    expect_eq(vector<string_view>({"12", "(,)", "abc"}), split_context_view("12,(,),abc", ','));
+    expect_eq(vector<string_view>({"12", "(34,567),abc"}), split_context_view("12,(34,567),abc", ',', 1));
+    expect_eq(vector<string_view>({"(12,34)", "567,abc"}), split_context_view("(12,34),567,abc", ',', 1));
   }
 
   {

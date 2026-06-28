@@ -306,8 +306,12 @@ struct PrefixedLogger {
 };
 
 std::vector<std::string> split(const std::string& s, char delim, size_t max_splits = 0);
+std::vector<std::string_view> split_view(std::string_view s, char delim, size_t max_splits = 0);
 std::vector<std::wstring> split(const std::wstring& s, wchar_t delim, size_t max_splits = 0);
+std::vector<std::wstring_view> split_view(std::wstring_view s, wchar_t delim, size_t max_splits = 0);
 std::vector<std::string> split_context(const std::string& s, char delim, size_t max_splits = 0);
+std::vector<std::string_view> split_context_view(std::string_view s, char delim, size_t max_splits = 0);
+
 std::vector<std::string> split_args(const std::string& s);
 
 template <typename ItemContainerT, typename DelimiterT>

@@ -217,18 +217,16 @@ PrefixedLogger PrefixedLogger::sub(const std::string& prefix, LogLevel min_level
   return PrefixedLogger(this->prefix + prefix, min_level == LogLevel::L_USE_DEFAULT ? this->min_level : min_level);
 }
 
-vector<string> split(const string& s, char delim, size_t max_splits) {
-  vector<string> ret;
+template <typename RetT, typename InT, typename CharT>
+vector<RetT> split_inner(InT s, CharT delim, size_t max_splits) {
+  vector<RetT> ret;
 
-  // Note: token_start_offset can be equal to s.size() if the string ends with
-  // the delimiter character; in that case, we need to ensure we correctly
-  // return an empty string at the end of ret.
+  // Note: token_start_offset can be equal to s.size() if the string ends with the delimiter character; in that case,
+  // we need to ensure we correctly return an empty string at the end of ret.
   size_t token_start_offset = 0;
   while (token_start_offset <= s.size()) {
-    size_t delim_offset = (max_splits && (ret.size() == max_splits))
-        ? string::npos
-        : s.find(delim, token_start_offset);
-    if (delim_offset == string::npos) {
+    size_t delim_offset = (max_splits && (ret.size() == max_splits)) ? RetT::npos : s.find(delim, token_start_offset);
+    if (delim_offset == RetT::npos) {
       ret.emplace_back(s.substr(token_start_offset));
       break;
     } else {
@@ -239,31 +237,26 @@ vector<string> split(const string& s, char delim, size_t max_splits) {
   return ret;
 }
 
-vector<wstring> split(const wstring& s, wchar_t delim, size_t max_splits) {
-  vector<wstring> ret;
-
-  // Note: token_start_offset can be equal to s.size() if the string ends with
-  // the delimiter character; in that case, we need to ensure we correctly
-  // return an empty string at the end of ret.
-  size_t token_start_offset = 0;
-  while (token_start_offset <= s.size()) {
-    size_t delim_offset = (max_splits && (ret.size() == max_splits))
-        ? string::npos
-        : s.find(delim, token_start_offset);
-    if (delim_offset == string::npos) {
-      ret.emplace_back(s.substr(token_start_offset));
-      break;
-    } else {
-      ret.emplace_back(s.substr(token_start_offset, delim_offset - token_start_offset));
-      token_start_offset = delim_offset + 1;
-    }
-  }
-  return ret;
+std::vector<std::string> split(const std::string& s, char delim, size_t max_splits) {
+  return split_inner<std::string, const std::string&, char>(s, delim, max_splits);
 }
 
-vector<string> split_context(const string& s, char delim, size_t max_splits) {
-  vector<string> ret;
-  vector<char> paren_stack;
+std::vector<std::string_view> split_view(std::string_view s, char delim, size_t max_splits) {
+  return split_inner<std::string_view, std::string_view, char>(s, delim, max_splits);
+}
+
+std::vector<std::wstring> split(const std::wstring& s, wchar_t delim, size_t max_splits) {
+  return split_inner<std::wstring, const std::wstring&, char>(s, delim, max_splits);
+}
+
+std::vector<std::wstring_view> split_view(std::wstring_view s, wchar_t delim, size_t max_splits) {
+  return split_inner<std::wstring_view, std::wstring_view, char>(s, delim, max_splits);
+}
+
+template <typename RetT, typename InT, typename CharT>
+vector<RetT> split_context_inner(InT s, CharT delim, size_t max_splits) {
+  vector<RetT> ret;
+  vector<CharT> paren_stack;
   bool char_is_escaped = false;
 
   size_t z, last_start = 0;
@@ -309,8 +302,16 @@ vector<string> split_context(const string& s, char delim, size_t max_splits) {
   return ret;
 }
 
-vector<string> split_args(const string& s) {
-  vector<string> ret;
+std::vector<std::string> split_context(const std::string& s, char delim, size_t max_splits) {
+  return split_context_inner<std::string, const std::string&, char>(s, delim, max_splits);
+}
+
+std::vector<std::string_view> split_context_view(std::string_view s, char delim, size_t max_splits) {
+  return split_context_inner<std::string_view, std::string_view, char>(s, delim, max_splits);
+}
+
+vector<std::string> split_args(const std::string& s) {
+  vector<std::string> ret;
   char current_quote = 0;
   bool in_space_between_args = true;
 
