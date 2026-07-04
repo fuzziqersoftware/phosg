@@ -176,40 +176,56 @@ enum class PixelFormat {
   ARGB8888_BE,
 };
 
-template <PixelFormat Format>
-struct PixelBuffer {
-  using DataT = void;
-  static constexpr bool HAS_ALPHA = false;
+template <typename T, size_t BitsPerPixel = sizeof(T) * 8>
+struct PixelBufferBase {
+  using DataT = T;
 
-  DataT* data;
+  uint8_t* pixels;
+  std::vector<uint8_t> owned_data;
   size_t w;
   size_t h;
+  size_t stride; // In bytes
+
+  size_t default_stride() const {
+    return ((this->w * BitsPerPixel) + 7) >> 3;
+  }
+  size_t data_size() const {
+    return this->stride * this->h;
+  }
+
+  void create_owned_data() {
+    this->owned_data.resize(this->data_size());
+    this->pixels = this->owned_data.data();
+  }
+
+  T* row(size_t y) {
+    return reinterpret_cast<T*>(this->pixels + (y * this->stride));
+  }
+  const T* row(size_t y) const {
+    return const_cast<PixelBufferBase*>(this)->row(y);
+  }
+  T& at(size_t x, size_t y) {
+    static_assert(!(BitsPerPixel & 7), "PixelBufferBase::at cannot be used if BitsPerPixel is not a multiple of 8");
+    return *reinterpret_cast<T*>(this->pixels + (y * this->stride) + (x * (BitsPerPixel >> 3)));
+  }
+  const T& at(size_t x, size_t y) const {
+    return const_cast<PixelBufferBase*>(this)->at(x, y);
+  }
 };
 
+template <PixelFormat Format>
+struct PixelBuffer;
+
 template <>
-struct PixelBuffer<PixelFormat::G1> {
-  using DataT = uint8_t;
+struct PixelBuffer<PixelFormat::G1> : PixelBufferBase<uint8_t, 1> {
+  using typename PixelBufferBase::DataT;
   static constexpr bool HAS_ALPHA = false;
 
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t row_bytes(size_t w) {
-    return (w + 7) >> 3;
-  }
-  size_t row_bytes() const {
-    return this->row_bytes(this->w);
-  }
-  static size_t data_size(size_t w, size_t h) {
-    return (PixelBuffer<PixelFormat::G1>::row_bytes(w) * h);
-  }
   uint32_t read(size_t x, size_t y) const {
-    uint8_t block = this->data[y * this->row_bytes() + (x >> 3)];
-    return ((block << (x & 7)) & 0x80) ? 0x000000FF : 0xFFFFFFFF;
+    return ((this->row(y)[x >> 3] << (x & 7)) & 0x80) ? 0x000000FF : 0xFFFFFFFF;
   }
   void write(size_t x, size_t y, uint32_t color) {
-    uint8_t& block = this->data[y * this->row_bytes() + (x >> 3)];
+    uint8_t& block = this->row(y)[x >> 3];
     if (((get_r(color) + get_g(color) + get_b(color)) / 3) >= 0x80) {
       block &= ~(0x80 >> (x & 7)); // Set to white
     } else {
@@ -217,35 +233,21 @@ struct PixelBuffer<PixelFormat::G1> {
     }
   }
   void write_row(size_t y, const void* data, size_t pixel_count) {
-    memcpy(&this->data[y * this->row_bytes()], data, (pixel_count + 7) >> 3);
+    memcpy(this->row(y), data, (pixel_count + 7) >> 3);
   }
 };
 
 template <>
-struct PixelBuffer<PixelFormat::GA11> {
-  using DataT = uint8_t;
+struct PixelBuffer<PixelFormat::GA11> : PixelBufferBase<uint8_t, 2> {
+  using typename PixelBufferBase::DataT;
   static constexpr bool HAS_ALPHA = true;
 
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t row_bytes(size_t w) {
-    return (w + 3) >> 2;
-  }
-  size_t row_bytes() const {
-    return this->row_bytes(this->w);
-  }
-  static size_t data_size(size_t w, size_t h) {
-    return (PixelBuffer<PixelFormat::GA11>::row_bytes(w) * h);
-  }
   uint32_t read(size_t x, size_t y) const {
-    uint8_t block = this->data[y * this->row_bytes() + (x >> 2)];
     static const uint32_t values[4] = {0x00000000, 0xFFFFFFFF, 0x00000000, 0x000000FF};
-    return values[(block >> (6 - ((x & 3) << 1))) & 3];
+    return values[(this->row(y)[x >> 2] >> (6 - ((x & 3) << 1))) & 3];
   }
   void write(size_t x, size_t y, uint32_t color) {
-    uint8_t& block = this->data[y * this->row_bytes() + (x >> 2)];
+    uint8_t& block = this->row(y)[x >> 2];
     if (get_a(color) < 0x80) {
       block &= ~(0xC0 >> ((x & 3) << 1));
     } else if (((get_r(color) + get_g(color) + get_b(color)) / 3) >= 0x80) {
@@ -255,440 +257,201 @@ struct PixelBuffer<PixelFormat::GA11> {
     }
   }
   void write_row(size_t y, const void* data, size_t pixel_count) {
-    memcpy(&this->data[y * this->row_bytes()], data, (pixel_count + 3) >> 2);
+    memcpy(this->row(y), data, (pixel_count + 3) >> 2);
   }
 };
 
 template <>
-struct PixelBuffer<PixelFormat::G8> {
-  using DataT = uint8_t;
+struct PixelBuffer<PixelFormat::G8> : PixelBufferBase<uint8_t> {
+  using typename PixelBufferBase::DataT;
   static constexpr bool HAS_ALPHA = false;
 
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h;
-  }
   uint32_t read(size_t x, size_t y) const {
-    uint8_t ret = this->data[y * this->w + x];
+    uint8_t ret = this->at(x, y);
     return rgba8888(ret, ret, ret, 0xFF);
   }
   void write(size_t x, size_t y, uint32_t color) {
-    this->data[y * this->w + x] = (get_r(color) + get_g(color) + get_b(color)) / 3;
+    this->at(x, y) = (get_r(color) + get_g(color) + get_b(color)) / 3;
   }
 };
 
-template <>
-struct PixelBuffer<PixelFormat::GA88_NATIVE> {
-  using DataT = uint16_t;
+template <typename T>
+struct PixelBufferGA88 : PixelBufferBase<T> {
+  using typename PixelBufferBase<T>::DataT;
   static constexpr bool HAS_ALPHA = true;
 
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 2;
-  }
   uint32_t read(size_t x, size_t y) const {
-    uint16_t ret = this->data[y * this->w + x];
+    uint16_t ret = this->at(x, y);
     uint8_t g = (ret >> 8);
     return rgba8888(g, g, g, ret & 0xFF);
   }
   void write(size_t x, size_t y, uint32_t color) {
     uint8_t g = (get_r(color) + get_g(color) + get_b(color)) / 3;
-    this->data[y * this->w + x] = (g << 8) | get_a(color);
+    this->at(x, y) = (g << 8) | get_a(color);
   }
 };
 template <>
-struct PixelBuffer<PixelFormat::GA88_LE> {
-  using DataT = le_uint16_t;
-  static constexpr bool HAS_ALPHA = true;
-
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 2;
-  }
-  uint32_t read(size_t x, size_t y) const {
-    uint16_t ret = this->data[y * this->w + x];
-    uint8_t g = (ret >> 8);
-    return rgba8888(g, g, g, ret & 0xFF);
-  }
-  void write(size_t x, size_t y, uint32_t color) {
-    uint8_t g = (get_r(color) + get_g(color) + get_b(color)) / 3;
-    this->data[y * this->w + x] = (g << 8) | get_a(color);
-  }
+struct PixelBuffer<PixelFormat::GA88_NATIVE> : PixelBufferGA88<uint16_t> {
+  using typename PixelBufferGA88::DataT;
 };
 template <>
-struct PixelBuffer<PixelFormat::GA88_BE> {
-  using DataT = be_uint16_t;
-  static constexpr bool HAS_ALPHA = true;
-
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 2;
-  }
-  uint32_t read(size_t x, size_t y) const {
-    uint16_t ret = this->data[y * this->w + x];
-    uint8_t g = (ret >> 8);
-    return rgba8888(g, g, g, ret & 0xFF);
-  }
-  void write(size_t x, size_t y, uint32_t color) {
-    uint8_t g = (get_r(color) + get_g(color) + get_b(color)) / 3;
-    this->data[y * this->w + x] = (g << 8) | get_a(color);
-  }
+struct PixelBuffer<PixelFormat::GA88_LE> : PixelBufferGA88<le_uint16_t> {
+  using typename PixelBufferGA88::DataT;
+};
+template <>
+struct PixelBuffer<PixelFormat::GA88_BE> : PixelBufferGA88<be_uint16_t> {
+  using typename PixelBufferGA88::DataT;
 };
 
-template <>
-struct PixelBuffer<PixelFormat::XRGB1555_NATIVE> {
-  using DataT = uint16_t;
+template <typename T>
+struct PixelBufferXRGB1555 : PixelBufferBase<T> {
+  using typename PixelBufferBase<T>::DataT;
   static constexpr bool HAS_ALPHA = false;
 
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 2;
-  }
   uint32_t read(size_t x, size_t y) const {
-    return rgba8888_for_xrgb1555(this->data[y * this->w + x]);
+    return rgba8888_for_xrgb1555(this->at(x, y));
   }
   void write(size_t x, size_t y, uint32_t color) {
-    this->data[y * this->w + x] = xrgb1555_for_rgba8888(color);
+    this->at(x, y) = xrgb1555_for_rgba8888(color);
   }
 };
 template <>
-struct PixelBuffer<PixelFormat::XRGB1555_LE> {
-  using DataT = le_uint16_t;
+struct PixelBuffer<PixelFormat::XRGB1555_NATIVE> : PixelBufferXRGB1555<uint16_t> {
+  using typename PixelBufferBase::DataT;
+};
+template <>
+struct PixelBuffer<PixelFormat::XRGB1555_LE> : PixelBufferXRGB1555<le_uint16_t> {
+  using typename PixelBufferBase::DataT;
+};
+template <>
+struct PixelBuffer<PixelFormat::XRGB1555_BE> : PixelBufferXRGB1555<be_uint16_t> {
+  using typename PixelBufferBase::DataT;
+};
+
+template <typename T>
+struct PixelBufferARGB1555 : PixelBufferBase<T> {
+  using typename PixelBufferBase<T>::DataT;
+  static constexpr bool HAS_ALPHA = true;
+
+  uint32_t read(size_t x, size_t y) const {
+    return rgba8888_for_argb1555(this->at(x, y));
+  }
+  void write(size_t x, size_t y, uint32_t color) {
+    this->at(x, y) = argb1555_for_rgba8888(color);
+  }
+};
+template <>
+struct PixelBuffer<PixelFormat::ARGB1555_NATIVE> : PixelBufferARGB1555<uint16_t> {
+  using typename PixelBufferBase::DataT;
+};
+template <>
+struct PixelBuffer<PixelFormat::ARGB1555_LE> : PixelBufferARGB1555<le_uint16_t> {
+  using typename PixelBufferBase::DataT;
+};
+template <>
+struct PixelBuffer<PixelFormat::ARGB1555_BE> : PixelBufferARGB1555<be_uint16_t> {
+  using typename PixelBufferBase::DataT;
+};
+
+template <typename T>
+struct PixelBufferRGB565 : PixelBufferBase<T> {
+  using typename PixelBufferBase<T>::DataT;
   static constexpr bool HAS_ALPHA = false;
 
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 2;
-  }
   uint32_t read(size_t x, size_t y) const {
-    return rgba8888_for_xrgb1555(this->data[y * this->w + x]);
+    return rgba8888_for_rgb565(this->at(x, y));
   }
   void write(size_t x, size_t y, uint32_t color) {
-    this->data[y * this->w + x] = xrgb1555_for_rgba8888(color);
+    this->at(x, y) = rgb565_for_rgba8888(color);
   }
 };
 template <>
-struct PixelBuffer<PixelFormat::XRGB1555_BE> {
-  using DataT = be_uint16_t;
+struct PixelBuffer<PixelFormat::RGB565_NATIVE> : PixelBufferRGB565<uint16_t> {
+  using typename PixelBufferBase::DataT;
+};
+template <>
+struct PixelBuffer<PixelFormat::RGB565_LE> : PixelBufferRGB565<le_uint16_t> {
+  using typename PixelBufferBase::DataT;
+};
+template <>
+struct PixelBuffer<PixelFormat::RGB565_BE> : PixelBufferRGB565<be_uint16_t> {
+  using typename PixelBufferBase::DataT;
+};
+
+template <size_t RIndex, size_t GIndex, size_t BIndex>
+  requires(RIndex < 3 && GIndex < 3 && BIndex < 3)
+struct PixelBufferRGBBytes : PixelBufferBase<uint8_t, 24> {
+  using DataT = PixelBufferBase::DataT;
   static constexpr bool HAS_ALPHA = false;
 
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 2;
-  }
   uint32_t read(size_t x, size_t y) const {
-    return rgba8888_for_xrgb1555(this->data[y * this->w + x]);
+    const DataT* pixel = &this->at(x, y);
+    return rgba8888(pixel[RIndex], pixel[GIndex], pixel[BIndex], 0xFF);
   }
   void write(size_t x, size_t y, uint32_t color) {
-    this->data[y * this->w + x] = xrgb1555_for_rgba8888(color);
+    DataT* pixel = &this->at(x, y);
+    pixel[RIndex] = get_r(color);
+    pixel[GIndex] = get_g(color);
+    pixel[BIndex] = get_b(color);
   }
 };
-
 template <>
-struct PixelBuffer<PixelFormat::ARGB1555_NATIVE> {
-  using DataT = uint16_t;
+struct PixelBuffer<PixelFormat::RGB888> : PixelBufferRGBBytes<0, 1, 2> {
+  using typename PixelBufferRGBBytes::DataT;
+};
+template <>
+struct PixelBuffer<PixelFormat::BGR888> : PixelBufferRGBBytes<2, 1, 0> {
+  using typename PixelBufferRGBBytes::DataT;
+};
+
+template <typename T>
+struct PixelBufferRGBA8888 : PixelBufferBase<T> {
+  using typename PixelBufferBase<T>::DataT;
   static constexpr bool HAS_ALPHA = true;
 
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 2;
-  }
   uint32_t read(size_t x, size_t y) const {
-    return rgba8888_for_argb1555(this->data[y * this->w + x]);
+    return this->at(x, y);
   }
   void write(size_t x, size_t y, uint32_t color) {
-    this->data[y * this->w + x] = argb1555_for_rgba8888(color);
+    this->at(x, y) = color;
   }
 };
 template <>
-struct PixelBuffer<PixelFormat::ARGB1555_LE> {
-  using DataT = le_uint16_t;
+struct PixelBuffer<PixelFormat::RGBA8888_NATIVE> : PixelBufferRGBA8888<uint32_t> {
+  using typename PixelBufferRGBA8888::DataT;
+};
+template <>
+struct PixelBuffer<PixelFormat::RGBA8888_LE> : PixelBufferRGBA8888<le_uint32_t> {
+  using typename PixelBufferRGBA8888::DataT;
+};
+template <>
+struct PixelBuffer<PixelFormat::RGBA8888_BE> : PixelBufferRGBA8888<be_uint32_t> {
+  using typename PixelBufferRGBA8888::DataT;
+};
+
+template <typename T>
+struct PixelBufferARGB8888 : PixelBufferBase<T> {
+  using typename PixelBufferBase<T>::DataT;
   static constexpr bool HAS_ALPHA = true;
 
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 2;
-  }
   uint32_t read(size_t x, size_t y) const {
-    return rgba8888_for_argb1555(this->data[y * this->w + x]);
+    return rgba8888_for_argb8888(this->at(x, y));
   }
   void write(size_t x, size_t y, uint32_t color) {
-    this->data[y * this->w + x] = argb1555_for_rgba8888(color);
+    this->at(x, y) = argb8888_for_rgba8888(color);
   }
 };
 template <>
-struct PixelBuffer<PixelFormat::ARGB1555_BE> {
-  using DataT = be_uint16_t;
-  static constexpr bool HAS_ALPHA = true;
-
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 2;
-  }
-  uint32_t read(size_t x, size_t y) const {
-    return rgba8888_for_argb1555(this->data[y * this->w + x]);
-  }
-  void write(size_t x, size_t y, uint32_t color) {
-    this->data[y * this->w + x] = argb1555_for_rgba8888(color);
-  }
-};
-
-template <>
-struct PixelBuffer<PixelFormat::RGB565_NATIVE> {
-  using DataT = uint16_t;
-  static constexpr bool HAS_ALPHA = false;
-
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 2;
-  }
-  uint32_t read(size_t x, size_t y) const {
-    return rgba8888_for_rgb565(this->data[y * this->w + x]);
-  }
-  void write(size_t x, size_t y, uint32_t color) {
-    this->data[y * this->w + x] = rgb565_for_rgba8888(color);
-  }
+struct PixelBuffer<PixelFormat::ARGB8888_NATIVE> : PixelBufferARGB8888<uint32_t> {
+  using typename PixelBufferARGB8888::DataT;
 };
 template <>
-struct PixelBuffer<PixelFormat::RGB565_LE> {
-  using DataT = le_uint16_t;
-  static constexpr bool HAS_ALPHA = false;
-
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 2;
-  }
-  uint32_t read(size_t x, size_t y) const {
-    return rgba8888_for_rgb565(this->data[y * this->w + x]);
-  }
-  void write(size_t x, size_t y, uint32_t color) {
-    this->data[y * this->w + x] = rgb565_for_rgba8888(color);
-  }
+struct PixelBuffer<PixelFormat::ARGB8888_LE> : PixelBufferARGB8888<le_uint32_t> {
+  using typename PixelBufferARGB8888::DataT;
 };
 template <>
-struct PixelBuffer<PixelFormat::RGB565_BE> {
-  using DataT = be_uint16_t;
-  static constexpr bool HAS_ALPHA = false;
-
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 2;
-  }
-  uint32_t read(size_t x, size_t y) const {
-    return rgba8888_for_rgb565(this->data[y * this->w + x]);
-  }
-  void write(size_t x, size_t y, uint32_t color) {
-    this->data[y * this->w + x] = rgb565_for_rgba8888(color);
-  }
-};
-
-template <>
-struct PixelBuffer<PixelFormat::RGB888> {
-  // We have to use uint8_t because 3 isn't a power of 2, so accesses would be
-  // misaligned if we didn't
-  using DataT = uint8_t;
-  static constexpr bool HAS_ALPHA = false;
-
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 3;
-  }
-  uint32_t read(size_t x, size_t y) const {
-    size_t index = (y * this->w + x) * 3;
-    return rgba8888(this->data[index], this->data[index + 1], this->data[index + 2], 0xFF);
-  }
-  void write(size_t x, size_t y, uint32_t color) {
-    size_t index = (y * this->w + x) * 3;
-    this->data[index] = get_r(color);
-    this->data[index + 1] = get_g(color);
-    this->data[index + 2] = get_b(color);
-  }
-};
-template <>
-struct PixelBuffer<PixelFormat::BGR888> {
-  // We have to use uint8_t because 3 isn't a power of 2, so accesses would be
-  // misaligned if we didn't
-  using DataT = uint8_t;
-  static constexpr bool HAS_ALPHA = false;
-
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 3;
-  }
-  uint32_t read(size_t x, size_t y) const {
-    size_t index = (y * this->w + x) * 3;
-    return rgba8888(this->data[index + 2], this->data[index + 1], this->data[index], 0xFF);
-  }
-  void write(size_t x, size_t y, uint32_t color) {
-    size_t index = (y * this->w + x) * 3;
-    this->data[index] = get_b(color);
-    this->data[index + 1] = get_g(color);
-    this->data[index + 2] = get_r(color);
-  }
-};
-
-template <>
-struct PixelBuffer<PixelFormat::RGBA8888_NATIVE> {
-  using DataT = uint32_t;
-  static constexpr bool HAS_ALPHA = true;
-
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 4;
-  }
-  uint32_t read(size_t x, size_t y) const {
-    return this->data[y * this->w + x];
-  }
-  void write(size_t x, size_t y, uint32_t color) {
-    this->data[y * this->w + x] = color;
-  }
-};
-template <>
-struct PixelBuffer<PixelFormat::RGBA8888_LE> {
-  using DataT = le_uint32_t;
-  static constexpr bool HAS_ALPHA = true;
-
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 4;
-  }
-  uint32_t read(size_t x, size_t y) const {
-    return this->data[y * this->w + x];
-  }
-  void write(size_t x, size_t y, uint32_t color) {
-    this->data[y * this->w + x] = color;
-  }
-};
-template <>
-struct PixelBuffer<PixelFormat::RGBA8888_BE> {
-  using DataT = be_uint32_t;
-  static constexpr bool HAS_ALPHA = true;
-
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 4;
-  }
-  uint32_t read(size_t x, size_t y) const {
-    return this->data[y * this->w + x];
-  }
-  void write(size_t x, size_t y, uint32_t color) {
-    this->data[y * this->w + x] = color;
-  }
-};
-
-template <>
-struct PixelBuffer<PixelFormat::ARGB8888_NATIVE> {
-  using DataT = uint32_t;
-  static constexpr bool HAS_ALPHA = true;
-
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 4;
-  }
-  uint32_t read(size_t x, size_t y) const {
-    uint32_t color = this->data[y * this->w + x];
-    return rgba8888_for_argb8888(color);
-  }
-  void write(size_t x, size_t y, uint32_t color) {
-    this->data[y * this->w + x] = argb8888_for_rgba8888(color);
-  }
-};
-template <>
-struct PixelBuffer<PixelFormat::ARGB8888_LE> {
-  using DataT = le_uint32_t;
-  static constexpr bool HAS_ALPHA = true;
-
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 4;
-  }
-  uint32_t read(size_t x, size_t y) const {
-    uint32_t color = this->data[y * this->w + x];
-    return rgba8888_for_argb8888(color);
-  }
-  void write(size_t x, size_t y, uint32_t color) {
-    this->data[y * this->w + x] = argb8888_for_rgba8888(color);
-  }
-};
-template <>
-struct PixelBuffer<PixelFormat::ARGB8888_BE> {
-  using DataT = be_uint32_t;
-  static constexpr bool HAS_ALPHA = true;
-
-  DataT* data;
-  size_t w;
-  size_t h;
-
-  static size_t data_size(size_t w, size_t h) {
-    return w * h * 4;
-  }
-  uint32_t read(size_t x, size_t y) const {
-    uint32_t color = this->data[y * this->w + x];
-    return rgba8888_for_argb8888(color);
-  }
-  void write(size_t x, size_t y, uint32_t color) {
-    this->data[y * this->w + x] = argb8888_for_rgba8888(color);
-  }
+struct PixelBuffer<PixelFormat::ARGB8888_BE> : PixelBufferARGB8888<be_uint32_t> {
+  using typename PixelBufferARGB8888::DataT;
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -731,11 +494,7 @@ public:
   static constexpr bool HAS_ALPHA = PixelBuffer<Format>::HAS_ALPHA;
 
 protected:
-  std::unique_ptr<DataT[]> owned_data;
-
-  static std::unique_ptr<DataT[]> make_owned_data(size_t w, size_t h) {
-    return std::make_unique<DataT[]>(PixelBuffer<Format>::data_size(w, h));
-  }
+  std::vector<DataT> owned_data;
 
   template <PixelFormat OtherFormat>
   friend class Image;
@@ -748,8 +507,8 @@ public:
   Image(size_t w = 0, size_t h = 0, uint32_t color = 0x00000000) {
     this->w = w;
     this->h = h;
-    this->owned_data = this->make_owned_data(w, h);
-    this->data = this->owned_data.get();
+    this->stride = this->default_stride();
+    this->create_owned_data();
     this->clear(color);
   }
 
@@ -759,8 +518,8 @@ public:
     Image<Format> ret;
     ret.w = w;
     ret.h = h;
-    ret.owned_data = ret.make_owned_data(w, h);
-    ret.data = ret.owned_data.get();
+    ret.stride = ret.default_stride();
+    ret.create_owned_data();
     memcpy(ret.data, raw_data, ret.get_data_size());
     return ret;
   }
@@ -772,6 +531,7 @@ public:
     Image<Format> ret;
     ret.w = w;
     ret.h = h;
+    ret.stride = ret.default_stride();
     ret.data = reinterpret_cast<DataT*>(raw_data);
     return ret;
   }
@@ -871,8 +631,8 @@ public:
         throw std::runtime_error("max value field in PPM header is missing, or contains a value other than 255");
       }
 
-      ret.owned_data = Image::make_owned_data(ret.w, ret.h);
-      ret.data = ret.owned_data.get();
+      ret.stride = ret.default_stride();
+      ret.create_owned_data();
 
       for (size_t y = 0; y < ret.h; y++) {
         for (size_t x = 0; x < ret.w; x++) {
@@ -918,8 +678,8 @@ public:
       bool reverse_row_order = header.info_header.height < 0;
       ret.w = header.info_header.width;
       ret.h = reverse_row_order ? -header.info_header.height.load() : header.info_header.height.load();
-      ret.owned_data = Image::make_owned_data(ret.w, ret.h);
-      ret.data = ret.owned_data.get();
+      ret.stride = ret.default_stride();
+      ret.create_owned_data();
 
       r.go(header.file_header.data_offset);
 
@@ -986,33 +746,48 @@ public:
   }
 
   // Move constructor (must be same pixel format)
-  Image(Image<Format>&& other) {
-    this->operator=(std::move(other));
-  }
-  Image& operator=(Image<Format>&& other) {
-    this->data = other.data;
-    this->owned_data = std::move(other.owned_data);
-    this->w = other.w;
-    this->h = other.h;
-    other.w = 0;
-    other.h = 0;
-    other.data = nullptr;
-    return *this;
-  }
+  Image(Image<Format>&& other) = default;
+  Image& operator=(Image<Format>&& other) = default;
 
-  // The copy constructor is intentionally deleted, since copying an Image
-  // is potentially very expensive. Instead, we require the caller to call
-  // .copy() (below) to ensure they actually want to make a copy.
+  // The copy constructor is intentionally deleted, since copying an Image is potentially very expensive. Instead, we
+  // require the caller to call .copy() (below) to ensure they actually want to make a copy.
   Image(const Image<Format>& other) = delete;
   Image& operator=(const Image<Format>& other) = delete;
+
+  // Constructs a writable view into another image, which can be used to make coordinates more convenient and restrict
+  // writing to a particular region. The view does not own its own data; it must not be used after the parent image is
+  // destroyed or otherwise invalidated (e.g. by resizing).
+  Image<Format> view(ssize_t x, ssize_t y, ssize_t w, ssize_t h) {
+    if (x < 0) {
+      throw std::runtime_error("Image view left boundary out of range");
+    }
+    if (y < 0) {
+      throw std::runtime_error("Image view top boundary out of range");
+    }
+    if (x + w > static_cast<ssize_t>(this->get_width())) {
+      throw std::runtime_error("Image view right boundary out of range");
+    }
+    if (y + h > static_cast<ssize_t>(this->get_height())) {
+      throw std::runtime_error("Image view bottom boundary out of range");
+    }
+    Image<Format> ret;
+    ret.w = w;
+    ret.h = h;
+    ret.stride = this->stride;
+    ret.pixels = &this->at(x, y);
+    return ret;
+  }
+  const Image<Format> view(ssize_t x, ssize_t y, ssize_t w, ssize_t h) const {
+    return const_cast<Image*>(this)->view(x, y, w, h);
+  }
 
   Image<Format> copy() const {
     Image<Format> ret;
     ret.w = this->w;
     ret.h = this->h;
-    ret.owned_data = ret.make_owned_data(ret.w, ret.h);
-    ret.data = ret.owned_data.get();
-    memcpy(ret.data, this->data, this->get_data_size());
+    ret.stride = this->stride;
+    ret.create_owned_data();
+    memcpy(ret.pixels, this->pixels, this->data_size());
     return ret;
   }
   template <PixelFormat NewFormat, typename FnT>
@@ -1021,8 +796,8 @@ public:
     Image<NewFormat> ret;
     ret.w = this->w;
     ret.h = this->h;
-    ret.owned_data = ret.make_owned_data(ret.w, ret.h);
-    ret.data = ret.owned_data.get();
+    ret.stride = ret.default_stride();
+    ret.create_owned_data();
     for (size_t y = 0; y < this->h; y++) {
       for (size_t x = 0; x < this->w; x++) {
         ret.write(x, y, transform_color(this->read(x, y)));
@@ -1260,7 +1035,14 @@ public:
     if ((this->w != other.w) || (this->h != other.h)) {
       return false;
     }
-    return !memcmp(this->data, other.data, this->get_data_size());
+    for (size_t y = 0; y < this->h; y++) {
+      for (size_t x = 0; x < this->w; x++) {
+        if (this->read(x, y) != other.read(x, y)) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
   bool operator!=(const Image<Format>& other) const {
     return !this->operator==(other);
@@ -1280,12 +1062,6 @@ public:
   }
   const DataT* get_data() const {
     return this->data;
-  }
-  static constexpr size_t get_data_size(size_t w, size_t h) {
-    return PixelBuffer<Format>::data_size(w, h);
-  }
-  size_t get_data_size() const {
-    return this->get_data_size(this->w, this->h);
   }
 
   /////////////////////////////////////////////////////////////////////////////
