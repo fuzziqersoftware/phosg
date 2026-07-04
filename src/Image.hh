@@ -520,7 +520,7 @@ public:
     ret.h = h;
     ret.stride = ret.default_stride();
     ret.create_owned_data();
-    memcpy(ret.data, raw_data, ret.get_data_size());
+    memcpy(ret.pixels, raw_data, ret.get_data_size());
     return ret;
   }
   // Construct an Image with raw pixels from an external data buffer
@@ -532,7 +532,7 @@ public:
     ret.w = w;
     ret.h = h;
     ret.stride = ret.default_stride();
-    ret.data = reinterpret_cast<DataT*>(raw_data);
+    ret.pixels = reinterpret_cast<DataT*>(raw_data);
     return ret;
   }
 
