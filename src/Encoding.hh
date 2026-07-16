@@ -26,9 +26,10 @@ constexpr uint64_t mask_for_type = 0xFFFFFFFFFFFFFFFF >> (64 - bits_for_type<T>)
 
 template <typename ResultT, typename SrcT>
 ResultT sign_extend(SrcT src) {
+  using USrcT = std::make_unsigned_t<SrcT>;
   using UResultT = std::make_unsigned_t<ResultT>;
-  if (src & (1 << ((sizeof(SrcT) << 3) - 1))) {
-    return static_cast<ResultT>(src) | (static_cast<ResultT>(static_cast<UResultT>(-1) << (sizeof(SrcT) << 3)));
+  if (static_cast<USrcT>(src) & msb_for_type<USrcT>) {
+    return static_cast<ResultT>(static_cast<UResultT>(src) | (static_cast<UResultT>(-1) << bits_for_type<SrcT>));
   } else {
     return static_cast<ResultT>(src);
   }
