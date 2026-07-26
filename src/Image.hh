@@ -1572,6 +1572,16 @@ public:
     }
   }
 
+  void draw_rect(ssize_t x, ssize_t y, ssize_t w, ssize_t h, uint32_t color) {
+    if (w <= 0 || h <= 0) {
+      return;
+    }
+    this->draw_horizontal_line(x, x + w - 1, y, 0, color);
+    this->draw_horizontal_line(x, x + w - 1, y + h - 1, 0, color);
+    this->draw_vertical_line(x, y + 1, y + h - 1, 0, color);
+    this->draw_vertical_line(x + w - 1, y + 1, y + h - 1, 0, color);
+  }
+
   /////////////////////////////////////////////////////////////////////////////
   // Text functions. These are generally for debugging and reverse-engineering;
   // they use a fixed-size ASCII-only font.
