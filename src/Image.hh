@@ -774,7 +774,7 @@ public:
     ret.w = w;
     ret.h = h;
     ret.stride = this->stride;
-    ret.pixels = &this->at(x, y);
+    ret.pixels = reinterpret_cast<uint8_t*>(&this->at(x, y));
     return ret;
   }
   const Image<Format> view(ssize_t x, ssize_t y, ssize_t w, ssize_t h) const {
