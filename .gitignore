@@ -4,10 +4,12 @@
 # Build products
 *Test
 libphosg.a
+libphosg-async.a
 bindiff
 jsonformat
 parse-data
 phosg-png-conv
+*.exe
 
 # CMake files
 CMakeCache.txt

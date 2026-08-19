@@ -25,6 +25,8 @@ endif()
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CTEST_OUTPUT_ON_FAILURE ON)
 
+find_path(ASIO_INCLUDE_DIR NAMES asio.hpp HINTS "${WINDOWS_ENV}/include")
+
 
 
 # Library and executable definitions
@@ -44,6 +46,7 @@ add_library(
   src/Tools.cc
   src/UnitTest.cc
 )
+set(PhosgLibraries phosg)
 if (NOT WIN32)
   target_sources(phosg PRIVATE src/Filesystem-Unix.cc)
 endif()
@@ -61,6 +64,21 @@ string(FIND ${CMAKE_HOST_SYSTEM_PROCESSOR} "armv" IS_LINUX_ARMV)
 if("${CMAKE_HOST_SYSTEM_PROCESSOR}" STREQUAL "aarch64" OR "${IS_LINUX_ARMV}" GREATER_EQUAL 0
   OR "${CMAKE_OSX_ARCHITECTURES}" STREQUAL "ppc")
   target_link_libraries(phosg PUBLIC atomic)
+endif()
+
+
+if(ASIO_INCLUDE_DIR)
+  message("asio is available at ${ASIO_INCLUDE_DIR}; building phosg-async")
+  add_library(
+    phosg-async
+    src/Async/HTTPServer.cc
+    src/Async/Utils.cc
+  )
+  target_link_libraries(phosg-async PUBLIC phosg)
+  target_include_directories(phosg-async PUBLIC ${ASIO_INCLUDE_DIR})
+  list(APPEND PhosgLibraries phosg-async)
+else()
+  message("asio is not available; not building phosg-async")
 endif()
 
 add_executable(bindiff src/BinDiff.cc)
@@ -110,7 +128,7 @@ endforeach()
 
 # Package setup
 install(
-  TARGETS phosg
+  TARGETS ${PhosgLibraries}
   EXPORT phosg
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -121,6 +139,10 @@ install(
 # Header files
 file(GLOB Headers ${CMAKE_SOURCE_DIR}/src/*.hh)
 install(FILES ${Headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/phosg)
+if(ASIO_INCLUDE_DIR)
+  file(GLOB AsyncHeaders ${CMAKE_SOURCE_DIR}/src/Async/*.hh)
+  install(FILES ${AsyncHeaders} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/phosg/Async)
+endif()
 
 # Export definition
 install(
@@ -136,10 +158,12 @@ configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/phosgConfig.cmake.in
   INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/phosg
 )
 set(version 0.1)
-set_property(TARGET phosg PROPERTY VERSION ${version})
-set_property(TARGET phosg PROPERTY SOVERSION 0)
-set_property(TARGET phosg PROPERTY INTERFACE_phosg_MAJOR_VERSION 0)
-set_property(TARGET phosg APPEND PROPERTY COMPATIBLE_INTERFACE_STRING phosg_MAJOR_VERSION)
+foreach(LibName IN LISTS PhosgLibraries)
+  set_property(TARGET ${LibName} PROPERTY VERSION ${version})
+  set_property(TARGET ${LibName} PROPERTY SOVERSION 0)
+  set_property(TARGET ${LibName} PROPERTY INTERFACE_phosg_MAJOR_VERSION 0)
+  set_property(TARGET ${LibName} APPEND PROPERTY COMPATIBLE_INTERFACE_STRING phosg_MAJOR_VERSION)
+endforeach()
 write_basic_package_version_file(
   "${CMAKE_CURRENT_BINARY_DIR}/phosgConfigVersion.cmake"
   VERSION "${version}"

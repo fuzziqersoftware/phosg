@@ -18,7 +18,6 @@
 #include <sys/un.h>
 #else
 #include <winsock2.h>
-#undef ERROR // winsock2.h defines this, apparently :|
 #endif
 
 #include <filesystem>
