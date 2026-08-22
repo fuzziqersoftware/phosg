@@ -83,7 +83,7 @@ IntT parallel(
     ProgressFnT&& progress_fn = parallel_default_progress_fn<IntT>,
     bool use_progress_fn = true) {
   if (num_threads == 0) {
-    num_threads = std::thread::hardware_concurrency();
+    num_threads = std::max<size_t>(1, std::thread::hardware_concurrency());
   }
 
   std::atomic<IntT> current_value(start_value);
@@ -170,10 +170,7 @@ IntT parallel_blocks(
   }
 
   if (num_threads == 0) {
-    num_threads = std::thread::hardware_concurrency();
-  }
-  if (num_threads < 1) {
-    throw std::logic_error("thread count must be at least 1");
+    num_threads = std::max<size_t>(1, std::thread::hardware_concurrency());
   }
 
   std::atomic<IntT> current_value(start_value);
@@ -230,7 +227,7 @@ std::unordered_set<IntT> parallel_blocks_multi(
     bool use_progress_fn = true) {
 
   if (num_threads == 0) {
-    num_threads = std::thread::hardware_concurrency();
+    num_threads = std::max<size_t>(1, std::thread::hardware_concurrency());
   }
 
   std::vector<RetT> thread_rets(num_threads);
@@ -271,7 +268,7 @@ template <std::ranges::sized_range RangeT, typename FnT>
           std::is_invocable_r_v<void, FnT&, std::ranges::range_reference_t<RangeT>, size_t>))
 std::ranges::range_value_t<RangeT>* parallel_range(RangeT&& range, FnT&& fn, size_t num_threads = 0) {
   if (num_threads == 0) {
-    num_threads = std::thread::hardware_concurrency();
+    num_threads = std::max<size_t>(1, std::thread::hardware_concurrency());
   }
 
   std::mutex lock;
