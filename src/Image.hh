@@ -754,7 +754,7 @@ public:
   Image(const Image<Format>& other) = delete;
   Image& operator=(const Image<Format>& other) = delete;
 
-  // Constructs a writable view into another image, which can be used to make coordinates more convenient and restrict
+  // Constructs a writable view into this image, which can be used to make coordinates more convenient and restrict
   // writing to a particular region. The view does not own its own data; it must not be used after the parent image is
   // destroyed or otherwise invalidated (e.g. by resizing).
   Image<Format> view(ssize_t x, ssize_t y, ssize_t w, ssize_t h) {
@@ -779,6 +779,18 @@ public:
   }
   const Image<Format> view(ssize_t x, ssize_t y, ssize_t w, ssize_t h) const {
     return const_cast<Image*>(this)->view(x, y, w, h);
+  }
+  Image<Format> view(ssize_t x, ssize_t y) {
+    return this->view(x, y, this->get_width() - x, this->get_height() - y);
+  }
+  const Image<Format> view(ssize_t x, ssize_t y) const {
+    return const_cast<Image*>(this)->view(x, y);
+  }
+  Image<Format> view() {
+    return this->view(0, 0, this->get_width(), this->get_height());
+  }
+  const Image<Format> view() const {
+    return const_cast<Image*>(this)->view();
   }
 
   Image<Format> copy() const {
