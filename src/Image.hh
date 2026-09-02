@@ -92,7 +92,7 @@ constexpr uint32_t alpha_blend(uint32_t orig_color, uint32_t new_color) {
       (a * get_r(new_color) + (0xFF - a) * get_r(orig_color)) / 0xFF,
       (a * get_g(new_color) + (0xFF - a) * get_g(orig_color)) / 0xFF,
       (a * get_b(new_color) + (0xFF - a) * get_b(orig_color)) / 0xFF,
-      get_a(orig_color));
+      (a * a + (0xFF - a) * get_a(orig_color)) / 0xFF);
 }
 
 constexpr uint32_t invert(uint32_t color) {

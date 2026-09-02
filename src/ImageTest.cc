@@ -7,6 +7,7 @@
 #include <format>
 #include <vector>
 
+#include "Arguments.hh"
 #include "Filesystem.hh"
 #include "Image.hh"
 #include "Strings.hh"
@@ -19,7 +20,7 @@ static const vector<uint32_t> colors{
     0xFF0000C0, 0xFF8000C0, 0xFFFF00C0, 0x00FF00C0, 0x00FFFFC0, 0x0000FFC0, 0xFF00FFC0, 0xFFFFFFC0};
 
 template <PixelFormat Format>
-void test_pixel_format(const char* format_name) {
+void test_pixel_format(const char* format_name, bool save_refs) {
   Image<Format> img(180, 190);
 
   {
@@ -102,13 +103,19 @@ void test_pixel_format(const char* format_name) {
       expect_eq(Image<Format>::from_file_data(serialized), img);
     }
 
-    string reference_filename = std::format("reference/ImageTestReference.{}.{}", format_name, ext);
-    fwrite_fmt(stderr, "-- [Image:{}/{}] vs. reference\n", format_name, ext);
-    if (std::filesystem::is_regular_file(reference_filename)) {
-      expect_eq(load_file(reference_filename), serialized);
+    if (save_refs) {
+      string reference_filename = std::format("reference/ImageTestReference.{}.new.{}", format_name, ext);
+      save_file(reference_filename, serialized);
+      fwrite_fmt(stderr, "-- [Image:{}/{}] ... {}\n", format_name, ext, reference_filename);
     } else {
-      fwrite_fmt(stderr, "warning: reference file {} not found; skipping verification\n", reference_filename);
-      save_file(std::format("ImageTestResult.{}.{}", format_name, ext), serialized);
+      string reference_filename = std::format("reference/ImageTestReference.{}.{}", format_name, ext);
+      fwrite_fmt(stderr, "-- [Image:{}/{}] vs. reference\n", format_name, ext);
+      if (std::filesystem::is_regular_file(reference_filename)) {
+        expect_eq(load_file(reference_filename), serialized);
+      } else {
+        fwrite_fmt(stderr, "warning: reference file {} not found; skipping verification\n", reference_filename);
+        save_file(std::format("ImageTestResult.{}.{}", format_name, ext), serialized);
+      }
     }
 
     if constexpr (Format == PixelFormat::G1) {
@@ -122,28 +129,37 @@ void test_pixel_format(const char* format_name) {
         expect_eq(Image<PixelFormat::RGBA8888_NATIVE>::from_file_data(color_serialized), color_img);
       }
 
-      string color_reference_filename = std::format("reference/ImageTestReference.{}.colorized.{}", format_name, ext);
-      fwrite_fmt(stderr, "-- [Image:{}/{}] vs. reference\n", format_name, ext);
-      if (std::filesystem::is_regular_file(color_reference_filename)) {
-        expect_eq(load_file(color_reference_filename), color_serialized);
+      if (save_refs) {
+        string color_reference_filename = std::format("reference/ImageTestReference.{}.colorized.new.{}", format_name, ext);
+        save_file(color_reference_filename, color_serialized);
+        fwrite_fmt(stderr, "-- [Image:{}/{}] ... {}\n", format_name, ext, color_reference_filename);
       } else {
-        fwrite_fmt(stderr, "warning: reference file {} not found; skipping verification\n", color_reference_filename);
+        string color_reference_filename = std::format("reference/ImageTestReference.{}.colorized.{}", format_name, ext);
+        fwrite_fmt(stderr, "-- [Image:{}/{}] colorized vs. reference\n", format_name, ext);
+        if (std::filesystem::is_regular_file(color_reference_filename)) {
+          expect_eq(load_file(color_reference_filename), color_serialized);
+        } else {
+          fwrite_fmt(stderr, "warning: reference file {} not found; skipping verification\n", color_reference_filename);
+        }
       }
     }
   }
 }
 
-int main(int, char**) {
-  test_pixel_format<PixelFormat::G1>("g1");
-  test_pixel_format<PixelFormat::GA11>("ga11");
-  test_pixel_format<PixelFormat::G8>("g8");
-  test_pixel_format<PixelFormat::GA88_NATIVE>("ga88");
-  test_pixel_format<PixelFormat::XRGB1555_NATIVE>("xrgb1555");
-  test_pixel_format<PixelFormat::ARGB1555_NATIVE>("argb1555");
-  test_pixel_format<PixelFormat::RGB565_NATIVE>("rgb565");
-  test_pixel_format<PixelFormat::RGB888>("rgb888");
-  test_pixel_format<PixelFormat::RGBA8888_NATIVE>("rgba8888");
-  test_pixel_format<PixelFormat::ARGB8888_NATIVE>("argb8888");
+int main(int argc, char** argv) {
+  phosg::Arguments args(argv + 1, argc - 1);
+  bool save_refs = args.get<bool>("save-refs");
+  args.assert_none_unused();
+  test_pixel_format<PixelFormat::G1>("g1", save_refs);
+  test_pixel_format<PixelFormat::GA11>("ga11", save_refs);
+  test_pixel_format<PixelFormat::G8>("g8", save_refs);
+  test_pixel_format<PixelFormat::GA88_NATIVE>("ga88", save_refs);
+  test_pixel_format<PixelFormat::XRGB1555_NATIVE>("xrgb1555", save_refs);
+  test_pixel_format<PixelFormat::ARGB1555_NATIVE>("argb1555", save_refs);
+  test_pixel_format<PixelFormat::RGB565_NATIVE>("rgb565", save_refs);
+  test_pixel_format<PixelFormat::RGB888>("rgb888", save_refs);
+  test_pixel_format<PixelFormat::RGBA8888_NATIVE>("rgba8888", save_refs);
+  test_pixel_format<PixelFormat::ARGB8888_NATIVE>("argb8888", save_refs);
   fwrite_fmt(stdout, "ImageTest: all tests passed\n");
   return 0;
 }
