@@ -35,45 +35,36 @@ ResultT sign_extend(SrcT src) {
   }
 }
 
-static inline int32_t ext24(uint32_t a) {
+static constexpr int32_t ext24(uint32_t a) {
   return (a & 0x00800000) ? (a | 0xFF000000) : a;
 }
 
-static inline int64_t ext48(uint64_t a) {
+static constexpr int64_t ext48(uint64_t a) {
   return (a & 0x00008000000000) ? (a | 0xFFFF0000000000) : a;
 }
 
-static inline uint8_t bswap8(uint8_t a) {
+static constexpr uint8_t bswap8(uint8_t a) {
   return a;
 }
 
-static inline uint16_t bswap16(uint16_t a) {
-  return ((a >> 8) & 0x00FF) |
-      ((a << 8) & 0xFF00);
+static constexpr uint16_t bswap16(uint16_t a) {
+  return ((a >> 8) & 0x00FF) | ((a << 8) & 0xFF00);
 }
 
-static inline uint32_t bswap24(uint32_t a) {
-  return ((a >> 16) & 0x000000FF) |
-      (a & 0x0000FF00) |
-      ((a << 16) & 0x00FF0000);
+static constexpr uint32_t bswap24(uint32_t a) {
+  return ((a >> 16) & 0x000000FF) | (a & 0x0000FF00) | ((a << 16) & 0x00FF0000);
 }
 
-static inline int32_t bswap24s(int32_t a) {
+static constexpr int32_t bswap24s(int32_t a) {
   int32_t r = bswap24(a);
-  if (r & 0x00800000) {
-    return r | 0xFF000000;
-  }
-  return r;
+  return (r & 0x00800000) ? (r | 0xFF000000) : r;
 }
 
-static inline uint32_t bswap32(uint32_t a) {
-  return ((a >> 24) & 0x000000FF) |
-      ((a >> 8) & 0x0000FF00) |
-      ((a << 8) & 0x00FF0000) |
-      ((a << 24) & 0xFF000000);
+static constexpr uint32_t bswap32(uint32_t a) {
+  return ((a >> 24) & 0x000000FF) | ((a >> 8) & 0x0000FF00) | ((a << 8) & 0x00FF0000) | ((a << 24) & 0xFF000000);
 }
 
-static inline uint64_t bswap48(uint64_t a) {
+static constexpr uint64_t bswap48(uint64_t a) {
   return ((a >> 40) & 0x00000000000000FF) |
       ((a >> 24) & 0x000000000000FF00) |
       ((a >> 8) & 0x0000000000FF0000) |
@@ -82,15 +73,12 @@ static inline uint64_t bswap48(uint64_t a) {
       ((a << 40) & 0x0000FF0000000000);
 }
 
-static inline int64_t bswap48s(int64_t a) {
+static constexpr int64_t bswap48s(int64_t a) {
   int64_t r = bswap48(a);
-  if (r & 0x0000800000000000) {
-    return r | 0xFFFF000000000000;
-  }
-  return r;
+  return (r & 0x0000800000000000) ? (r | 0xFFFF000000000000) : r;
 }
 
-static inline uint64_t bswap64(uint64_t a) {
+static constexpr uint64_t bswap64(uint64_t a) {
   return ((a >> 56) & 0x00000000000000FF) |
       ((a >> 40) & 0x000000000000FF00) |
       ((a >> 24) & 0x0000000000FF0000) |
@@ -101,26 +89,26 @@ static inline uint64_t bswap64(uint64_t a) {
       ((a << 56) & 0xFF00000000000000);
 }
 
-static inline float bswap32f(uint32_t a) {
+static constexpr float bswap32f(uint32_t a) {
   float f;
   uint32_t* fu = (uint32_t*)(&f);
   *fu = bswap32(a);
   return f;
 }
 
-static inline double bswap64f(uint64_t a) {
+static constexpr double bswap64f(uint64_t a) {
   double d;
   uint64_t* du = (uint64_t*)(&d);
   *du = bswap64(a);
   return d;
 }
 
-static inline uint32_t bswap32f(float a) {
+static constexpr uint32_t bswap32f(float a) {
   uint32_t* au = (uint32_t*)(&a);
   return bswap32(*au);
 }
 
-static inline uint64_t bswap64f(double a) {
+static constexpr uint64_t bswap64f(double a) {
   uint64_t* au = (uint64_t*)(&a);
   return bswap64(*au);
 }
@@ -131,75 +119,75 @@ ResultT bswap(ArgT) {
 }
 
 template <>
-inline uint8_t bswap<uint8_t>(uint8_t v) {
+constexpr uint8_t bswap<uint8_t>(uint8_t v) {
   return v;
 }
 
 template <>
-inline int8_t bswap<int8_t>(int8_t v) {
+constexpr int8_t bswap<int8_t>(int8_t v) {
   return v;
 }
 
 template <>
-inline uint16_t bswap<uint16_t>(uint16_t v) {
+constexpr uint16_t bswap<uint16_t>(uint16_t v) {
   return bswap16(v);
 }
 
 template <>
-inline int16_t bswap<int16_t>(int16_t v) {
+constexpr int16_t bswap<int16_t>(int16_t v) {
   return bswap16(v);
 }
 
 template <>
-inline uint32_t bswap<uint32_t>(uint32_t v) {
+constexpr uint32_t bswap<uint32_t>(uint32_t v) {
   return bswap32(v);
 }
 
 template <>
-inline int32_t bswap<int32_t>(int32_t v) {
+constexpr int32_t bswap<int32_t>(int32_t v) {
   return bswap32(v);
 }
 
 template <>
-inline uint64_t bswap<uint64_t>(uint64_t v) {
+constexpr uint64_t bswap<uint64_t>(uint64_t v) {
   return bswap64(v);
 }
 
 template <>
-inline int64_t bswap<int64_t>(int64_t v) {
+constexpr int64_t bswap<int64_t>(int64_t v) {
   return bswap64(v);
 }
 
 template <>
-inline uint32_t bswap<float, uint32_t>(float v) {
+constexpr uint32_t bswap<float, uint32_t>(float v) {
   return bswap32f(v);
 }
 
 template <>
-inline float bswap<uint32_t, float>(uint32_t v) {
+constexpr float bswap<uint32_t, float>(uint32_t v) {
   return bswap32f(v);
 }
 
 template <>
-inline uint64_t bswap<double, uint64_t>(double v) {
+constexpr uint64_t bswap<double, uint64_t>(double v) {
   return bswap64f(v);
 }
 
 template <>
-inline double bswap<uint64_t, double>(uint64_t v) {
+constexpr double bswap<uint64_t, double>(uint64_t v) {
   return bswap64f(v);
 }
 
 template <typename ArgT, typename ResultT = ArgT>
 struct bswap_st {
-  static inline ResultT fn(ArgT v) {
+  static constexpr ResultT fn(ArgT v) {
     return bswap<ArgT, ResultT>(v);
   }
 };
 
 template <typename ArgT, typename ResultT = ArgT>
 struct ident_st {
-  static inline ResultT fn(ArgT v) {
+  static constexpr ResultT fn(ArgT v) {
     return *reinterpret_cast<const ResultT*>(&v);
   }
 };
@@ -213,101 +201,101 @@ public:
   using StoredType = StoredT;
   using ExposedType = ExposedT;
 
-  converted_endian() = default;
-  converted_endian(ExposedT v) : value(OnStoreSt::fn(v)) {}
-  converted_endian(const converted_endian& other) = default;
-  converted_endian(converted_endian&& other) = default;
-  converted_endian& operator=(const converted_endian& other) = default;
-  converted_endian& operator=(converted_endian&& other) = default;
+  constexpr converted_endian() = default;
+  constexpr converted_endian(ExposedT v) : value(OnStoreSt::fn(v)) {}
+  constexpr converted_endian(const converted_endian& other) = default;
+  constexpr converted_endian(converted_endian&& other) = default;
+  constexpr converted_endian& operator=(const converted_endian& other) = default;
+  constexpr converted_endian& operator=(converted_endian&& other) = default;
 
   // Access operators
-  operator ExposedT() const {
+  constexpr operator ExposedT() const {
     return OnLoadSt::fn(this->value);
   }
-  void store(ExposedT v) {
+  constexpr void store(ExposedT v) {
     this->value = OnStoreSt::fn(v);
   }
-  ExposedT load() const {
+  constexpr ExposedT load() const {
     return OnLoadSt::fn(this->value);
   }
-  void store_raw(StoredT v) {
+  constexpr void store_raw(StoredT v) {
     this->value = v;
   }
-  StoredT load_raw() const {
+  constexpr StoredT load_raw() const {
     return this->value;
   }
 
   // Assignment operators
-  converted_endian& operator=(ExposedT v) {
+  constexpr converted_endian& operator=(ExposedT v) {
     this->value = OnStoreSt::fn(v);
     return *this;
   };
 
   // Arithmetic assignment operators
   template <typename R>
-  converted_endian& operator+=(R delta) {
+  constexpr converted_endian& operator+=(R delta) {
     this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) + delta);
     return *this;
   }
   template <typename R>
-  converted_endian& operator-=(R delta) {
+  constexpr converted_endian& operator-=(R delta) {
     this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) - delta);
     return *this;
   }
   template <typename R>
-  converted_endian& operator*=(R delta) {
+  constexpr converted_endian& operator*=(R delta) {
     this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) * delta);
     return *this;
   }
   template <typename R>
-  converted_endian& operator/=(R delta) {
+  constexpr converted_endian& operator/=(R delta) {
     this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) / delta);
     return *this;
   }
   template <typename R>
-  converted_endian& operator%=(R delta) {
+  constexpr converted_endian& operator%=(R delta) {
     this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) % delta);
     return *this;
   }
   template <typename R>
-  converted_endian& operator&=(R delta) {
+  constexpr converted_endian& operator&=(R delta) {
     this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) & delta);
     return *this;
   }
   template <typename R>
-  converted_endian& operator|=(R delta) {
+  constexpr converted_endian& operator|=(R delta) {
     this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) | delta);
     return *this;
   }
   template <typename R>
-  converted_endian& operator^=(R delta) {
+  constexpr converted_endian& operator^=(R delta) {
     this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) ^ delta);
     return *this;
   }
   template <typename R>
-  converted_endian& operator<<=(R delta) {
+  constexpr converted_endian& operator<<=(R delta) {
     this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) << delta);
     return *this;
   }
   template <typename R>
-  converted_endian& operator>>=(R delta) {
+  constexpr converted_endian& operator>>=(R delta) {
     this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) >> delta);
     return *this;
   }
-  ExposedT operator++() {
+  constexpr ExposedT operator++() {
     this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) + 1);
     return this->value;
   }
-  ExposedT operator--() {
+  constexpr ExposedT operator--() {
     this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) - 1);
     return this->value;
   }
-  ExposedT operator++(int) {
+  constexpr ExposedT operator++(int) {
     ExposedT ret = OnLoadSt::fn(this->value);
     this->value = OnStoreSt::fn(ret + 1);
     return ret;
   }
-  ExposedT operator--(int) {
+  constexpr ExposedT operator--(int) {
     ExposedT ret = OnLoadSt::fn(this->value);
     this->value = OnStoreSt::fn(ret - 1);
     return ret;
