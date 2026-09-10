@@ -31,7 +31,14 @@ void test_pixel_format(const char* format_name, bool save_refs) {
 
   {
     fwrite_fmt(stderr, "-- [Image:{}] clear\n", format_name);
-    img.clear(0x20202020);
+    img.clear(0xCC00CCFF);
+  }
+
+  {
+    fwrite_fmt(stderr, "-- [Image:{}] flood fill (entire image)\n", format_name);
+    img.flood_fill(1, 1, 0x20202020);
+    img.flood_fill(1, 1, 0x20202020); // Should behave correctly if the image is already that color
+    img.flood_fill(1, 1, img.read(1, 1)); // Should behave correctly if the image is already that color (even if resampled)
   }
 
   {
@@ -84,6 +91,11 @@ void test_pixel_format(const char* format_name, bool save_refs) {
   {
     fwrite_fmt(stderr, "-- [Image:{}] copy_from_with_source_color_mask\n", format_name);
     img.copy_from_with_source_color_mask(img, 80, 105, 80, 80, 5, 5, 0x20202000);
+  }
+
+  {
+    fwrite_fmt(stderr, "-- [Image:{}] flood fill (small region)\n", format_name);
+    img.flood_fill(27, 117, 0xFF800080);
   }
 
   {

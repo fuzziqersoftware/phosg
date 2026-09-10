@@ -1527,11 +1527,43 @@ public:
   /////////////////////////////////////////////////////////////////////////////
   // Drawing functions
 
+  void flood_fill(size_t start_x, size_t start_y, uint32_t color) {
+    // Write the first pixel, then read it back, since the color may have been adjusted for the image's bit depth
+    uint32_t start_color = this->read(start_x, start_y);
+    this->write(start_x, start_y, color);
+    color = this->read(start_x, start_y);
+    if (color == start_color) {
+      return;
+    }
+
+    std::deque<std::pair<size_t, size_t>> to_expand{{start_x, start_y}};
+    while (!to_expand.empty()) {
+      auto [x, y] = to_expand.front();
+      to_expand.pop_front();
+      if ((x > 0) && (this->read(x - 1, y) == start_color)) {
+        this->write(x - 1, y, color);
+        to_expand.emplace_back(x - 1, y);
+      }
+      if ((x < this->get_width() - 1) && (this->read(x + 1, y) == start_color)) {
+        this->write(x + 1, y, color);
+        to_expand.emplace_back(x + 1, y);
+      }
+      if ((y > 0) && (this->read(x, y - 1) == start_color)) {
+        this->write(x, y - 1, color);
+        to_expand.emplace_back(x, y - 1);
+      }
+      if ((y < this->get_height() - 1) && (this->read(x, y + 1) == start_color)) {
+        this->write(x, y + 1, color);
+        to_expand.emplace_back(x, y + 1);
+      }
+    }
+  }
+
   // Uses the Bresenham algorithm to draw a line between the specified points.
   // The endpoints can be outside of the image.
   template <typename FnT>
     requires(std::is_invocable_r_v<void, FnT, size_t, size_t>)
-  void draw_line_custom(ssize_t x0, ssize_t y0, ssize_t x1, ssize_t y1, FnT fn) {
+  void draw_line_custom(ssize_t x0, ssize_t y0, ssize_t x1, ssize_t y1, FnT&& fn) {
     // If the line is too steep, we step along y rather than x
     bool steep = abs(y1 - y0) > abs(x1 - x0);
     if (steep) {
