@@ -1568,6 +1568,12 @@ public:
     });
   }
 
+  void blend_line(ssize_t x0, ssize_t y0, ssize_t x1, ssize_t y1, uint32_t color) {
+    this->draw_line_custom(x0, y0, x1, y1, [this, color](size_t x, size_t y) -> void {
+      this->write(x, y, phosg::alpha_blend(this->read(x, y), color));
+    });
+  }
+
   void draw_horizontal_line(ssize_t x1, ssize_t x2, ssize_t y, ssize_t dash_length, uint32_t color) {
     for (ssize_t x = x1; x <= x2; x++) {
       if ((!dash_length || !((x / dash_length) & 1)) && this->check(x, y)) {
