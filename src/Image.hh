@@ -1087,11 +1087,29 @@ public:
     }
   }
 
-  // Sets all pixels to the given color, without alpha blending
   void clear(uint32_t color) {
-    for (size_t y = 0; y < this->h; y++) {
-      for (size_t x = 0; x < this->w; x++) {
-        this->write(x, y, color);
+    // Specifically optimize G1 and GA11 cases, since those formats have pixels smaller than one byte
+
+    if constexpr (Format == PixelFormat::G1) {
+      uint8_t v = (((get_r(color) + get_g(color) + get_b(color)) / 3) >= 0x80) ? 0x00 : 0xFF;
+      memset(this->pixels, v, this->data_size());
+
+    } else if constexpr (Format == PixelFormat::GA11) {
+      uint8_t v;
+      if (get_a(color) < 0x80) {
+        v = 0x00; // Transparent (G=0, A=0)
+      } else if (((get_r(color) + get_g(color) + get_b(color)) / 3) >= 0x80) {
+        v = 0x55; // White (G=0, A=1)
+      } else {
+        v = 0xFF; // Black (G=1, A=1)
+      }
+      memset(this->pixels, v, this->data_size());
+
+    } else {
+      for (size_t y = 0; y < this->h; y++) {
+        for (size_t x = 0; x < this->w; x++) {
+          this->write(x, y, color);
+        }
       }
     }
   }
