@@ -5,11 +5,8 @@
 #include "LRUSet.hh"
 #include "UnitTest.hh"
 
-using namespace std;
-using namespace phosg;
-
 int main(int, char**) {
-  LRUSet<string> c;
+  phosg::LRUSet<std::string> c;
 
   expect_eq(c.size(), 0);
   expect_eq(c.count(), 0);
@@ -46,7 +43,7 @@ int main(int, char**) {
   expect_eq(c.size(), 280);
   expect_eq(c.count(), 3);
 
-  LRUSet<string> d;
+  phosg::LRUSet<std::string> d;
   expect_eq(d.size(), 0);
   expect_eq(d.count(), 0);
 
@@ -92,7 +89,7 @@ int main(int, char**) {
   expect_eq(d.size(), 0);
   expect_eq(d.count(), 0);
 
-  fwrite_fmt(stdout, "LRUSetTest: all tests passed\n");
+  phosg::fwrite_fmt(stdout, "LRUSetTest: all tests passed\n");
 
   return 0;
 }

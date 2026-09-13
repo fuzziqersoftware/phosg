@@ -39,12 +39,14 @@ public:
   // thrown if the JSON contains an unterminated string, list, or dict)
   class parse_error : public std::runtime_error {
   public:
-    explicit parse_error(const std::string& what);
+    inline explicit parse_error(const std::string& what, size_t pos)
+        : runtime_error(std::format("(position {}) {}", pos, what)), pos(pos) {}
+    size_t pos;
   };
   // Thrown when a JSON is accessed as the wrong type
   class type_error : public std::runtime_error {
   public:
-    explicit type_error(const std::string& what);
+    using runtime_error::runtime_error;
   };
 
   // JSON text parsers. If disable_extensions is true, the following

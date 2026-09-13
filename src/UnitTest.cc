@@ -6,8 +6,6 @@
 
 #include "Strings.hh"
 
-using namespace std;
-
 namespace phosg {
 
 expectation_failed::expectation_failed(const char* msg, const char* file, uint64_t line)

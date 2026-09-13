@@ -2,15 +2,12 @@
 
 #include "UnitTest.hh"
 
-using namespace std;
-using namespace phosg;
-
 #define expect_fails(x)                                                       \
   do {                                                                        \
     try {                                                                     \
       x;                                                                      \
       expect_msg(false, #x " did not throw");                                 \
-    } catch (const expectation_failed& e) {                                   \
+    } catch (const phosg::expectation_failed& e) {                            \
     } catch (...) {                                                           \
       expect_msg(false, #x " threw something that isn't expectation_failed"); \
     }                                                                         \
@@ -22,8 +19,8 @@ int main(int, char**) {
   expect_msg(true, "omg wut");
   try {
     expect_msg(false, "omg wut");
-    throw logic_error("expect_msg(false, ...) didn\'t throw");
-  } catch (const expectation_failed& e) {
+    throw std::logic_error("expect_msg(false, ...) didn\'t throw");
+  } catch (const phosg::expectation_failed& e) {
   }
 
   expect_eq(0, 0);
@@ -46,22 +43,22 @@ int main(int, char**) {
   expect_fails(expect_le(4, 3));
   expect_fails(expect(false));
 
-  expect_fails(expect_raises(runtime_error, [&]() {
+  expect_fails(expect_raises(std::runtime_error, [&]() {
     return;
   }));
 
-  expect_fails(expect_raises(runtime_error, [&]() {
-    throw logic_error("omg hax");
+  expect_fails(expect_raises(std::runtime_error, [&]() {
+    throw std::logic_error("omg hax");
   }));
 
-  expect_raises(runtime_error, [&]() {
-    throw runtime_error("omg hax");
+  expect_raises(std::runtime_error, [&]() {
+    throw std::runtime_error("omg hax");
   });
 
-  expect_raises(exception, [&]() {
-    throw runtime_error("omg hax");
+  expect_raises(std::exception, [&]() {
+    throw std::runtime_error("omg hax");
   });
 
-  fwrite_fmt(stdout, "UnitTestTest: all tests passed\n");
+  phosg::fwrite_fmt(stdout, "UnitTestTest: all tests passed\n");
   return 0;
 }

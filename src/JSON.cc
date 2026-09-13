@@ -10,12 +10,7 @@
 #include "Filesystem.hh"
 #include "Strings.hh"
 
-using namespace std;
-
 namespace phosg {
-
-JSON::parse_error::parse_error(const string& what) : runtime_error(what) {}
-JSON::type_error::type_error(const string& what) : runtime_error(what) {}
 
 static void skip_whitespace_and_comments(StringReader& r, bool disable_extensions) {
   bool reading_comment = false;
@@ -47,7 +42,7 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
     char separator = r.get_s8();
     while (separator != '}') {
       if (separator != expected_separator) {
-        throw parse_error("string is not a dictionary; pos=" + to_string(r.where()));
+        throw parse_error("string is not a dictionary", r.where());
       }
       expected_separator = ',';
 
@@ -61,7 +56,7 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
       skip_whitespace_and_comments(r, disable_extensions);
 
       if (r.get_s8() != ':') {
-        throw parse_error("dictionary does not contain key/value pairs; pos=" + to_string(r.where()));
+        throw parse_error("dictionary does not contain key/value pairs", r.where());
       }
       skip_whitespace_and_comments(r, disable_extensions);
 
@@ -76,7 +71,7 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
     char separator = r.get_s8();
     while (separator != ']') {
       if (separator != expected_separator) {
-        throw parse_error("string is not a list; pos=" + to_string(r.where()));
+        throw parse_error("string is not a list", r.where());
       }
       expected_separator = ',';
 
@@ -172,7 +167,7 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
   } else if (root_type_ch == '\"') {
     r.get_s8();
 
-    string data;
+    std::string data;
     while (r.get_s8(false) != '\"') {
       char ch = r.get_s8();
       if (ch == '\\') {
@@ -198,8 +193,8 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
           try {
             value = value_for_hex_char(r.get_s8()) << 4;
             value |= value_for_hex_char(r.get_s8());
-          } catch (const out_of_range&) {
-            throw parse_error("incomplete hex escape sequence in string; pos=" + to_string(r.where()));
+          } catch (const std::out_of_range&) {
+            throw parse_error("incomplete hex escape sequence in string", r.where());
           }
           data.push_back(value);
         } else if (ch == 'u') {
@@ -209,18 +204,18 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
             value |= value_for_hex_char(r.get_s8()) << 8;
             value |= value_for_hex_char(r.get_s8()) << 4;
             value |= value_for_hex_char(r.get_s8());
-          } catch (const out_of_range&) {
-            throw parse_error("incomplete unicode escape sequence in string; pos=" + to_string(r.where()));
+          } catch (const std::out_of_range&) {
+            throw parse_error("incomplete unicode escape sequence in string", r.where());
           }
           // TODO: we should eventually be able to support this
           if (value & 0xFF00) {
-            throw parse_error("non-ascii unicode character sequence in string; pos=" + to_string(r.where()));
+            throw parse_error("non-ascii unicode character sequence in string", r.where());
           }
           data.push_back(value);
         } else {
-          throw parse_error("invalid escape sequence in string; pos=" + to_string(r.where()));
+          throw parse_error("invalid escape sequence in string", r.where());
         }
-      } else { // not an escape sequence
+      } else { // Not an escape sequence
         data.push_back(ch);
       }
     }
@@ -238,7 +233,7 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
     ret = false;
 
   } else {
-    throw parse_error("unknown root sentinel; pos=" + to_string(r.where()));
+    throw parse_error("unknown root sentinel", r.where());
   }
 
   return ret;
@@ -249,17 +244,17 @@ JSON JSON::parse(const char* s, size_t size, bool disable_extensions) {
   auto ret = JSON::parse(r, disable_extensions);
   skip_whitespace_and_comments(r, disable_extensions);
   if (!r.eof()) {
-    throw parse_error("unparsed data remains after value");
+    throw parse_error("unparsed data remains after value", r.where());
   }
   return ret;
 }
 
-JSON JSON::parse(const string& s, bool disable_extensions) {
+JSON JSON::parse(const std::string& s, bool disable_extensions) {
   return JSON::parse(s.data(), s.size(), disable_extensions);
 }
 
-string JSON::escape_string(const string& s, StringEscapeMode mode) {
-  string ret;
+std::string JSON::escape_string(const std::string& s, StringEscapeMode mode) {
+  std::string ret;
   for (auto ch : s) {
     if (ch == '\"') {
       ret += "\\\"";
@@ -296,7 +291,7 @@ string JSON::escape_string(const string& s, StringEscapeMode mode) {
   return ret;
 }
 
-string JSON::serialize(uint32_t options, size_t indent_level) const {
+std::string JSON::serialize(uint32_t options, size_t indent_level) const {
   StringEscapeMode escape_mode;
   if (options & SerializeOption::ESCAPE_CONTROLS_ONLY) {
     escape_mode = StringEscapeMode::CONTROL_ONLY;
@@ -323,20 +318,20 @@ string JSON::serialize(uint32_t options, size_t indent_level) const {
       if (options & SerializeOption::HEX_INTEGERS) {
         return v < 0 ? std::format("-0x{:X}", -v) : std::format("0x{:X}", v);
       } else {
-        return to_string(this->as_int());
+        return std::format("{}", this->as_int());
       }
     }
 
     case 3: { // double
-      string ret = std::format("{:.17g}", this->as_float());
-      if (ret.find('.') == string::npos) {
+      std::string ret = std::format("{:.17g}", this->as_float());
+      if (ret.find('.') == std::string::npos) {
         ret += ".0";
       }
       return ret;
     }
 
     case 4: // string
-      return "\"" + JSON::escape_string(this->as_string(), escape_mode) + "\"";
+      return std::format("\"{}\"", JSON::escape_string(this->as_string(), escape_mode));
 
     case 5: { // list_type
       const auto& list = this->as_list();
@@ -347,7 +342,7 @@ string JSON::serialize(uint32_t options, size_t indent_level) const {
       bool format = options & SerializeOption::FORMAT;
       bool render_multiline = options & SerializeOption::EXPAND_LEAF_CONTAINERS;
       if (format && !render_multiline) {
-        for (const unique_ptr<JSON>& o : list) {
+        for (const auto& o : list) {
           if ((o->is_list() || o->is_dict()) && !o->empty()) {
             render_multiline = true;
             break;
@@ -355,19 +350,19 @@ string JSON::serialize(uint32_t options, size_t indent_level) const {
         }
       }
 
-      string ret = "[";
-      for (const unique_ptr<JSON>& o : list) {
+      std::string ret = "[";
+      for (const auto& o : list) {
         if (ret.size() > 1) {
           ret += (format && !render_multiline) ? ", " : ",";
         }
         if (render_multiline) {
-          ret += '\n' + string(indent_level + 2, ' ') + o->serialize(options, indent_level + 2);
+          ret += std::format("\n{:<{}}{}", "", indent_level + 2, o->serialize(options, indent_level + 2));
         } else {
           ret += o->serialize(options);
         }
       }
       if (render_multiline) {
-        ret += '\n' + string(indent_level, ' ') + "]";
+        ret += std::format("\n{:<{}}]", "", indent_level);
       } else {
         ret.push_back(']');
       }
@@ -393,27 +388,24 @@ string JSON::serialize(uint32_t options, size_t indent_level) const {
         }
       }
 
-      string ret = "{";
-      auto add_key = [&](const string& key, const JSON& value) -> void {
+      std::string ret = "{";
+      auto add_key = [&](const std::string& key, const JSON& value) -> void {
         if (ret.size() > 1) {
           ret += (format && !render_multiline) ? ", " : ",";
         }
-        string escaped_key = JSON::escape_string(key, escape_mode);
+        std::string escaped_key = JSON::escape_string(key, escape_mode);
         if (render_multiline) {
-          ret += '\n' + string(indent_level + 2, ' ') + "\"" + escaped_key + "\": " + value.serialize(options, indent_level + 2);
-        } else if (format) {
-          ret += "\"" + escaped_key + "\": " + value.serialize(options);
+          ret += std::format("\n{:<{}}\"{}\": {}", "", indent_level + 2, escaped_key, value.serialize(options, indent_level + 2));
         } else {
-          ret += "\"" + escaped_key + "\":" + value.serialize(options);
+          ret += std::format("\"{}\":{}{}", escaped_key, format ? " " : "", value.serialize(options));
         }
       };
 
       if (sort_keys) {
-        // Note: We're kind of breaking abstraction here (the values in sorted
-        // point to objects owned by unique_ptrs) but the lifetimes of these
-        // objects are assumed to span this entire function, so it's ok to do
-        // this temporarily.
-        map<string, JSON*> sorted;
+        // Note: We're kind of breaking abstraction here (the values in sorted point to objects owned by unique_ptrs)
+        // but the lifetimes of these objects are assumed to span this entire function, so it's ok to do this
+        // temporarily.
+        std::map<std::string, JSON*> sorted;
         for (const auto& o : dict) {
           sorted.emplace(o.first, o.second.get());
         }
@@ -426,14 +418,14 @@ string JSON::serialize(uint32_t options, size_t indent_level) const {
         }
       }
       if (render_multiline) {
-        return ret + '\n' + string(indent_level, ' ') + "}";
+        return std::format("{}\n{:<{}}}}", ret, "", indent_level);
       } else {
         return ret + "}";
       }
     }
 
     default:
-      throw parse_error("unknown object type");
+      throw std::logic_error("unknown object type");
   }
 }
 
@@ -444,16 +436,16 @@ JSON::JSON(nullptr_t) : value(nullptr) {}
 JSON::JSON(bool x) : value(x) {}
 
 JSON::JSON(const char* s) {
-  this->value = string(s);
+  this->value = std::string(s);
 }
 
 JSON::JSON(const char* s, size_t size) {
-  this->value = string(s, size);
+  this->value = std::string(s, size);
 }
 
-JSON::JSON(const string& x) : value(x) {}
+JSON::JSON(const std::string& x) : value(x) {}
 
-JSON::JSON(string&& x) : value(std::move(x)) {}
+JSON::JSON(std::string&& x) : value(std::move(x)) {}
 
 JSON::JSON(int64_t x) : value(x) {}
 
@@ -473,187 +465,183 @@ JSON& JSON::operator=(const JSON& rhs) {
       this->value = nullptr;
       break;
     case 1:
-      this->value = ::get<1>(rhs.value);
+      this->value = std::get<1>(rhs.value);
       break;
     case 2:
-      this->value = ::get<2>(rhs.value);
+      this->value = std::get<2>(rhs.value);
       break;
     case 3:
-      this->value = ::get<3>(rhs.value);
+      this->value = std::get<3>(rhs.value);
       break;
     case 4:
-      this->value = ::get<4>(rhs.value);
+      this->value = std::get<4>(rhs.value);
       break;
     case 5: {
-      this->value = vector<unique_ptr<JSON>>();
-      auto& v = ::get<5>(this->value);
+      this->value = std::vector<std::unique_ptr<JSON>>();
+      auto& v = std::get<5>(this->value);
       v.reserve(rhs.size());
-      for (const auto& item : (::get<5>(rhs.value))) {
+      for (const auto& item : (std::get<5>(rhs.value))) {
         v.emplace_back(new JSON(*item));
       }
       break;
     }
     case 6: {
-      this->value = unordered_map<string, unique_ptr<JSON>>();
-      auto& v = ::get<6>(this->value);
-      for (const auto& it : (::get<6>(rhs.value))) {
+      this->value = std::unordered_map<std::string, std::unique_ptr<JSON>>();
+      auto& v = std::get<6>(this->value);
+      for (const auto& it : (std::get<6>(rhs.value))) {
         v.emplace(it.first, new JSON(*it.second));
       }
       break;
     }
     default:
-      throw logic_error("invalid JSON value type");
+      throw std::logic_error("invalid JSON value type");
   }
   return *this;
 }
 
-partial_ordering JSON::operator<=>(const JSON& other) const {
+std::partial_ordering JSON::operator<=>(const JSON& other) const {
   size_t this_index = this->value.index();
   size_t other_index = other.value.index();
 
   // Allow cross-type int/float comparisons
   if (this_index == 2 && other_index == 3) {
-    return ::get<2>(this->value) <=> ::get<3>(other.value);
+    return std::get<2>(this->value) <=> std::get<3>(other.value);
   } else if (this_index == 3 && other_index == 2) {
-    return ::get<3>(this->value) <=> ::get<2>(other.value);
+    return std::get<3>(this->value) <=> std::get<2>(other.value);
   }
 
   if (this_index != other_index) {
-    return partial_ordering::unordered;
+    return std::partial_ordering::unordered;
   }
   switch (this_index) {
     case 0:
-      return partial_ordering::equivalent;
+      return std::partial_ordering::equivalent;
     case 1: {
-      const bool* other_v = ::get_if<1>(&other.value);
-      return (other_v == nullptr ? partial_ordering::unordered : this->operator<=>(*other_v));
+      const bool* other_v = std::get_if<1>(&other.value);
+      return (other_v == nullptr ? std::partial_ordering::unordered : this->operator<=>(*other_v));
     }
     case 2:
     case 3: {
-      const int64_t* other_vi = ::get_if<2>(&other.value);
+      const int64_t* other_vi = std::get_if<2>(&other.value);
       if (other_vi) {
         return this->operator<=>(*other_vi);
       }
-      const double* other_vf = ::get_if<3>(&other.value);
-      return (other_vf == nullptr ? partial_ordering::unordered : this->operator<=>(*other_vf));
+      const double* other_vf = std::get_if<3>(&other.value);
+      return (other_vf == nullptr ? std::partial_ordering::unordered : this->operator<=>(*other_vf));
     }
     case 4: {
-      const string* other_v = ::get_if<4>(&other.value);
-      return (other_v == nullptr ? partial_ordering::unordered : this->operator<=>(*other_v));
+      const std::string* other_v = std::get_if<4>(&other.value);
+      return (other_v == nullptr ? std::partial_ordering::unordered : this->operator<=>(*other_v));
     }
     case 5: {
-      const list_type* other_v = ::get_if<5>(&other.value);
-      return (other_v == nullptr ? partial_ordering::unordered : this->operator<=>(*other_v));
+      const list_type* other_v = std::get_if<5>(&other.value);
+      return (other_v == nullptr ? std::partial_ordering::unordered : this->operator<=>(*other_v));
     }
     case 6: {
-      const dict_type* other_v = ::get_if<6>(&other.value);
-      return (other_v == nullptr ? partial_ordering::unordered : this->operator<=>(*other_v));
+      const dict_type* other_v = std::get_if<6>(&other.value);
+      return (other_v == nullptr ? std::partial_ordering::unordered : this->operator<=>(*other_v));
     }
     default:
-      throw logic_error("invalid JSON value type");
+      throw std::logic_error("invalid JSON value type");
   }
 }
 
-partial_ordering JSON::operator<=>(nullptr_t) const {
+std::partial_ordering JSON::operator<=>(nullptr_t) const {
   const nullptr_t* stored_v = get_if<0>(&this->value);
-  return (stored_v == nullptr ? partial_ordering::unordered : partial_ordering::equivalent);
+  return (stored_v == nullptr ? std::partial_ordering::unordered : std::partial_ordering::equivalent);
 }
 
-partial_ordering JSON::operator<=>(bool v) const {
+std::partial_ordering JSON::operator<=>(bool v) const {
   const bool* stored_v = get_if<1>(&this->value);
-  return (stored_v == nullptr ? partial_ordering::unordered : (*stored_v <=> v));
+  return (stored_v == nullptr ? std::partial_ordering::unordered : (*stored_v <=> v));
 }
 
-static inline partial_ordering partial_ordering_for_string_compare_result(int res) {
+static inline std::partial_ordering partial_ordering_for_string_compare_result(int res) {
   if (res < 0) {
-    return partial_ordering::less;
+    return std::partial_ordering::less;
   } else if (res > 0) {
-    return partial_ordering::greater;
+    return std::partial_ordering::greater;
   } else {
-    return partial_ordering::equivalent;
+    return std::partial_ordering::equivalent;
   }
 }
 
-partial_ordering JSON::operator<=>(const char* v) const {
-  const string* stored_v = get_if<4>(&this->value);
+std::partial_ordering JSON::operator<=>(const char* v) const {
+  const std::string* stored_v = get_if<4>(&this->value);
   return (stored_v == nullptr
-          ? partial_ordering::unordered
+          ? std::partial_ordering::unordered
           : partial_ordering_for_string_compare_result(stored_v->compare(v)));
 }
-partial_ordering JSON::operator<=>(const string& v) const {
-  const string* stored_v = get_if<4>(&this->value);
+std::partial_ordering JSON::operator<=>(const std::string& v) const {
+  const std::string* stored_v = get_if<4>(&this->value);
   return (stored_v == nullptr
-          ? partial_ordering::unordered
+          ? std::partial_ordering::unordered
           : partial_ordering_for_string_compare_result(stored_v->compare(v)));
 }
 
-partial_ordering JSON::operator<=>(const list_type& v) const {
+std::partial_ordering JSON::operator<=>(const list_type& v) const {
   const list_type* stored_v = get_if<5>(&this->value);
   if (stored_v == nullptr) {
-    return partial_ordering::unordered;
+    return std::partial_ordering::unordered;
   }
-  // Note: We don't use vector::operator<=> here because the items are pointers,
-  // and we want to compare the pointed-to objects instead.
-  size_t max_size = min<size_t>(stored_v->size(), v.size());
+  // Note: We don't use vector::operator<=> here because the items are pointers and we want to compare the pointed-to
+  // objects instead
+  size_t max_size = std::min<size_t>(stored_v->size(), v.size());
   for (size_t z = 0; z < max_size; z++) {
-    partial_ordering item_ret = *(*stored_v)[z] <=> *v[z];
+    std::partial_ordering item_ret = *(*stored_v)[z] <=> *v[z];
     if (item_ret != 0) {
       return item_ret;
     }
   }
-  // If we get here, then all possible items matched. If the sizes aren't equal
-  // and stored_v is longer, then stored_v is greater than v; if v is longer,
-  // then v is greater than stored_v.
   return stored_v->size() <=> v.size();
 }
 
-partial_ordering JSON::operator<=>(const dict_type& v) const {
+std::partial_ordering JSON::operator<=>(const dict_type& v) const {
   const dict_type* stored_v = get_if<6>(&this->value);
   if (stored_v == nullptr) {
-    return partial_ordering::unordered;
+    return std::partial_ordering::unordered;
   }
-  // If the dict sizes are equal and all key/value pairs match, then the overall
-  // result is equality; otherwise, it's inequality. There is no ordering for
-  // dictionary-typed values.
+  // If the dict sizes are equal and all key/value pairs match, then the overall result is equality; otherwise, it's
+  // inequality. There is no ordering for dictionary-typed values
   if (stored_v->size() != v.size()) {
-    return partial_ordering::unordered;
+    return std::partial_ordering::unordered;
   }
   for (const auto& it : v) {
     try {
       const auto& item = stored_v->at(it.first);
-      if ((*item <=> *it.second) != partial_ordering::equivalent) {
-        return partial_ordering::unordered;
+      if ((*item <=> *it.second) != std::partial_ordering::equivalent) {
+        return std::partial_ordering::unordered;
       }
-    } catch (const out_of_range&) {
-      return partial_ordering::unordered;
+    } catch (const std::out_of_range&) {
+      return std::partial_ordering::unordered;
     }
   }
   // If we get here, then there were the same number of keys in both maps, all
   // keys in v were also in stored_v, and the corresponding values were all
   // equal. Therefore, the overall maps are equivalent.
-  return partial_ordering::equivalent;
+  return std::partial_ordering::equivalent;
 }
 
-JSON& JSON::at(const string& key) {
+JSON& JSON::at(const std::string& key) {
   try {
     return *this->as_dict().at(key);
-  } catch (const out_of_range& e) {
-    throw out_of_range("JSON key not present: " + key);
+  } catch (const std::out_of_range& e) {
+    throw std::out_of_range("JSON key not present: " + key);
   }
 }
 
-const JSON& JSON::at(const string& key) const {
+const JSON& JSON::at(const std::string& key) const {
   try {
     return *this->as_dict().at(key);
-  } catch (const out_of_range& e) {
-    throw out_of_range("JSON key not present: " + key);
+  } catch (const std::out_of_range& e) {
+    throw std::out_of_range("JSON key not present: " + key);
   }
 }
 
 JSON& JSON::at(size_t index) {
   auto& list = this->as_list();
   if (index >= list.size()) {
-    throw out_of_range("JSON array index out of bounds");
+    throw std::out_of_range("JSON array index out of bounds");
   }
   return *list[index];
 }
@@ -661,7 +649,7 @@ JSON& JSON::at(size_t index) {
 const JSON& JSON::at(size_t index) const {
   const auto& list = this->as_list();
   if (index >= list.size()) {
-    throw out_of_range("JSON array index out of bounds");
+    throw std::out_of_range("JSON array index out of bounds");
   }
   return *list[index];
 }
@@ -670,35 +658,35 @@ JSON::dict_type& JSON::as_dict() {
   if (!this->is_dict()) {
     throw type_error("JSON value cannot be accessed as a dict");
   }
-  return ::get<dict_type>(this->value);
+  return std::get<dict_type>(this->value);
 }
 
 const JSON::dict_type& JSON::as_dict() const {
   if (!this->is_dict()) {
     throw type_error("JSON value cannot be accessed as a dict");
   }
-  return ::get<dict_type>(this->value);
+  return std::get<dict_type>(this->value);
 }
 
 JSON::list_type& JSON::as_list() {
   if (!this->is_list()) {
     throw type_error("JSON value cannot be accessed as a list");
   }
-  return ::get<list_type>(this->value);
+  return std::get<list_type>(this->value);
 }
 
 const JSON::list_type& JSON::as_list() const {
   if (!this->is_list()) {
     throw type_error("JSON value cannot be accessed as a list");
   }
-  return ::get<list_type>(this->value);
+  return std::get<list_type>(this->value);
 }
 
 int64_t JSON::as_int() const {
   if (this->is_int()) {
-    return ::get<int64_t>(this->value);
+    return std::get<int64_t>(this->value);
   } else if (this->is_float()) {
-    return ::get<double>(this->value);
+    return std::get<double>(this->value);
   } else {
     throw type_error("JSON value cannot be accessed as an int");
   }
@@ -706,41 +694,41 @@ int64_t JSON::as_int() const {
 
 double JSON::as_float() const {
   if (this->is_int()) {
-    return ::get<int64_t>(this->value);
+    return std::get<int64_t>(this->value);
   } else if (this->is_float()) {
-    return ::get<double>(this->value);
+    return std::get<double>(this->value);
   } else {
     throw type_error("JSON value cannot be accessed as a float");
   }
 }
 
-string& JSON::as_string() {
+std::string& JSON::as_string() {
   if (!this->is_string()) {
     throw type_error("JSON value cannot be accessed as a string");
   }
-  return ::get<string>(this->value);
+  return std::get<std::string>(this->value);
 }
 
-const string& JSON::as_string() const {
+const std::string& JSON::as_string() const {
   if (!this->is_string()) {
     throw type_error("JSON value cannot be accessed as a string");
   }
-  return ::get<string>(this->value);
+  return std::get<std::string>(this->value);
 }
 
 bool JSON::as_bool() const {
   if (!this->is_bool()) {
     throw type_error("JSON value cannot be accessed as a bool");
   }
-  return ::get<bool>(this->value);
+  return std::get<bool>(this->value);
 }
 
 size_t JSON::size() const {
   switch (this->value.index()) {
     case 5:
-      return ::get<5>(this->value).size();
+      return std::get<5>(this->value).size();
     case 6:
-      return ::get<6>(this->value).size();
+      return std::get<6>(this->value).size();
     default:
       throw type_error("cannot get size of primitive JSON value");
   }
@@ -749,9 +737,9 @@ size_t JSON::size() const {
 bool JSON::empty() const {
   switch (this->value.index()) {
     case 5:
-      return ::get<5>(this->value).empty();
+      return std::get<5>(this->value).empty();
     case 6:
-      return ::get<6>(this->value).empty();
+      return std::get<6>(this->value).empty();
     default:
       throw type_error("cannot get empty property of primitive JSON value");
   }
@@ -760,10 +748,10 @@ bool JSON::empty() const {
 void JSON::clear() {
   switch (this->value.index()) {
     case 5:
-      ::get<5>(this->value).clear();
+      std::get<5>(this->value).clear();
       break;
     case 6:
-      ::get<6>(this->value).clear();
+      std::get<6>(this->value).clear();
       break;
     default:
       throw type_error("cannot clear primitive JSON value");

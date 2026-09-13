@@ -16,9 +16,8 @@
 #include "Platform.hh"
 
 #ifdef PHOSG_WINDOWS
-// Apparently Windows doesn't have iovec; we define it outside of the phosg
-// namespace so code that uses it won't have to special-case Windows or use
-// `using iovec = phosg::iovec'.
+// Apparently Windows doesn't have iovec; we define it outside of the phosg namespace so code that uses it won't have
+// to special-case Windows or use `using iovec = phosg::iovec`.
 struct iovec {
   void* iov_base;
   size_t iov_len;
@@ -502,10 +501,14 @@ public:
   StringReader sub(size_t offset, size_t size) const;
   StringReader subx(size_t offset) const;
   StringReader subx(size_t offset, size_t size) const;
+  StringReader extract(size_t size) const;
+  StringReader extractx(size_t size) const;
   BitReader sub_bits(size_t offset) const;
   BitReader sub_bits(size_t offset, size_t size) const;
   BitReader subx_bits(size_t offset) const;
   BitReader subx_bits(size_t offset, size_t size) const;
+  BitReader extract_bits() const;
+  BitReader extractx_bits(size_t size) const;
 
   const char* peek(size_t size);
 

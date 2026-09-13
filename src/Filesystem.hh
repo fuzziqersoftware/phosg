@@ -14,7 +14,7 @@
 #include <sys/uio.h>
 #endif
 
-#include <functional>
+#include <format>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -85,7 +85,7 @@ T load_object_file(const std::string& filename, bool allow_oversize = false) {
   if (!allow_oversize) {
     std::string extra = fread(f.get(), 1);
     if (!extra.empty()) {
-      throw std::runtime_error("file " + filename + " is too large");
+      throw std::runtime_error(std::format("file {} is too large", filename));
     }
   }
   return ret;

@@ -5,16 +5,13 @@
 #include "LRUMap.hh"
 #include "UnitTest.hh"
 
-using namespace std;
-using namespace phosg;
-
 int main(int, char**) {
-  LRUMap<string, string> c;
+  phosg::LRUMap<std::string, std::string> c;
 
   expect_eq(c.size(), 0);
   expect_eq(c.count(), 0);
 
-  expect_raises(out_of_range, [&]() {
+  expect_raises(std::out_of_range, [&]() {
     c.at("key1");
   });
 
@@ -65,7 +62,7 @@ int main(int, char**) {
   expect_eq(c.size(), 260);
   expect_eq(c.count(), 3);
 
-  LRUMap<string, string> d;
+  phosg::LRUMap<std::string, std::string> d;
   expect_eq(d.size(), 0);
   expect_eq(d.count(), 0);
 
@@ -96,7 +93,7 @@ int main(int, char**) {
   expect_eq(d.size(), 0);
   expect_eq(d.count(), 0);
 
-  fwrite_fmt(stdout, "LRUMapTest: all tests passed\n");
+  phosg::fwrite_fmt(stdout, "LRUMapTest: all tests passed\n");
 
   return 0;
 }

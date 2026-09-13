@@ -30,12 +30,10 @@
 #include "Filesystem.hh"
 #include "Strings.hh"
 
-using namespace std;
-
 namespace phosg {
 
 #ifndef PHOSG_WINDOWS
-pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const string& addr, uint16_t port) {
+std::pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const std::string& addr, uint16_t port) {
   struct sockaddr_storage s;
   memset(&s, 0, sizeof(s));
 
@@ -43,12 +41,12 @@ pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const string& addr, 
     // unix socket
     struct sockaddr_un* sun = (struct sockaddr_un*)&s;
     if ((addr.size() + 1) > sizeof(sun->sun_path)) {
-      throw runtime_error("socket path is too long");
+      throw std::runtime_error("socket path is too long");
     }
 
     sun->sun_family = AF_UNIX;
     strcpy(sun->sun_path, addr.c_str());
-    return make_pair(s, sizeof(sockaddr_un));
+    return std::make_pair(s, sizeof(sockaddr_un));
   }
 
   // inet or inet6
@@ -63,11 +61,10 @@ pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const string& addr, 
   } else {
     struct addrinfo* res0;
     if (getaddrinfo(addr.c_str(), nullptr, nullptr, &res0)) {
-      throw runtime_error("can\'t resolve hostname " + addr + ": " + string_for_error(errno));
+      throw std::runtime_error(std::format("can\'t resolve hostname {}: {}", addr, string_for_error(errno)));
     }
 
-    std::unique_ptr<struct addrinfo, void (*)(struct addrinfo*)> res0_unique(
-        res0, freeaddrinfo);
+    std::unique_ptr<struct addrinfo, void (*)(struct addrinfo*)> res0_unique(res0, freeaddrinfo);
     struct addrinfo *res4 = nullptr, *res6 = nullptr;
     for (struct addrinfo* res = res0; res; res = res->ai_next) {
       if (!res4 && (res->ai_family == AF_INET)) {
@@ -77,7 +74,7 @@ pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const string& addr, 
       }
     }
     if (!res4 && !res6) {
-      throw runtime_error("can\'t resolve hostname " + addr + ": no usable data");
+      throw std::runtime_error(std::format("can\'t resolve hostname {}: no usable data", addr));
     }
 
     if (res4) {
@@ -98,14 +95,14 @@ pair<struct sockaddr_storage, size_t> make_sockaddr_storage(const string& addr, 
     }
   }
 
-  return make_pair(s, ret_size);
+  return std::make_pair(s, ret_size);
 }
 
-string render_sockaddr_storage(const sockaddr_storage& s) {
+std::string render_sockaddr_storage(const sockaddr_storage& s) {
   switch (s.ss_family) {
     case AF_UNIX: {
       struct sockaddr_un* sun = (struct sockaddr_un*)&s;
-      return string(sun->sun_path);
+      return std::string(sun->sun_path);
     }
 
     case AF_INET: {
@@ -133,14 +130,13 @@ string render_sockaddr_storage(const sockaddr_storage& s) {
   }
 }
 
-uint32_t resolve_ipv4(const string& addr) {
+uint32_t resolve_ipv4(const std::string& addr) {
   struct addrinfo* res0;
   if (getaddrinfo(addr.c_str(), nullptr, nullptr, &res0)) {
-    throw runtime_error("can\'t resolve hostname " + addr + ": " + string_for_error(errno));
+    throw std::runtime_error(std::format("can\'t resolve hostname {}: {}", addr, string_for_error(errno)));
   }
 
-  std::unique_ptr<struct addrinfo, void (*)(struct addrinfo*)> res0_unique(
-      res0, freeaddrinfo);
+  std::unique_ptr<struct addrinfo, void (*)(struct addrinfo*)> res0_unique(res0, freeaddrinfo);
   struct addrinfo* res4 = nullptr;
   for (struct addrinfo* res = res0; res; res = res->ai_next) {
     if (!res4 && (res->ai_family == AF_INET)) {
@@ -148,26 +144,26 @@ uint32_t resolve_ipv4(const string& addr) {
     }
   }
   if (!res4) {
-    throw runtime_error("can\'t resolve hostname " + addr + ": no usable data");
+    throw std::runtime_error(std::format("can\'t resolve hostname {}: no usable data", addr));
   }
 
   struct sockaddr_in* res_sin = (struct sockaddr_in*)res4->ai_addr;
   return ntohl(res_sin->sin_addr.s_addr);
 }
 
-int listen(const string& addr, int port, int backlog, bool nonblocking) {
-  pair<struct sockaddr_storage, size_t> s = make_sockaddr_storage(addr, port);
+int listen(const std::string& addr, int port, int backlog, bool nonblocking) {
+  std::pair<struct sockaddr_storage, size_t> s = make_sockaddr_storage(addr, port);
 
   int fd = socket(s.first.ss_family, backlog ? SOCK_STREAM : SOCK_DGRAM,
       port ? (backlog ? IPPROTO_TCP : IPPROTO_UDP) : 0);
   if (fd == -1) {
-    throw runtime_error("can\'t create socket: " + string_for_error(errno));
+    throw std::runtime_error("can\'t create socket: " + string_for_error(errno));
   }
 
   int y = 1;
   if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char*>(&y), sizeof(y)) == -1) {
     close(fd);
-    throw runtime_error("can\'t enable address reuse: " + string_for_error(errno));
+    throw std::runtime_error("can\'t enable address reuse: " + string_for_error(errno));
   }
 
   if (port == 0) {
@@ -177,13 +173,12 @@ int listen(const string& addr, int port, int backlog, bool nonblocking) {
 
   if (::bind(fd, (struct sockaddr*)&s.first, s.second) != 0) {
     close(fd);
-    throw runtime_error("can\'t bind socket to " + render_sockaddr_storage(s.first) +
-        ": " + string_for_error(errno));
+    throw std::runtime_error(std::format(
+        "can\'t bind socket to {}: {}", render_sockaddr_storage(s.first), string_for_error(errno)));
   }
 
-  // New sockets are created with 0755 by default, which is annoying if we're
-  // running as root and will drop privileges soon. Make them accessible from
-  // everywhere instead.
+  // New sockets are created with 0755 by default, which is annoying if we're running as root and will drop privileges
+  // soon. Make them accessible from everywhere instead
   if (port == 0) {
     chmod(addr.c_str(), 0777);
   }
@@ -191,7 +186,7 @@ int listen(const string& addr, int port, int backlog, bool nonblocking) {
   // Only listen() on stream sockets
   if (backlog && (::listen(fd, backlog) != 0)) {
     close(fd);
-    throw runtime_error("can\'t listen on socket: " + string_for_error(errno));
+    throw std::runtime_error("can\'t listen on socket: " + string_for_error(errno));
   }
 
   if (nonblocking) {
@@ -201,13 +196,13 @@ int listen(const string& addr, int port, int backlog, bool nonblocking) {
   return fd;
 }
 
-int connect(const string& addr, int port, bool nonblocking) {
+int connect(const std::string& addr, int port, bool nonblocking) {
 
-  pair<struct sockaddr_storage, size_t> s = make_sockaddr_storage(addr, port);
+  std::pair<struct sockaddr_storage, size_t> s = make_sockaddr_storage(addr, port);
 
   int fd = socket(s.first.ss_family, SOCK_STREAM, port ? IPPROTO_TCP : 0);
   if (fd == -1) {
-    throw runtime_error("can\'t create socket: " + string_for_error(errno));
+    throw std::runtime_error("can\'t create socket: " + string_for_error(errno));
   }
 
   if (nonblocking) {
@@ -217,14 +212,13 @@ int connect(const string& addr, int port, bool nonblocking) {
   int connect_ret = connect(fd, (struct sockaddr*)&s.first, s.second);
   if (connect_ret == -1 && (!nonblocking || (errno != EINPROGRESS))) {
     close(fd);
-    throw runtime_error("can\'t connect socket: " + string_for_error(errno));
+    throw std::runtime_error("can\'t connect socket: " + string_for_error(errno));
   }
 
   return fd;
 }
 
-void get_socket_addresses(int fd, struct sockaddr_storage* local,
-    struct sockaddr_storage* remote) {
+void get_socket_addresses(int fd, struct sockaddr_storage* local, struct sockaddr_storage* remote) {
   socklen_t len;
   if (local) {
     len = sizeof(struct sockaddr_storage);
@@ -237,56 +231,56 @@ void get_socket_addresses(int fd, struct sockaddr_storage* local,
 }
 #endif
 
-string render_netloc(const string& addr, int port) {
+std::string render_netloc(const std::string& addr, int port) {
   if (addr.empty()) {
     if (!port) {
       return "<unknown>";
     } else {
-      return to_string(port);
+      return std::format("{}", port);
     }
   } else {
     if (!port) {
       return addr;
     } else {
-      return addr + ":" + to_string(port);
+      return std::format("{}:{}", addr, port);
     }
   }
 }
 
-pair<string, uint16_t> parse_netloc(const string& netloc, int default_port) {
+std::pair<std::string, uint16_t> parse_netloc(const std::string& netloc, int default_port) {
   size_t colon_loc = netloc.find(':');
-  if (colon_loc == string::npos) {
-    return make_pair(netloc, default_port);
+  if (colon_loc == std::string::npos) {
+    return std::make_pair(netloc, default_port);
   }
-  return make_pair(netloc.substr(0, colon_loc), stod(netloc.substr(colon_loc + 1)));
+  return std::make_pair(netloc.substr(0, colon_loc), stod(netloc.substr(colon_loc + 1)));
 }
 
 #ifndef PHOSG_WINDOWS
-string gethostname() {
-  string buf(sysconf(_SC_HOST_NAME_MAX) + 1, '\0');
+std::string gethostname() {
+  std::string buf(sysconf(_SC_HOST_NAME_MAX) + 1, '\0');
   if (::gethostname(buf.data(), buf.size())) {
-    throw runtime_error("can\'t get hostname");
+    throw std::runtime_error("can\'t get hostname");
   }
   buf.resize(strlen(buf.c_str()));
   return buf;
 }
 
-pair<int, int> socketpair(int domain, int type, int protocol) {
+std::pair<int, int> socketpair(int domain, int type, int protocol) {
   int fds[2];
   if (::socketpair(domain, type, protocol, fds)) {
-    throw runtime_error("socketpair failed: " + string_for_error(errno));
+    throw std::runtime_error("socketpair failed: " + string_for_error(errno));
   }
-  return make_pair(fds[0], fds[1]);
+  return std::make_pair(fds[0], fds[1]);
 }
 
-unordered_map<string, struct sockaddr_storage> get_network_interfaces() {
+std::unordered_map<std::string, struct sockaddr_storage> get_network_interfaces() {
   struct ifaddrs* ifa_raw;
   if (getifaddrs(&ifa_raw)) {
-    throw runtime_error("failed to get interface addresses: " + string_for_error(errno));
+    throw std::runtime_error("failed to get interface addresses: " + string_for_error(errno));
   }
-  unique_ptr<struct ifaddrs, void (*)(struct ifaddrs*)> ifa(ifa_raw, freeifaddrs);
+  std::unique_ptr<struct ifaddrs, void (*)(struct ifaddrs*)> ifa(ifa_raw, freeifaddrs);
 
-  unordered_map<string, struct sockaddr_storage> ret;
+  std::unordered_map<std::string, struct sockaddr_storage> ret;
   for (struct ifaddrs* i = ifa.get(); i; i = i->ifa_next) {
     if (!i->ifa_addr) {
       continue;

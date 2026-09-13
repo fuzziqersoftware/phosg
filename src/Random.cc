@@ -17,17 +17,15 @@
 
 #include "Filesystem.hh"
 
-using namespace std;
-
 namespace phosg {
 
 #ifndef PHOSG_WINDOWS
 static scoped_fd random_fd("/dev/urandom", O_RDONLY);
-static thread_local string buffer;
+static thread_local std::string buffer;
 #endif
 
-string random_data(size_t bytes) {
-  string ret(bytes, '\0');
+std::string random_data(size_t bytes) {
+  std::string ret(bytes, '\0');
   random_data(ret.data(), ret.size());
   return ret;
 }

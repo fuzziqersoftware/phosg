@@ -20,16 +20,14 @@
 #include "Filesystem.hh"
 #include "Process.hh"
 
-using namespace std;
-
 namespace phosg {
 
-unique_ptr<void, void (*)(void*)> malloc_unique(size_t size) {
-  return unique_ptr<void, void (*)(void*)>(malloc(size), free);
+std::unique_ptr<void, void (*)(void*)> malloc_unique(size_t size) {
+  return std::unique_ptr<void, void (*)(void*)>(malloc(size), free);
 }
 
-string toupper(const string& s) {
-  string ret;
+std::string toupper(const std::string& s) {
+  std::string ret;
   ret.reserve(s.size());
   for (char ch : s) {
     ret.push_back(::toupper(ch));
@@ -37,8 +35,8 @@ string toupper(const string& s) {
   return ret;
 }
 
-string tolower(const string& s) {
-  string ret;
+std::string tolower(const std::string& s) {
+  std::string ret;
   ret.reserve(s.size());
   for (char ch : s) {
     ret.push_back(::tolower(ch));
@@ -46,14 +44,14 @@ string tolower(const string& s) {
   return ret;
 }
 
-string str_replace_all(const string& s, const char* target, const char* replacement) {
+std::string str_replace_all(const std::string& s, const char* target, const char* replacement) {
   size_t target_size = strlen(target);
   size_t replacement_size = strlen(replacement);
 
-  string ret;
+  std::string ret;
   for (size_t read_offset = 0; read_offset < s.size();) {
     size_t find_offset = s.find(target, read_offset, target_size);
-    if (find_offset == string::npos) {
+    if (find_offset == std::string::npos) {
       ret.append(s.data() + read_offset, s.size() - read_offset);
       read_offset = s.size();
     } else {
@@ -65,8 +63,8 @@ string str_replace_all(const string& s, const char* target, const char* replacem
   return ret;
 }
 
-string escape_quotes(const string& s) {
-  string ret;
+std::string escape_quotes(const std::string& s) {
+  std::string ret;
   for (size_t x = 0; x < s.size(); x++) {
     char ch = s[x];
     if (ch == '\"') {
@@ -80,8 +78,8 @@ string escape_quotes(const string& s) {
   return ret;
 }
 
-string escape_controls(const string& s, bool escape_non_ascii) {
-  string ret;
+std::string escape_controls(const std::string& s, bool escape_non_ascii) {
+  std::string ret;
   for (size_t x = 0; x < s.size(); x++) {
     char ch = s[x];
     if (ch == '\"') {
@@ -113,8 +111,8 @@ string escape_controls(const string& s, bool escape_non_ascii) {
   return ret;
 }
 
-string escape_url(const string& s, bool escape_slash) {
-  string ret;
+std::string escape_url(const std::string& s, bool escape_slash) {
+  std::string ret;
   for (char ch : s) {
     if (isalnum(ch) || (ch == '-') || (ch == '_') || (ch == '.') ||
         (ch == '~') || (ch == '=') || (ch == '&') || (!escape_slash && (ch == '/'))) {
@@ -136,7 +134,7 @@ uint8_t value_for_hex_char(char x) {
   if (x >= 'a' && x <= 'f') {
     return (x - 'a') + 0xA;
   }
-  throw out_of_range(std::format("invalid hex char: {:c}", x));
+  throw std::out_of_range(std::format("invalid hex char: {:c}", x));
 }
 
 template <>
@@ -154,7 +152,7 @@ LogLevel enum_for_name<LogLevel>(const char* name) {
   } else if (!strcmp(name, "DISABLED")) {
     return LogLevel::L_DISABLED;
   } else {
-    throw invalid_argument("invalid LogLevel name");
+    throw std::invalid_argument("invalid LogLevel name");
   }
 }
 
@@ -174,7 +172,7 @@ const char* name_for_enum<LogLevel>(LogLevel level) {
     case LogLevel::L_DISABLED:
       return "DISABLED";
     default:
-      throw invalid_argument("invalid LogLevel value");
+      throw std::invalid_argument("invalid LogLevel value");
   }
 }
 
@@ -188,12 +186,7 @@ void set_log_level(LogLevel new_level) {
   current_log_level = new_level;
 }
 
-static const vector<char> log_level_chars({
-    'D',
-    'I',
-    'W',
-    'E',
-});
+static const std::vector<char> log_level_chars{'D', 'I', 'W', 'E'};
 
 void print_log_prefix(FILE* stream, LogLevel level) {
   char time_buffer[32];
@@ -209,17 +202,15 @@ void print_log_prefix(FILE* stream, LogLevel level) {
   fwrite_fmt(stream, "{:c} {} {} - ", level_char, getpid_cached(), &time_buffer[0]);
 }
 
-PrefixedLogger::PrefixedLogger(const string& prefix, LogLevel min_level)
-    : prefix(prefix),
-      min_level(min_level) {}
+PrefixedLogger::PrefixedLogger(const std::string& prefix, LogLevel min_level) : prefix(prefix), min_level(min_level) {}
 
 PrefixedLogger PrefixedLogger::sub(const std::string& prefix, LogLevel min_level) const {
   return PrefixedLogger(this->prefix + prefix, min_level == LogLevel::L_USE_DEFAULT ? this->min_level : min_level);
 }
 
 template <typename RetT, typename InT, typename CharT>
-vector<RetT> split_inner(InT s, CharT delim, size_t max_splits) {
-  vector<RetT> ret;
+std::vector<RetT> split_inner(InT s, CharT delim, size_t max_splits) {
+  std::vector<RetT> ret;
 
   // Note: token_start_offset can be equal to s.size() if the string ends with the delimiter character; in that case,
   // we need to ensure we correctly return an empty string at the end of ret.
@@ -254,9 +245,9 @@ std::vector<std::wstring_view> split_view(std::wstring_view s, wchar_t delim, si
 }
 
 template <typename RetT, typename InT, typename CharT>
-vector<RetT> split_context_inner(InT s, CharT delim, size_t max_splits) {
-  vector<RetT> ret;
-  vector<CharT> paren_stack;
+std::vector<RetT> split_context_inner(InT s, CharT delim, size_t max_splits) {
+  std::vector<RetT> ret;
+  std::vector<CharT> paren_stack;
   bool char_is_escaped = false;
 
   size_t z, last_start = 0;
@@ -296,7 +287,7 @@ vector<RetT> split_context_inner(InT s, CharT delim, size_t max_splits) {
   }
 
   if (paren_stack.size()) {
-    throw runtime_error("unbalanced parentheses in split_context");
+    throw std::runtime_error("unbalanced parentheses in split_context");
   }
 
   return ret;
@@ -310,8 +301,8 @@ std::vector<std::string_view> split_context_view(std::string_view s, char delim,
   return split_context_inner<std::string_view, std::string_view, char>(s, delim, max_splits);
 }
 
-vector<std::string> split_args(const std::string& s) {
-  vector<std::string> ret;
+std::vector<std::string> split_args(const std::string& s) {
+  std::vector<std::string> ret;
   char current_quote = 0;
   bool in_space_between_args = true;
 
@@ -325,7 +316,7 @@ vector<std::string> split_args(const std::string& s) {
       } else if (s[z] == '\\') {
         z++;
         if (z >= s.size()) {
-          throw runtime_error("incomplete escape sequence");
+          throw std::runtime_error("incomplete escape sequence");
         }
         to_write = s[z];
       } else {
@@ -337,7 +328,7 @@ vector<std::string> split_args(const std::string& s) {
       can_be_space = false;
       z++;
       if (z >= s.size()) {
-        throw runtime_error("incomplete escape sequence");
+        throw std::runtime_error("incomplete escape sequence");
       }
       to_write = s[z];
     } else {
@@ -364,15 +355,14 @@ vector<std::string> split_args(const std::string& s) {
   }
 
   if (current_quote) {
-    throw runtime_error("unterminated quoted string");
+    throw std::runtime_error("unterminated quoted string");
   }
 
   return ret;
 }
 
-size_t skip_whitespace(const string& s, size_t offset) {
-  while (offset < s.length() &&
-      (s[offset] == ' ' || s[offset] == '\t' || s[offset] == '\r' || s[offset] == '\n')) {
+size_t skip_whitespace(const std::string& s, size_t offset) {
+  while (offset < s.length() && (s[offset] == ' ' || s[offset] == '\t' || s[offset] == '\r' || s[offset] == '\n')) {
     offset++;
   }
   return offset;
@@ -385,9 +375,8 @@ size_t skip_whitespace(const char* s, size_t offset) {
   return offset;
 }
 
-size_t skip_non_whitespace(const string& s, size_t offset) {
-  while (offset < s.length() &&
-      (s[offset] != ' ' && s[offset] != '\t' && s[offset] != '\r' && s[offset] != '\n')) {
+size_t skip_non_whitespace(const std::string& s, size_t offset) {
+  while (offset < s.length() && (s[offset] != ' ' && s[offset] != '\t' && s[offset] != '\r' && s[offset] != '\n')) {
     offset++;
   }
   return offset;
@@ -400,7 +389,7 @@ size_t skip_non_whitespace(const char* s, size_t offset) {
   return offset;
 }
 
-size_t skip_word(const string& s, size_t offset) {
+size_t skip_word(const std::string& s, size_t offset) {
   return skip_whitespace(s, skip_non_whitespace(s, offset));
 }
 
@@ -408,7 +397,7 @@ size_t skip_word(const char* s, size_t offset) {
   return skip_whitespace(s, skip_non_whitespace(s, offset));
 }
 
-string string_for_error(int error) {
+std::string string_for_error(int error) {
   char buffer[1024] = "Unknown error";
 #ifndef PHOSG_WINDOWS
   strerror_r(error, buffer, sizeof(buffer));
@@ -418,12 +407,11 @@ string string_for_error(int error) {
   return std::format("{} ({})", error, buffer);
 }
 
-string vformat_color_escape(TerminalFormat color, va_list va) {
-  string fmt("\033");
+std::string vformat_color_escape(TerminalFormat color, va_list va) {
+  std::string fmt("\033");
 
   do {
-    fmt += (fmt[fmt.size() - 1] == '\033') ? '[' : ';';
-    fmt += to_string((int)color);
+    fmt += std::format("{:c}{}", (fmt[fmt.size() - 1] == '\033') ? '[' : ';', static_cast<ssize_t>(color));
     color = va_arg(va, TerminalFormat);
   } while (color != TerminalFormat::END);
 
@@ -431,10 +419,10 @@ string vformat_color_escape(TerminalFormat color, va_list va) {
   return fmt;
 }
 
-string format_color_escape(TerminalFormat color, ...) {
+std::string format_color_escape(TerminalFormat color, ...) {
   va_list va;
   va_start(va, color);
-  string ret = vformat_color_escape(color, va);
+  std::string ret = vformat_color_escape(color, va);
   va_end(va);
   return ret;
 }
@@ -442,7 +430,7 @@ string format_color_escape(TerminalFormat color, ...) {
 void print_color_escape(FILE* stream, TerminalFormat color, ...) {
   va_list va;
   va_start(va, color);
-  string fmt = vformat_color_escape(color, va);
+  std::string fmt = vformat_color_escape(color, va);
   va_end(va);
   fwrite(fmt.data(), fmt.size(), 1, stream);
 }
@@ -479,12 +467,7 @@ bool print_binary_diff(
   }
 
   bool is_identical = true;
-  auto print_diff_line = [&](char left_ch,
-                             const uint8_t* data,
-                             size_t size,
-                             size_t line_index,
-                             uint16_t diff_flags,
-                             TerminalFormat color) {
+  auto print_diff_line = [&](char left_ch, const uint8_t* data, size_t size, size_t line_index, uint16_t diff_flags, TerminalFormat color) {
     size_t line_start_offset = line_index * 0x10;
     if (use_color) {
       print_color_escape(stream, color, TerminalFormat::END);
@@ -594,19 +577,19 @@ bool print_binary_diff(
   return is_identical;
 }
 
-static inline void add_mask_bits(string* mask, bool mask_enabled, size_t num_bytes) {
+static inline void add_mask_bits(std::string* mask, bool mask_enabled, size_t num_bytes) {
   if (!mask) {
     return;
   }
   mask->append(num_bytes, mask_enabled ? '\xFF' : '\x00');
 }
 
-string parse_data_string(const string& s, string* mask, uint64_t flags) {
+std::string parse_data_string(const std::string& s, std::string* mask, uint64_t flags) {
   bool allow_files = flags & ParseDataFlags::ALLOW_FILES;
 
   const char* in = s.c_str();
 
-  string data;
+  std::string data;
   if (mask) {
     mask->clear();
   }
@@ -626,19 +609,19 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
   bool reading_filename = false;
   bool big_endian = false;
   bool mask_enabled = true;
-  string filename;
+  std::string filename;
   while (in[0]) {
     bool read_nybble = 0;
 
-    // if between // and a newline, don't write to output buffer
     if (reading_comment) {
+      // If between // and a newline, don't write to output buffer
       if (in[0] == '\n') {
         reading_comment = false;
       }
       in++;
 
-      // if between /* and */, don't write to output buffer
     } else if (reading_multiline_comment) {
+      // If between /* and */, don't write to output buffer
       if ((in[0] == '*') && (in[1] == '/')) {
         reading_multiline_comment = 0;
         in += 2;
@@ -646,13 +629,13 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
         in++;
       }
 
-      // if between quotes, read bytes to output buffer, unescaping where needed
     } else if (reading_string) {
+      // If between quotes, read bytes to output buffer, unescaping where needed
       if (in[0] == '\"') {
         reading_string = 0;
         in++;
 
-      } else if (in[0] == '\\') { // unescape char after a backslash
+      } else if (in[0] == '\\') {
         if (!in[1]) {
           return data;
         } else if (in[1] == 'n') {
@@ -677,13 +660,13 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
         in++;
       }
 
-      // if between single quotes, word-expand bytes to output buffer, unescaping
     } else if (reading_unicode_string) {
+      // If between single quotes, word-expand bytes to output buffer, unescaping
       if (in[0] == '\'') {
         reading_unicode_string = 0;
         in++;
 
-      } else if (in[0] == '\\') { // unescape char after a backslash
+      } else if (in[0] == '\\') {
         int16_t value;
         if (!in[1]) {
           return data;
@@ -713,8 +696,8 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
         in++;
       }
 
-      // if between <>, read a file name, then stick that file into the buffer
     } else if (reading_filename) {
+      // If between <>, read a file name, then insert the file contents into the buffer
       if (in[0] == '>') {
         // TODO: support <filename@offset:size> syntax
         reading_filename = 0;
@@ -727,18 +710,18 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
       }
       in++;
 
-      // ? inverts mask_enabled
     } else if (in[0] == '?') {
+      // ? inverts mask_enabled
       mask_enabled = !mask_enabled;
       in++;
 
-      // $ changes the endianness
     } else if (in[0] == '$') {
+      // $ changes the endianness
       big_endian = !big_endian;
       in++;
 
-      // # signifies a decimal number
     } else if (in[0] == '#') { // 8-bit
+      // # signifies a decimal number
       in++;
       if (in[0] == '#') { // 16-bit
         in++;
@@ -776,8 +759,8 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
         add_mask_bits(mask, mask_enabled, 1);
       }
 
-      // % is a float, %% is a double
     } else if (in[0] == '%') {
+      // % is a float, %% is a double
       in++;
       if (in[0] == '%') {
         in++;
@@ -800,8 +783,8 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
         add_mask_bits(mask, mask_enabled, 4);
       }
 
-      // anything else is a hex digit
     } else {
+      // Anything else is a hex digit
       if ((in[0] >= '0') && (in[0] <= '9')) {
         read_nybble = true;
         chr |= (in[0] - '0');
@@ -847,14 +830,14 @@ string parse_data_string(const string& s, string* mask, uint64_t flags) {
   return data;
 }
 
-string format_data_string(const string& data, const string* mask, uint64_t flags) {
+std::string format_data_string(const std::string& data, const std::string* mask, uint64_t flags) {
   if (mask && (mask->size() != data.size())) {
-    throw logic_error("data and mask sizes do not match");
+    throw std::logic_error("data and mask sizes do not match");
   }
   return format_data_string(data.data(), data.size(), mask ? mask->data() : nullptr, flags);
 }
 
-string format_data_string(const void* vdata, size_t size, const void* vmask, uint64_t flags) {
+std::string format_data_string(const void* vdata, size_t size, const void* vmask, uint64_t flags) {
   const uint8_t* data = reinterpret_cast<const uint8_t*>(vdata);
   const uint8_t* mask = reinterpret_cast<const uint8_t*>(vmask);
 
@@ -868,7 +851,7 @@ string format_data_string(const void* vdata, size_t size, const void* vmask, uin
     }
   }
 
-  string ret;
+  std::string ret;
   bool mask_enabled = true;
   if (is_printable) {
     ret += '\"';
@@ -916,13 +899,13 @@ string format_data_string(const void* vdata, size_t size, const void* vmask, uin
 
 #if (SIZE_T_BITS == 8)
 
-string format_size(size_t size, bool include_bytes) {
+std::string format_size(size_t size, bool include_bytes) {
   return std::format("{} bytes", size);
 }
 
 #elif (SIZE_T_BITS == 16)
 
-string format_size(size_t size, bool include_bytes) {
+std::string format_size(size_t size, bool include_bytes) {
   if (size < KB_SIZE) {
     return std::format("{} bytes", size);
   }
@@ -935,7 +918,7 @@ string format_size(size_t size, bool include_bytes) {
 
 #elif (SIZE_T_BITS == 32)
 
-string format_size(size_t size, bool include_bytes) {
+std::string format_size(size_t size, bool include_bytes) {
   if (size < KB_SIZE) {
     return std::format("{} bytes", size);
   }
@@ -960,7 +943,7 @@ string format_size(size_t size, bool include_bytes) {
 
 #elif (SIZE_T_BITS == 64)
 
-string format_size(size_t size, bool include_bytes) {
+std::string format_size(size_t size, bool include_bytes) {
   if (size < KB_SIZE) {
     return std::format("{} bytes", size);
   }
@@ -1004,8 +987,7 @@ string format_size(size_t size, bool include_bytes) {
 #endif
 
 size_t parse_size(const char* str) {
-  // input is like [0-9](\.[0-9]+)? *[KkMmGgTtPpEe]?[Bb]?
-  // fortunately this can just be parsed left-to-right
+  // Input is like [0-9](\.[0-9]+)? *[KkMmGgTtPpEe]?[Bb]? - fortunately this can just be parsed left-to-right
   double fractional_part = 0.0;
   size_t integer_part = 0;
   size_t unit_scale = 1;
@@ -1045,25 +1027,18 @@ size_t parse_size(const char* str) {
   return integer_part * unit_scale + static_cast<size_t>(fractional_part * unit_scale);
 }
 
-BitReader::BitReader()
-    : owned_data(nullptr),
-      data(nullptr),
-      length(0),
-      offset(0) {}
+BitReader::BitReader() : owned_data(nullptr), data(nullptr), length(0), offset(0) {}
 
-BitReader::BitReader(shared_ptr<string> data, size_t offset)
+BitReader::BitReader(std::shared_ptr<std::string> data, size_t offset)
     : owned_data(data),
       data(reinterpret_cast<const uint8_t*>(data->data())),
       length(data->size() * 8),
       offset(offset) {}
 
 BitReader::BitReader(const void* data, size_t size, size_t offset)
-    : data(reinterpret_cast<const uint8_t*>(data)),
-      length(size),
-      offset(offset) {}
+    : data(reinterpret_cast<const uint8_t*>(data)), length(size), offset(offset) {}
 
-BitReader::BitReader(const string& data, size_t offset)
-    : BitReader(data.data(), data.size() * 8, offset) {}
+BitReader::BitReader(const std::string& data, size_t offset) : BitReader(data.data(), data.size() * 8, offset) {}
 
 size_t BitReader::where() const {
   return this->offset;
@@ -1079,7 +1054,7 @@ size_t BitReader::remaining() const {
 
 void BitReader::truncate(size_t new_size) {
   if (this->length < new_size) {
-    throw invalid_argument("BitReader contents cannot be extended");
+    throw std::invalid_argument("BitReader contents cannot be extended");
   }
   this->length = new_size;
 }
@@ -1098,7 +1073,7 @@ bool BitReader::eof() const {
 
 uint64_t BitReader::pread(size_t start_offset, uint8_t size) {
   if (size > 64) {
-    throw logic_error("BitReader cannot return more than 64 bits at once");
+    throw std::logic_error("BitReader cannot return more than 64 bits at once");
   }
 
   uint64_t ret = 0;
@@ -1130,7 +1105,7 @@ void BitWriter::reset() {
 
 void BitWriter::truncate(size_t size) {
   if (size > ((this->data.size() * 8) - this->last_byte_unset_bits)) {
-    throw logic_error("cannot extend a BitWriter via truncate()");
+    throw std::logic_error("cannot extend a BitWriter via truncate()");
   }
   this->data.resize((size + 7) / 8);
   this->last_byte_unset_bits = (8 - (size & 7)) & 7;
@@ -1174,25 +1149,15 @@ size_t IOVecByteReader::size() const {
   return ret;
 }
 
-StringReader::StringReader()
-    : owned_data(nullptr),
-      data(nullptr),
-      length(0),
-      offset(0) {}
+StringReader::StringReader() : owned_data(nullptr), data(nullptr), length(0), offset(0) {}
 
-StringReader::StringReader(shared_ptr<string> data, size_t offset)
-    : owned_data(data),
-      data(reinterpret_cast<const uint8_t*>(data->data())),
-      length(data->size()),
-      offset(offset) {}
+StringReader::StringReader(std::shared_ptr<std::string> data, size_t offset)
+    : owned_data(data), data(reinterpret_cast<const uint8_t*>(data->data())), length(data->size()), offset(offset) {}
 
 StringReader::StringReader(const void* data, size_t size, size_t offset)
-    : data(reinterpret_cast<const uint8_t*>(data)),
-      length(size),
-      offset(offset) {}
+    : data(reinterpret_cast<const uint8_t*>(data)), length(size), offset(offset) {}
 
-StringReader::StringReader(const string& data, size_t offset)
-    : StringReader(data.data(), data.size(), offset) {}
+StringReader::StringReader(const std::string& data, size_t offset) : StringReader(data.data(), data.size(), offset) {}
 
 size_t StringReader::where() const {
   return this->offset;
@@ -1208,7 +1173,7 @@ size_t StringReader::remaining() const {
 
 void StringReader::truncate(size_t new_size) {
   if (this->length < new_size) {
-    throw invalid_argument("StringReader contents cannot be extended");
+    throw std::invalid_argument("StringReader contents cannot be extended");
   }
   this->length = new_size;
 }
@@ -1221,7 +1186,7 @@ void StringReader::skip(size_t bytes) {
   this->offset += bytes;
   if (this->offset > this->length) {
     this->offset = this->length;
-    throw out_of_range("skip beyond end of string");
+    throw std::out_of_range("skip beyond end of string");
   }
 }
 
@@ -1238,8 +1203,8 @@ bool StringReader::eof() const {
   return (this->offset >= this->length);
 }
 
-string StringReader::all() const {
-  return string(reinterpret_cast<const char*>(this->data), this->length);
+std::string StringReader::all() const {
+  return std::string(reinterpret_cast<const char*>(this->data), this->length);
 }
 
 StringReader StringReader::sub(size_t offset) const {
@@ -1256,25 +1221,31 @@ StringReader StringReader::sub(size_t offset, size_t size) const {
     return StringReader();
   }
   if (offset + size > this->length) {
-    return StringReader(
-        reinterpret_cast<const char*>(this->data) + offset,
-        this->length - offset);
+    return StringReader(reinterpret_cast<const char*>(this->data) + offset, this->length - offset);
   }
   return StringReader(reinterpret_cast<const char*>(this->data) + offset, size);
 }
 
 StringReader StringReader::subx(size_t offset) const {
   if (offset > this->length) {
-    throw out_of_range("sub-reader begins beyond end of data");
+    throw std::out_of_range("sub-reader begins beyond end of data");
   }
-  return StringReader(
-      reinterpret_cast<const char*>(this->data) + offset,
-      this->length - offset);
+  return StringReader(reinterpret_cast<const char*>(this->data) + offset, this->length - offset);
 }
 
 StringReader StringReader::subx(size_t offset, size_t size) const {
   if (offset + size > this->length) {
-    throw out_of_range("sub-reader begins or extends beyond end of data");
+    throw std::out_of_range("sub-reader begins or extends beyond end of data");
+  }
+  return StringReader(reinterpret_cast<const char*>(this->data) + offset, size);
+}
+
+StringReader StringReader::extract(size_t size) const {
+  if (offset >= this->length) {
+    return StringReader();
+  }
+  if (offset + size > this->length) {
+    return StringReader(reinterpret_cast<const char*>(this->data) + offset, this->length - offset);
   }
   return StringReader(reinterpret_cast<const char*>(this->data) + offset, size);
 }
@@ -1283,9 +1254,7 @@ BitReader StringReader::sub_bits(size_t offset) const {
   if (offset > this->length) {
     return BitReader();
   }
-  return BitReader(
-      reinterpret_cast<const char*>(this->data) + offset,
-      (this->length - offset) * 8);
+  return BitReader(reinterpret_cast<const char*>(this->data) + offset, (this->length - offset) * 8);
 }
 
 BitReader StringReader::sub_bits(size_t offset, size_t size) const {
@@ -1293,25 +1262,21 @@ BitReader StringReader::sub_bits(size_t offset, size_t size) const {
     return BitReader();
   }
   if (offset + size > this->length) {
-    return BitReader(
-        reinterpret_cast<const char*>(this->data) + offset,
-        (this->length - offset) * 8);
+    return BitReader(reinterpret_cast<const char*>(this->data) + offset, (this->length - offset) * 8);
   }
   return BitReader(reinterpret_cast<const char*>(this->data) + offset, size * 8);
 }
 
 BitReader StringReader::subx_bits(size_t offset) const {
   if (offset > this->length) {
-    throw out_of_range("sub-reader begins beyond end of data");
+    throw std::out_of_range("sub-reader begins beyond end of data");
   }
-  return BitReader(
-      reinterpret_cast<const char*>(this->data) + offset,
-      (this->length - offset) * 8);
+  return BitReader(reinterpret_cast<const char*>(this->data) + offset, (this->length - offset) * 8);
 }
 
 BitReader StringReader::subx_bits(size_t offset, size_t size) const {
   if (offset + size > this->length) {
-    throw out_of_range("sub-reader begins or extends beyond end of data");
+    throw std::out_of_range("sub-reader begins or extends beyond end of data");
   }
   return BitReader(reinterpret_cast<const char*>(this->data) + offset, size * 8);
 }
@@ -1320,19 +1285,19 @@ const char* StringReader::peek(size_t size) {
   if (this->offset + size <= this->length) {
     return reinterpret_cast<const char*>(this->data + this->offset);
   }
-  throw out_of_range("not enough data to read");
+  throw std::out_of_range("not enough data to read");
 }
 
-string StringReader::read(size_t size, bool advance) {
-  string ret = this->pread(this->offset, size);
+std::string StringReader::read(size_t size, bool advance) {
+  std::string ret = this->pread(this->offset, size);
   if (ret.size() && advance) {
     this->offset += ret.size();
   }
   return ret;
 }
 
-string StringReader::readx(size_t size, bool advance) {
-  string ret = this->preadx(this->offset, size);
+std::string StringReader::readx(size_t size, bool advance) {
+  std::string ret = this->preadx(this->offset, size);
   if (advance) {
     this->offset += ret.size();
   }
@@ -1354,21 +1319,21 @@ void StringReader::readx(void* data, size_t size, bool advance) {
   }
 }
 
-string StringReader::pread(size_t offset, size_t size) const {
+std::string StringReader::pread(size_t offset, size_t size) const {
   if (offset >= this->length) {
-    return string();
+    return std::string();
   }
   if (offset + size > this->length) {
-    return string(reinterpret_cast<const char*>(this->data + offset), this->length - offset);
+    return std::string(reinterpret_cast<const char*>(this->data + offset), this->length - offset);
   }
-  return string(reinterpret_cast<const char*>(this->data + offset), size);
+  return std::string(reinterpret_cast<const char*>(this->data + offset), size);
 }
 
-string StringReader::preadx(size_t offset, size_t size) const {
+std::string StringReader::preadx(size_t offset, size_t size) const {
   if (offset + size > this->length) {
-    throw out_of_range("not enough data to read");
+    throw std::out_of_range("not enough data to read");
   }
-  return string(reinterpret_cast<const char*>(this->data + offset), size);
+  return std::string(reinterpret_cast<const char*>(this->data + offset), size);
 }
 
 size_t StringReader::pread(size_t offset, void* data, size_t size) const {
@@ -1389,17 +1354,17 @@ size_t StringReader::pread(size_t offset, void* data, size_t size) const {
 
 void StringReader::preadx(size_t offset, void* data, size_t size) const {
   if ((offset >= this->length) || (offset + size > this->length)) {
-    throw out_of_range("not enough data to read");
+    throw std::out_of_range("not enough data to read");
   }
   memcpy(data, this->data + offset, size);
 }
 
-string StringReader::get_line(bool advance) {
+std::string StringReader::get_line(bool advance) {
   if (this->eof()) {
-    throw out_of_range("end of string");
+    throw std::out_of_range("end of string");
   }
 
-  string ret;
+  std::string ret;
   for (;;) {
     size_t ch_offset = this->offset + ret.size();
     if (ch_offset >= this->length) {
@@ -1421,16 +1386,16 @@ string StringReader::get_line(bool advance) {
   return ret;
 }
 
-string StringReader::get_cstr(bool advance) {
-  string ret = this->pget_cstr(this->offset);
+std::string StringReader::get_cstr(bool advance) {
+  std::string ret = this->pget_cstr(this->offset);
   if (advance) {
     this->offset += (ret.size() + 1);
   }
   return ret;
 }
 
-string StringReader::pget_cstr(size_t offset) const {
-  string ret;
+std::string StringReader::pget_cstr(size_t offset) const {
+  std::string ret;
   for (;;) {
     uint8_t ch = this->pget_s8(offset + ret.size());
     if (ch != 0) {
@@ -1450,7 +1415,7 @@ void StringWriter::write(const void* data, size_t size) {
   this->contents.append(reinterpret_cast<const char*>(data), size);
 }
 
-void StringWriter::write(const string& data) {
+void StringWriter::write(const std::string& data) {
   this->contents.append(data);
 }
 
@@ -1469,15 +1434,15 @@ void BlockStringWriter::write(const void* data, size_t size) {
   this->blocks.emplace_back(reinterpret_cast<const char*>(data), size);
 }
 
-void BlockStringWriter::write(const string& data) {
+void BlockStringWriter::write(const std::string& data) {
   this->blocks.emplace_back(data);
 }
 
-void BlockStringWriter::write(string&& data) {
+void BlockStringWriter::write(std::string&& data) {
   this->blocks.emplace_back(std::move(data));
 }
 
-string BlockStringWriter::close(const char* separator) {
+std::string BlockStringWriter::close(const char* separator) {
   return join(this->blocks, separator);
 }
 
