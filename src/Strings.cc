@@ -1159,6 +1159,9 @@ StringReader::StringReader(const void* data, size_t size, size_t offset)
 
 StringReader::StringReader(const std::string& data, size_t offset) : StringReader(data.data(), data.size(), offset) {}
 
+StringReader::StringReader(const std::string_view& data, size_t offset)
+    : StringReader(data.data(), data.size(), offset) {}
+
 size_t StringReader::where() const {
   return this->offset;
 }
@@ -1208,20 +1211,16 @@ std::string StringReader::all() const {
 }
 
 StringReader StringReader::sub(size_t offset) const {
-  if (offset > this->length) {
-    return StringReader();
-  }
-  return StringReader(
-      reinterpret_cast<const char*>(this->data) + offset,
-      this->length - offset);
+  return (offset > this->length)
+      ? StringReader()
+      : StringReader(reinterpret_cast<const char*>(this->data) + offset, this->length - offset);
 }
 
 StringReader StringReader::sub(size_t offset, size_t size) const {
-  if (offset >= this->length) {
-    return StringReader();
-  }
-  if (offset + size > this->length) {
-    return StringReader(reinterpret_cast<const char*>(this->data) + offset, this->length - offset);
+  if (offset > this->length) {
+    size = 0;
+  } else if (offset + size > this->length) {
+    size = std::max<ssize_t>(this->length - offset, 0);
   }
   return StringReader(reinterpret_cast<const char*>(this->data) + offset, size);
 }
@@ -1240,29 +1239,29 @@ StringReader StringReader::subx(size_t offset, size_t size) const {
   return StringReader(reinterpret_cast<const char*>(this->data) + offset, size);
 }
 
-StringReader StringReader::extract(size_t size) const {
-  if (offset >= this->length) {
-    return StringReader();
-  }
-  if (offset + size > this->length) {
-    return StringReader(reinterpret_cast<const char*>(this->data) + offset, this->length - offset);
-  }
-  return StringReader(reinterpret_cast<const char*>(this->data) + offset, size);
+StringReader StringReader::extract(size_t size) {
+  auto ret = this->sub(this->offset, size);
+  this->skip(ret.size());
+  return ret;
+}
+
+StringReader StringReader::extractx(size_t size) {
+  auto ret = this->subx(this->offset, size);
+  this->skip(ret.size());
+  return ret;
 }
 
 BitReader StringReader::sub_bits(size_t offset) const {
-  if (offset > this->length) {
-    return BitReader();
-  }
-  return BitReader(reinterpret_cast<const char*>(this->data) + offset, (this->length - offset) * 8);
+  return (offset > this->length)
+      ? BitReader()
+      : BitReader(reinterpret_cast<const char*>(this->data) + offset, (this->length - offset) * 8);
 }
 
 BitReader StringReader::sub_bits(size_t offset, size_t size) const {
-  if (offset >= this->length) {
-    return BitReader();
-  }
-  if (offset + size > this->length) {
-    return BitReader(reinterpret_cast<const char*>(this->data) + offset, (this->length - offset) * 8);
+  if (offset > this->length) {
+    size = 0;
+  } else if (offset + size > this->length) {
+    size = std::max<ssize_t>(this->length - offset, 0);
   }
   return BitReader(reinterpret_cast<const char*>(this->data) + offset, size * 8);
 }
@@ -1275,10 +1274,22 @@ BitReader StringReader::subx_bits(size_t offset) const {
 }
 
 BitReader StringReader::subx_bits(size_t offset, size_t size) const {
-  if (offset + size > this->length) {
+  if ((offset > this->length) || (offset + size > this->length)) {
     throw std::out_of_range("sub-reader begins or extends beyond end of data");
   }
   return BitReader(reinterpret_cast<const char*>(this->data) + offset, size * 8);
+}
+
+BitReader StringReader::extract_bits(size_t size) {
+  auto ret = this->sub_bits(this->offset, size);
+  this->skip(ret.size());
+  return ret;
+}
+
+BitReader StringReader::extractx_bits(size_t size) {
+  auto ret = this->subx_bits(this->offset, size);
+  this->skip(ret.size());
+  return ret;
 }
 
 const char* StringReader::peek(size_t size) {

@@ -485,6 +485,7 @@ public:
   explicit StringReader(std::shared_ptr<std::string> data, size_t offset = 0);
   StringReader(const void* data, size_t size, size_t offset = 0);
   StringReader(const std::string& data, size_t offset = 0);
+  StringReader(const std::string_view& data, size_t offset = 0);
   virtual ~StringReader() = default;
 
   size_t where() const;
@@ -501,14 +502,14 @@ public:
   StringReader sub(size_t offset, size_t size) const;
   StringReader subx(size_t offset) const;
   StringReader subx(size_t offset, size_t size) const;
-  StringReader extract(size_t size) const;
-  StringReader extractx(size_t size) const;
+  StringReader extract(size_t size);
+  StringReader extractx(size_t size);
   BitReader sub_bits(size_t offset) const;
   BitReader sub_bits(size_t offset, size_t size) const;
   BitReader subx_bits(size_t offset) const;
   BitReader subx_bits(size_t offset, size_t size) const;
-  BitReader extract_bits() const;
-  BitReader extractx_bits(size_t size) const;
+  BitReader extract_bits(size_t size);
+  BitReader extractx_bits(size_t size);
 
   const char* peek(size_t size);
 
