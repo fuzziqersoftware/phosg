@@ -185,7 +185,7 @@ int main(int, char** argv) {
 #ifdef PHOSG_MACOS
       expect_eq(0, phosg::start_time_for_pid(child_pid, true));
 #else
-      expect_eq(child_start_time, start_time_for_pid(child_pid, true));
+      expect_eq(child_start_time, phosg::start_time_for_pid(child_pid, true));
 #endif
 
       // now reap the zombie and check again

@@ -1239,6 +1239,10 @@ StringReader StringReader::subx(size_t offset, size_t size) const {
   return StringReader(reinterpret_cast<const char*>(this->data) + offset, size);
 }
 
+StringReader StringReader::extract() {
+  return this->extract(this->remaining());
+}
+
 StringReader StringReader::extract(size_t size) {
   auto ret = this->sub(this->offset, size);
   this->skip(ret.size());
@@ -1278,6 +1282,10 @@ BitReader StringReader::subx_bits(size_t offset, size_t size) const {
     throw std::out_of_range("sub-reader begins or extends beyond end of data");
   }
   return BitReader(reinterpret_cast<const char*>(this->data) + offset, size * 8);
+}
+
+BitReader StringReader::extract_bits() {
+  return this->extract_bits(this->remaining());
 }
 
 BitReader StringReader::extract_bits(size_t size) {

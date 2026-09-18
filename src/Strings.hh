@@ -7,6 +7,7 @@
 #include <cstdarg>
 #include <deque>
 #include <memory>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -502,12 +503,14 @@ public:
   StringReader sub(size_t offset, size_t size) const;
   StringReader subx(size_t offset) const;
   StringReader subx(size_t offset, size_t size) const;
+  StringReader extract();
   StringReader extract(size_t size);
   StringReader extractx(size_t size);
   BitReader sub_bits(size_t offset) const;
   BitReader sub_bits(size_t offset, size_t size) const;
   BitReader subx_bits(size_t offset) const;
   BitReader subx_bits(size_t offset, size_t size) const;
+  BitReader extract_bits();
   BitReader extract_bits(size_t size);
   BitReader extractx_bits(size_t size);
 
@@ -556,6 +559,19 @@ public:
   template <typename T>
   const T* get_array(size_t count, bool advance = true) {
     const T* ret = this->pget_array<T>(this->offset, count);
+    if (advance) {
+      this->offset += count * sizeof(T);
+    }
+    return ret;
+  }
+
+  template <typename T>
+  std::span<const T> pget_span(size_t offset, size_t count) const {
+    return {reinterpret_cast<const T*>(this->pgetv(offset, count * sizeof(T))), count};
+  }
+  template <typename T>
+  std::span<const T> get_span(size_t count, bool advance = true) {
+    auto ret = this->pget_array<T>(this->offset, count);
     if (advance) {
       this->offset += count * sizeof(T);
     }
