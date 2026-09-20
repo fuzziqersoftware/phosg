@@ -566,7 +566,7 @@ public:
           throw std::runtime_error("invalid extended PPM header");
         }
         for (;;) {
-          std::string line = r.get_line();
+          std::string line{r.get_line()};
           strip_trailing_whitespace(line);
           if (line.starts_with("WIDTH ")) {
             ret.w = stoull(line.substr(6));
@@ -741,7 +741,7 @@ public:
     return ret;
   }
 
-  static Image<Format> from_file_data(const std::string& data) {
+  static Image<Format> from_file_data(std::string_view data) {
     return Image<Format>::from_file_data(data.data(), data.size());
   }
 

@@ -31,7 +31,7 @@ namespace phosg {
 cannot_stat_file::cannot_stat_file(int fd)
     : runtime_error(std::format("can\'t stat fd {}: {}", fd, string_for_error(errno))), error(errno) {}
 
-cannot_stat_file::cannot_stat_file(const std::string& filename)
+cannot_stat_file::cannot_stat_file(std::string_view filename)
     : runtime_error(std::format("can\'t stat file {}: {}", filename, string_for_error(errno))), error(errno) {}
 
 // TODO: this can definitely be implemented on windows; I'm just lazy
@@ -55,17 +55,19 @@ std::string get_user_home_directory() {
   return pwd.pw_dir;
 }
 
-struct stat stat(const std::string& filename) {
+struct stat stat(std::string_view filename) {
+  std::string c_filename{filename};
   struct stat st;
-  if (::stat(filename.c_str(), &st)) {
+  if (::stat(c_filename.c_str(), &st)) {
     throw cannot_stat_file(filename);
   }
   return st;
 }
 
-struct stat lstat(const std::string& filename) {
+struct stat lstat(std::string_view filename) {
+  std::string c_filename{filename};
   struct stat st;
-  if (::lstat(filename.c_str(), &st)) {
+  if (::lstat(c_filename.c_str(), &st)) {
     throw cannot_stat_file(filename);
   }
   return st;
@@ -91,8 +93,9 @@ scoped_fd::scoped_fd(const char* filename, int mode, mode_t perm) : fd(-1) {
   this->open(filename, mode, perm);
 }
 
-scoped_fd::scoped_fd(const std::string& filename, int mode, mode_t perm) : fd(-1) {
-  this->open(filename.c_str(), mode, perm);
+scoped_fd::scoped_fd(std::string_view filename, int mode, mode_t perm) : fd(-1) {
+  std::string c_filename{filename};
+  this->open(c_filename.c_str(), mode, perm);
 }
 
 scoped_fd::scoped_fd(scoped_fd&& other) : fd(other.fd) {
@@ -128,9 +131,10 @@ void scoped_fd::open(const char* filename, int mode, mode_t perm) {
   }
 }
 
-void scoped_fd::open(const std::string& filename, int mode, mode_t perm) {
+void scoped_fd::open(std::string_view filename, int mode, mode_t perm) {
+  std::string c_filename{filename};
   this->close();
-  this->open(filename.c_str(), mode, perm);
+  this->open(c_filename.c_str(), mode, perm);
 }
 
 void scoped_fd::close() {
@@ -144,8 +148,8 @@ bool scoped_fd::is_open() {
   return this->fd >= 0;
 }
 
-static FILE* fdopen_binary_raw(int fd, const std::string& mode) {
-  std::string new_mode = mode;
+static FILE* fdopen_binary_raw(int fd, std::string_view mode) {
+  std::string new_mode{mode};
   if (new_mode.find('b') == std::string::npos) {
     new_mode += 'b';
   }
@@ -160,11 +164,11 @@ static void fclose_raw(FILE* f) {
   fclose(f);
 }
 
-std::unique_ptr<FILE, void (*)(FILE*)> fdopen_unique(int fd, const std::string& mode) {
+std::unique_ptr<FILE, void (*)(FILE*)> fdopen_unique(int fd, std::string_view mode) {
   return std::unique_ptr<FILE, void (*)(FILE*)>(fdopen_binary_raw(fd, mode), fclose_raw);
 }
 
-std::shared_ptr<FILE> fdopen_shared(int fd, const std::string& mode) {
+std::shared_ptr<FILE> fdopen_shared(int fd, std::string_view mode) {
   return std::shared_ptr<FILE>(fdopen_binary_raw(fd, mode), fclose_raw);
 }
 
@@ -201,7 +205,7 @@ std::string read_all(int fd) {
 
   std::string ret;
   ret.reserve(total_size);
-  for (const std::string& buffer : buffers) {
+  for (std::string_view buffer : buffers) {
     ret += buffer;
   }
 
@@ -243,7 +247,7 @@ std::string readx(int fd, size_t size) {
   return ret;
 }
 
-void writex(int fd, const std::string& data) {
+void writex(int fd, std::string_view data) {
   writex(fd, data.data(), data.size());
 }
 
@@ -271,7 +275,7 @@ std::string preadx(int fd, size_t size, off_t offset) {
   return ret;
 }
 
-void pwritex(int fd, const std::string& data, off_t offset) {
+void pwritex(int fd, std::string_view data, off_t offset) {
   pwritex(fd, data.data(), data.size(), offset);
 }
 

@@ -33,31 +33,32 @@ namespace phosg {
 cannot_open_file::cannot_open_file(int fd)
     : runtime_error(std::format("can\'t open fd {}: {}", fd, string_for_error(errno))), error(errno) {}
 
-cannot_open_file::cannot_open_file(const std::string& filename)
+cannot_open_file::cannot_open_file(std::string_view filename)
     : runtime_error(std::format("can\'t open file {}: {}", filename, string_for_error(errno))), error(errno) {}
 
 io_error::io_error(int fd)
     : runtime_error(std::format("io error on fd {}: {}", fd, string_for_error(errno))), error(errno) {}
 
-io_error::io_error(int fd, const std::string& what)
-    : runtime_error(std::format("io error on fd {}: {}", fd, what.c_str())), error(-1) {}
+io_error::io_error(int fd, std::string_view what)
+    : runtime_error(std::format("io error on fd {}: {}", fd, what)), error(-1) {}
 
-std::string basename(const std::string& filename) {
+std::string_view basename(std::string_view filename) {
   size_t slash_pos = filename.rfind('/');
   return (slash_pos == std::string::npos) ? filename : filename.substr(slash_pos + 1);
 }
 
-std::string dirname(const std::string& filename) {
+std::string_view dirname(std::string_view filename) {
   size_t slash_pos = filename.rfind('/');
   return (slash_pos == std::string::npos) ? "" : filename.substr(0, slash_pos);
 }
 
-static FILE* fopen_binary_raw(const std::string& filename, const std::string& mode) {
-  std::string new_mode = mode;
+static FILE* fopen_binary_raw(std::string_view filename, std::string_view mode) {
+  std::string c_filename{filename};
+  std::string new_mode{mode};
   if (new_mode.find('b') == std::string::npos) {
     new_mode += 'b';
   }
-  FILE* f = fopen(filename.c_str(), new_mode.c_str());
+  FILE* f = fopen(c_filename.c_str(), new_mode.c_str());
   if (!f) {
     throw cannot_open_file(filename);
   }
@@ -69,14 +70,14 @@ static void fclose_raw(FILE* f) {
 }
 
 std::unique_ptr<FILE, void (*)(FILE*)> fopen_unique(
-    const std::string& filename, const std::string& mode, FILE* dash_file) {
+    std::string_view filename, std::string_view mode, FILE* dash_file) {
   if (dash_file && (filename == "-")) {
     return std::unique_ptr<FILE, void (*)(FILE*)>(dash_file, +[](FILE*) {});
   }
   return std::unique_ptr<FILE, void (*)(FILE*)>(fopen_binary_raw(filename, mode), fclose_raw);
 }
 
-std::shared_ptr<FILE> fopen_shared(const std::string& filename, const std::string& mode, FILE* dash_file) {
+std::shared_ptr<FILE> fopen_shared(std::string_view filename, std::string_view mode, FILE* dash_file) {
   if (dash_file && (filename == "-")) {
     return std::shared_ptr<FILE>(dash_file, [](FILE*) {});
   }
@@ -108,7 +109,7 @@ std::string read_all(FILE* f) {
 
   std::string ret;
   ret.reserve(total_size);
-  for (const std::string& buffer : buffers) {
+  for (std::string_view buffer : buffers) {
     ret += buffer;
   }
 
@@ -154,6 +155,10 @@ void fwritex(FILE* f, const std::string& data) {
   fwritex(f, data.data(), data.size());
 }
 
+void fwritex(FILE* f, std::string_view data) {
+  fwritex(f, data.data(), data.size());
+}
+
 uint8_t fgetcx(FILE* f) {
   int ret = ::fgetc(f);
   if (ret == EOF) {
@@ -192,7 +197,7 @@ std::string fgets(FILE* f) {
   }
 }
 
-std::string load_file(const std::string& filename) {
+std::string load_file(std::string_view filename) {
   auto f = fopen_unique(filename, "rb");
   fseek(f.get(), 0, SEEK_END);
   ssize_t file_size = ftell(f.get());
@@ -200,12 +205,12 @@ std::string load_file(const std::string& filename) {
   return freadx(f.get(), file_size);
 }
 
-void save_file(const std::string& filename, const void* data, size_t size) {
+void save_file(std::string_view filename, const void* data, size_t size) {
   auto f = fopen_unique(filename, "wb");
   fwritex(f.get(), data, size);
 }
 
-void save_file(const std::string& filename, const std::string& data) {
+void save_file(std::string_view filename, std::string_view data) {
   save_file(filename, data.data(), data.size());
 }
 

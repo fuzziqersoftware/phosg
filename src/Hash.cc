@@ -68,7 +68,7 @@ uint32_t fnv1a32(const void* data, size_t size, uint32_t hash) {
   return hash;
 }
 
-uint32_t fnv1a32(const std::string& data, uint32_t hash) {
+uint32_t fnv1a32(std::string_view data, uint32_t hash) {
   return fnv1a32(data.data(), data.size(), hash);
 }
 
@@ -82,7 +82,7 @@ uint64_t fnv1a64(const void* data, size_t size, uint64_t hash) {
   return hash;
 }
 
-uint64_t fnv1a64(const std::string& data, uint64_t hash) {
+uint64_t fnv1a64(std::string_view data, uint64_t hash) {
   return fnv1a64(data.data(), data.size(), hash);
 }
 
@@ -156,7 +156,7 @@ MD5::MD5(const void* data, size_t size) {
   }
 }
 
-MD5::MD5(const std::string& data) : MD5(data.data(), data.size()) {}
+MD5::MD5(std::string_view data) : MD5(data.data(), data.size()) {}
 
 std::string MD5::bin() const {
   StringWriter w;
@@ -243,7 +243,7 @@ SHA1::SHA1(const void* data, size_t size) {
   }
 }
 
-SHA1::SHA1(const std::string& data) : SHA1(data.data(), data.size()) {}
+SHA1::SHA1(std::string_view data) : SHA1(data.data(), data.size()) {}
 
 std::string SHA1::bin() const {
   phosg::StringWriter w;
@@ -343,7 +343,7 @@ SHA256::SHA256(const void* data, size_t size) {
   }
 }
 
-SHA256::SHA256(const std::string& data) : SHA256(data.data(), data.size()) {}
+SHA256::SHA256(std::string_view data) : SHA256(data.data(), data.size()) {}
 
 std::string SHA256::bin() const {
   StringWriter w;

@@ -401,9 +401,9 @@ extern const char* DEFAULT_ALPHABET;
 extern const char* URLSAFE_ALPHABET;
 
 std::string base64_encode(const void* data, size_t size, const char* alphabet = nullptr);
-std::string base64_encode(const std::string& data, const char* alphabet = nullptr);
+std::string base64_encode(std::string_view data, const char* alphabet = nullptr);
 std::string base64_decode(const void* data, size_t size, const char* alphabet = nullptr);
-std::string base64_decode(const std::string& data, const char* alphabet = nullptr);
+std::string base64_decode(std::string_view data, const char* alphabet = nullptr);
 
 std::string rot13(const void* data, size_t size);
 

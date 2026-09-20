@@ -31,7 +31,7 @@ namespace phosg {
 class cannot_open_file : virtual public std::runtime_error {
 public:
   cannot_open_file(int fd);
-  cannot_open_file(const std::string& filename);
+  cannot_open_file(std::string_view filename);
 
   int error;
 };
@@ -39,17 +39,17 @@ public:
 class io_error : virtual public std::runtime_error {
 public:
   io_error(int fd);
-  io_error(int fd, const std::string& what);
+  io_error(int fd, std::string_view what);
 
   int error;
 };
 
-std::string basename(const std::string& filename);
-std::string dirname(const std::string& filename);
+std::string_view basename(std::string_view filename);
+std::string_view dirname(std::string_view filename);
 
 std::unique_ptr<FILE, void (*)(FILE*)> fopen_unique(
-    const std::string& filename, const std::string& mode = "rb", FILE* dash_file = nullptr);
-std::shared_ptr<FILE> fopen_shared(const std::string& filename, const std::string& mode = "rb", FILE* dash_file = nullptr);
+    std::string_view filename, std::string_view mode = "rb", FILE* dash_file = nullptr);
+std::shared_ptr<FILE> fopen_shared(std::string_view filename, std::string_view mode = "rb", FILE* dash_file = nullptr);
 
 std::string read_all(FILE* f);
 std::string fread(FILE* f, size_t size);
@@ -57,6 +57,7 @@ void freadx(FILE* f, void* data, size_t size);
 void fwritex(FILE* f, const void* data, size_t size);
 std::string freadx(FILE* f, size_t size);
 void fwritex(FILE* f, const std::string& data);
+void fwritex(FILE* f, std::string_view data);
 uint8_t fgetcx(FILE* f);
 
 std::string fgets(FILE* f);
@@ -73,12 +74,12 @@ void fwritex(FILE* f, const T& t) {
   fwritex(f, &t, sizeof(T));
 }
 
-std::string load_file(const std::string& filename);
-void save_file(const std::string& filename, const void* data, size_t size);
-void save_file(const std::string& filename, const std::string& data);
+std::string load_file(std::string_view filename);
+void save_file(std::string_view filename, const void* data, size_t size);
+void save_file(std::string_view filename, std::string_view data);
 
 template <typename T>
-T load_object_file(const std::string& filename, bool allow_oversize = false) {
+T load_object_file(std::string_view filename, bool allow_oversize = false) {
   auto f = fopen_unique(filename, "rb");
   T ret;
   freadx(f.get(), &ret, sizeof(ret));
@@ -92,12 +93,12 @@ T load_object_file(const std::string& filename, bool allow_oversize = false) {
 }
 
 template <typename T>
-void save_object_file(const std::string& filename, const T& obj) {
+void save_object_file(std::string_view filename, const T& obj) {
   save_file(filename, &obj, sizeof(obj));
 }
 
 template <typename T>
-std::vector<T> load_vector_file(const std::string& filename) {
+std::vector<T> load_vector_file(std::string_view filename) {
   auto f = fopen_unique(filename, "rb");
   fseek(f.get(), 0, SEEK_END);
   size_t file_size = ftell(f.get());
@@ -111,7 +112,7 @@ std::vector<T> load_vector_file(const std::string& filename) {
 }
 
 template <typename T>
-void save_vector_file(const std::string& filename, const std::vector<T>& v) {
+void save_vector_file(std::string_view filename, const std::vector<T>& v) {
   save_file(filename, v.data(), v.size() * sizeof(T));
 }
 

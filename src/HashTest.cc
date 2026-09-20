@@ -5,7 +5,7 @@
 #include "Strings.hh"
 #include "UnitTest.hh"
 
-void check_string(const char* file, int line, const std::string& expected, const std::string& received) {
+void check_string(const char* file, int line, std::string_view expected, std::string_view received) {
   if (expected != received) {
     phosg::fwrite_fmt(stderr, "({}:{}) Strings do not match; expected:\n", file, line);
     phosg::print_data(stderr, expected);

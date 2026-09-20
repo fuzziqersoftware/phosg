@@ -241,6 +241,4 @@ private:
   }
 };
 
-std::vector<std::string> split_args(const std::string& s);
-
 } // namespace phosg

@@ -8,7 +8,7 @@
 #include "UnitTest.hh"
 
 template <typename... ArgTs>
-void print_data_test_case(const std::string& expected_output, ArgTs... args) {
+void print_data_test_case(std::string_view expected_output, ArgTs... args) {
 
   // macOS doesn't have fmemopen, so we just write to a file because I'm too lazy to use funopen()
   {
@@ -635,7 +635,7 @@ int main(int, char**) {
 
     {
       std::string expected_formatted_input("03?04?001E7F00?6461726B?FFFFFFFF63006F006C0064004260D5BFBC749318045605C0");
-      std::string formatted_input = phosg::format_data_string(output_data, &output_mask);
+      std::string formatted_input = phosg::format_data_string(output_data, output_mask);
       expect_eq(expected_formatted_input, formatted_input);
 
       output_data = phosg::parse_data_string(input, &output_mask);
@@ -645,7 +645,7 @@ int main(int, char**) {
 
     {
       std::string expected_formatted_input("0304001E7F006461726BFFFFFFFF63006F006C0064004260D5BFBC749318045605C0");
-      std::string formatted_input = phosg::format_data_string(output_data, nullptr);
+      std::string formatted_input = phosg::format_data_string(output_data);
       expect_eq(expected_formatted_input, formatted_input);
 
       output_data = phosg::parse_data_string(input, &output_mask);
@@ -662,7 +662,7 @@ int main(int, char**) {
     std::string formatted = phosg::format_data_string(input);
     expect_eq(expected_formatted, formatted);
     expect_eq(input, phosg::parse_data_string(formatted));
-    std::string formatted_hex = phosg::format_data_string(input, nullptr, phosg::FormatDataStringFlags::HEX_ONLY);
+    std::string formatted_hex = phosg::format_data_string(input, phosg::FormatDataStringFlags::HEX_ONLY);
     expect_eq(expected_formatted_hex, formatted_hex);
     expect_eq(input, phosg::parse_data_string(formatted_hex));
   }

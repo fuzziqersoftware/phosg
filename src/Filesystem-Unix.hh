@@ -5,15 +5,15 @@ namespace phosg {
 class cannot_stat_file : virtual public std::runtime_error {
 public:
   cannot_stat_file(int fd);
-  cannot_stat_file(const std::string& filename);
+  cannot_stat_file(std::string_view filename);
 
   int error;
 };
 
 std::string get_user_home_directory();
 
-struct stat stat(const std::string& filename);
-struct stat lstat(const std::string& filename);
+struct stat stat(std::string_view filename);
+struct stat lstat(std::string_view filename);
 struct stat fstat(int fd);
 struct stat fstat(FILE* f);
 
@@ -22,7 +22,7 @@ public:
   scoped_fd();
   scoped_fd(int fd);
   scoped_fd(const char* filename, int mode, mode_t perm = 0755);
-  scoped_fd(const std::string& filename, int mode, mode_t perm = 0755);
+  scoped_fd(std::string_view filename, int mode, mode_t perm = 0755);
   scoped_fd(const scoped_fd&) = delete;
   scoped_fd(scoped_fd&&);
   ~scoped_fd();
@@ -33,7 +33,7 @@ public:
   operator int() const;
 
   void open(const char* filename, int mode, mode_t perm = 0755);
-  void open(const std::string& filename, int mode, mode_t perm = 0755);
+  void open(std::string_view filename, int mode, mode_t perm = 0755);
   void close();
 
   bool is_open();
@@ -42,8 +42,8 @@ private:
   int fd;
 };
 
-std::unique_ptr<FILE, void (*)(FILE*)> fdopen_unique(int fd, const std::string& mode = "rb");
-std::shared_ptr<FILE> fdopen_shared(int fd, const std::string& mode = "rb");
+std::unique_ptr<FILE, void (*)(FILE*)> fdopen_unique(int fd, std::string_view mode = "rb");
+std::shared_ptr<FILE> fdopen_shared(int fd, std::string_view mode = "rb");
 std::unique_ptr<FILE, void (*)(FILE*)> fmemopen_unique(const void* buf, size_t size);
 std::shared_ptr<FILE> fmemopen_shared(const void* buf, size_t size);
 
@@ -53,12 +53,12 @@ std::string read(int fd, size_t size);
 void readx(int fd, void* data, size_t size);
 void writex(int fd, const void* data, size_t size);
 std::string readx(int fd, size_t size);
-void writex(int fd, const std::string& data);
+void writex(int fd, std::string_view data);
 
 void preadx(int fd, void* data, size_t size, off_t offset);
 void pwritex(int fd, const void* data, size_t size, off_t offset);
 std::string preadx(int fd, size_t size, off_t offset);
-void pwritex(int fd, const std::string& data, off_t offset);
+void pwritex(int fd, std::string_view data, off_t offset);
 
 template <typename T>
 T readx(int fd) {

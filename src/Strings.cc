@@ -26,7 +26,7 @@ std::unique_ptr<void, void (*)(void*)> malloc_unique(size_t size) {
   return std::unique_ptr<void, void (*)(void*)>(malloc(size), free);
 }
 
-std::string toupper(const std::string& s) {
+std::string toupper(std::string_view s) {
   std::string ret;
   ret.reserve(s.size());
   for (char ch : s) {
@@ -35,7 +35,7 @@ std::string toupper(const std::string& s) {
   return ret;
 }
 
-std::string tolower(const std::string& s) {
+std::string tolower(std::string_view s) {
   std::string ret;
   ret.reserve(s.size());
   for (char ch : s) {
@@ -44,7 +44,7 @@ std::string tolower(const std::string& s) {
   return ret;
 }
 
-std::string str_replace_all(const std::string& s, const char* target, const char* replacement) {
+std::string str_replace_all(std::string_view s, const char* target, const char* replacement) {
   size_t target_size = strlen(target);
   size_t replacement_size = strlen(replacement);
 
@@ -63,7 +63,7 @@ std::string str_replace_all(const std::string& s, const char* target, const char
   return ret;
 }
 
-std::string escape_quotes(const std::string& s) {
+std::string escape_quotes(std::string_view s) {
   std::string ret;
   for (size_t x = 0; x < s.size(); x++) {
     char ch = s[x];
@@ -78,7 +78,7 @@ std::string escape_quotes(const std::string& s) {
   return ret;
 }
 
-std::string escape_controls(const std::string& s, bool escape_non_ascii) {
+std::string escape_controls(std::string_view s, bool escape_non_ascii) {
   std::string ret;
   for (size_t x = 0; x < s.size(); x++) {
     char ch = s[x];
@@ -111,7 +111,7 @@ std::string escape_controls(const std::string& s, bool escape_non_ascii) {
   return ret;
 }
 
-std::string escape_url(const std::string& s, bool escape_slash) {
+std::string escape_url(std::string_view s, bool escape_slash) {
   std::string ret;
   for (char ch : s) {
     if (isalnum(ch) || (ch == '-') || (ch == '_') || (ch == '.') ||
@@ -202,10 +202,12 @@ void print_log_prefix(FILE* stream, LogLevel level) {
   fwrite_fmt(stream, "{:c} {} {} - ", level_char, getpid_cached(), &time_buffer[0]);
 }
 
-PrefixedLogger::PrefixedLogger(const std::string& prefix, LogLevel min_level) : prefix(prefix), min_level(min_level) {}
+PrefixedLogger::PrefixedLogger(std::string_view prefix, LogLevel min_level) : prefix(prefix), min_level(min_level) {}
 
-PrefixedLogger PrefixedLogger::sub(const std::string& prefix, LogLevel min_level) const {
-  return PrefixedLogger(this->prefix + prefix, min_level == LogLevel::L_USE_DEFAULT ? this->min_level : min_level);
+PrefixedLogger PrefixedLogger::sub(std::string_view sub_prefix, LogLevel min_level) const {
+  std::string new_prefix{this->prefix};
+  new_prefix += sub_prefix;
+  return PrefixedLogger(std::move(new_prefix), min_level == LogLevel::L_USE_DEFAULT ? this->min_level : min_level);
 }
 
 template <typename RetT, typename InT, typename CharT>
@@ -228,18 +230,15 @@ std::vector<RetT> split_inner(InT s, CharT delim, size_t max_splits) {
   return ret;
 }
 
-std::vector<std::string> split(const std::string& s, char delim, size_t max_splits) {
-  return split_inner<std::string, const std::string&, char>(s, delim, max_splits);
+std::vector<std::string> split(std::string_view s, char delim, size_t max_splits) {
+  return split_inner<std::string, std::string_view, char>(s, delim, max_splits);
 }
-
+std::vector<std::wstring> split(std::wstring_view s, wchar_t delim, size_t max_splits) {
+  return split_inner<std::wstring, std::wstring_view, char>(s, delim, max_splits);
+}
 std::vector<std::string_view> split_view(std::string_view s, char delim, size_t max_splits) {
   return split_inner<std::string_view, std::string_view, char>(s, delim, max_splits);
 }
-
-std::vector<std::wstring> split(const std::wstring& s, wchar_t delim, size_t max_splits) {
-  return split_inner<std::wstring, const std::wstring&, char>(s, delim, max_splits);
-}
-
 std::vector<std::wstring_view> split_view(std::wstring_view s, wchar_t delim, size_t max_splits) {
   return split_inner<std::wstring_view, std::wstring_view, char>(s, delim, max_splits);
 }
@@ -276,14 +275,14 @@ std::vector<RetT> split_context_inner(InT s, CharT delim, size_t max_splits) {
       } else if (s[z] == '\"') {
         paren_stack.push_back('\"');
       } else if (paren_stack.empty() && (s[z] == delim) && (!max_splits || (ret.size() < max_splits))) {
-        ret.push_back(s.substr(last_start, z - last_start));
+        ret.emplace_back(s.substr(last_start, z - last_start));
         last_start = z + 1;
       }
     }
   }
 
   if (z >= last_start) {
-    ret.push_back(s.substr(last_start));
+    ret.emplace_back(s.substr(last_start));
   }
 
   if (paren_stack.size()) {
@@ -293,15 +292,14 @@ std::vector<RetT> split_context_inner(InT s, CharT delim, size_t max_splits) {
   return ret;
 }
 
-std::vector<std::string> split_context(const std::string& s, char delim, size_t max_splits) {
-  return split_context_inner<std::string, const std::string&, char>(s, delim, max_splits);
+std::vector<std::string> split_context(std::string_view s, char delim, size_t max_splits) {
+  return split_context_inner<std::string, std::string_view, char>(s, delim, max_splits);
 }
-
 std::vector<std::string_view> split_context_view(std::string_view s, char delim, size_t max_splits) {
   return split_context_inner<std::string_view, std::string_view, char>(s, delim, max_splits);
 }
 
-std::vector<std::string> split_args(const std::string& s) {
+std::vector<std::string> split_args(std::string_view s) {
   std::vector<std::string> ret;
   char current_quote = 0;
   bool in_space_between_args = true;
@@ -361,7 +359,7 @@ std::vector<std::string> split_args(const std::string& s) {
   return ret;
 }
 
-size_t skip_whitespace(const std::string& s, size_t offset) {
+size_t skip_whitespace(std::string_view s, size_t offset) {
   while (offset < s.length() && (s[offset] == ' ' || s[offset] == '\t' || s[offset] == '\r' || s[offset] == '\n')) {
     offset++;
   }
@@ -375,7 +373,7 @@ size_t skip_whitespace(const char* s, size_t offset) {
   return offset;
 }
 
-size_t skip_non_whitespace(const std::string& s, size_t offset) {
+size_t skip_non_whitespace(std::string_view s, size_t offset) {
   while (offset < s.length() && (s[offset] != ' ' && s[offset] != '\t' && s[offset] != '\r' && s[offset] != '\n')) {
     offset++;
   }
@@ -389,7 +387,7 @@ size_t skip_non_whitespace(const char* s, size_t offset) {
   return offset;
 }
 
-size_t skip_word(const std::string& s, size_t offset) {
+size_t skip_word(std::string_view s, size_t offset) {
   return skip_whitespace(s, skip_non_whitespace(s, offset));
 }
 
@@ -830,11 +828,15 @@ std::string parse_data_string(const std::string& s, std::string* mask, uint64_t 
   return data;
 }
 
-std::string format_data_string(const std::string& data, const std::string* mask, uint64_t flags) {
-  if (mask && (mask->size() != data.size())) {
+std::string format_data_string(std::string_view data, std::string_view mask, uint64_t flags) {
+  if (mask.size() != data.size()) {
     throw std::logic_error("data and mask sizes do not match");
   }
-  return format_data_string(data.data(), data.size(), mask ? mask->data() : nullptr, flags);
+  return format_data_string(data.data(), data.size(), mask.data(), flags);
+}
+
+std::string format_data_string(std::string_view data, uint64_t flags) {
+  return format_data_string(data.data(), data.size(), nullptr, flags);
 }
 
 std::string format_data_string(const void* vdata, size_t size, const void* vmask, uint64_t flags) {
@@ -1038,7 +1040,7 @@ BitReader::BitReader(std::shared_ptr<std::string> data, size_t offset)
 BitReader::BitReader(const void* data, size_t size, size_t offset)
     : data(reinterpret_cast<const uint8_t*>(data)), length(size), offset(offset) {}
 
-BitReader::BitReader(const std::string& data, size_t offset) : BitReader(data.data(), data.size() * 8, offset) {}
+BitReader::BitReader(std::string_view data, size_t offset) : BitReader(data.data(), data.size() * 8, offset) {}
 
 size_t BitReader::where() const {
   return this->offset;
@@ -1157,10 +1159,7 @@ StringReader::StringReader(std::shared_ptr<std::string> data, size_t offset)
 StringReader::StringReader(const void* data, size_t size, size_t offset)
     : data(reinterpret_cast<const uint8_t*>(data)), length(size), offset(offset) {}
 
-StringReader::StringReader(const std::string& data, size_t offset) : StringReader(data.data(), data.size(), offset) {}
-
-StringReader::StringReader(const std::string_view& data, size_t offset)
-    : StringReader(data.data(), data.size(), offset) {}
+StringReader::StringReader(std::string_view data, size_t offset) : StringReader(data.data(), data.size(), offset) {}
 
 size_t StringReader::where() const {
   return this->offset;
@@ -1206,8 +1205,8 @@ bool StringReader::eof() const {
   return (this->offset >= this->length);
 }
 
-std::string StringReader::all() const {
-  return std::string(reinterpret_cast<const char*>(this->data), this->length);
+std::string_view StringReader::all() const {
+  return std::string_view(reinterpret_cast<const char*>(this->data), this->length);
 }
 
 StringReader StringReader::sub(size_t offset) const {
@@ -1307,16 +1306,16 @@ const char* StringReader::peek(size_t size) {
   throw std::out_of_range("not enough data to read");
 }
 
-std::string StringReader::read(size_t size, bool advance) {
-  std::string ret = this->pread(this->offset, size);
+std::string_view StringReader::read(size_t size, bool advance) {
+  std::string_view ret = this->pread(this->offset, size);
   if (ret.size() && advance) {
     this->offset += ret.size();
   }
   return ret;
 }
 
-std::string StringReader::readx(size_t size, bool advance) {
-  std::string ret = this->preadx(this->offset, size);
+std::string_view StringReader::readx(size_t size, bool advance) {
+  std::string_view ret = this->preadx(this->offset, size);
   if (advance) {
     this->offset += ret.size();
   }
@@ -1338,21 +1337,21 @@ void StringReader::readx(void* data, size_t size, bool advance) {
   }
 }
 
-std::string StringReader::pread(size_t offset, size_t size) const {
+std::string_view StringReader::pread(size_t offset, size_t size) const {
   if (offset >= this->length) {
-    return std::string();
+    return std::string_view{};
   }
   if (offset + size > this->length) {
-    return std::string(reinterpret_cast<const char*>(this->data + offset), this->length - offset);
+    return std::string_view{reinterpret_cast<const char*>(this->data + offset), this->length - offset};
   }
-  return std::string(reinterpret_cast<const char*>(this->data + offset), size);
+  return std::string_view{reinterpret_cast<const char*>(this->data + offset), size};
 }
 
-std::string StringReader::preadx(size_t offset, size_t size) const {
+std::string_view StringReader::preadx(size_t offset, size_t size) const {
   if (offset + size > this->length) {
     throw std::out_of_range("not enough data to read");
   }
-  return std::string(reinterpret_cast<const char*>(this->data + offset), size);
+  return std::string_view{reinterpret_cast<const char*>(this->data + offset), size};
 }
 
 size_t StringReader::pread(size_t offset, void* data, size_t size) const {
@@ -1378,52 +1377,54 @@ void StringReader::preadx(size_t offset, void* data, size_t size) const {
   memcpy(data, this->data + offset, size);
 }
 
-std::string StringReader::get_line(bool advance) {
+std::string_view StringReader::get_line(bool advance) {
   if (this->eof()) {
     throw std::out_of_range("end of string");
   }
 
-  std::string ret;
+  size_t start_offset = this->offset;
+  size_t ret_size = 0;
+  char last_ch = '\0';
   for (;;) {
-    size_t ch_offset = this->offset + ret.size();
+    size_t ch_offset = start_offset + ret_size;
     if (ch_offset >= this->length) {
       break;
     }
     uint8_t ch = this->pget_s8(ch_offset);
     if (ch != '\n') {
-      ret += ch;
+      last_ch = ch;
+      ret_size++;
     } else {
       break;
     }
   }
   if (advance) {
-    this->offset += (ret.size() + 1);
+    this->offset += (ret_size + 1);
   }
-  if (ret.ends_with("\r")) {
-    ret.pop_back();
+  if (last_ch == '\r') {
+    ret_size--;
   }
-  return ret;
+  return std::string_view{reinterpret_cast<const char*>(this->data) + start_offset, ret_size};
 }
 
-std::string StringReader::get_cstr(bool advance) {
-  std::string ret = this->pget_cstr(this->offset);
+std::string_view StringReader::get_cstr(bool advance) {
+  std::string_view ret = this->pget_cstr(this->offset);
   if (advance) {
     this->offset += (ret.size() + 1);
   }
   return ret;
 }
 
-std::string StringReader::pget_cstr(size_t offset) const {
-  std::string ret;
+std::string_view StringReader::pget_cstr(size_t offset) const {
+  size_t ret_size = 0;
   for (;;) {
-    uint8_t ch = this->pget_s8(offset + ret.size());
-    if (ch != 0) {
-      ret += ch;
+    if (this->pget_s8(offset + ret_size) != 0) {
+      ret_size++;
     } else {
       break;
     }
   }
-  return ret;
+  return std::string_view(reinterpret_cast<const char*>(this->data) + offset, ret_size);
 }
 
 void StringWriter::reset() {
@@ -1434,7 +1435,7 @@ void StringWriter::write(const void* data, size_t size) {
   this->contents.append(reinterpret_cast<const char*>(data), size);
 }
 
-void StringWriter::write(const std::string& data) {
+void StringWriter::write(std::string_view data) {
   this->contents.append(data);
 }
 
@@ -1453,11 +1454,11 @@ void BlockStringWriter::write(const void* data, size_t size) {
   this->blocks.emplace_back(reinterpret_cast<const char*>(data), size);
 }
 
-void BlockStringWriter::write(const std::string& data) {
+void BlockStringWriter::write(std::string_view data) {
   this->blocks.emplace_back(data);
 }
 
-void BlockStringWriter::write(std::string&& data) {
+void BlockStringWriter::add(std::string&& data) {
   this->blocks.emplace_back(std::move(data));
 }
 

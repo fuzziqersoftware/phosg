@@ -49,7 +49,7 @@ std::string base64_encode(const void* vdata, size_t size, const char* alphabet) 
   return ret;
 }
 
-std::string base64_encode(const std::string& data, const char* alphabet) {
+std::string base64_encode(std::string_view data, const char* alphabet) {
   return base64_encode(data.data(), data.size(), alphabet);
 }
 
@@ -112,7 +112,7 @@ std::string base64_decode(const void* vdata, size_t size, const char* alphabet) 
   return ret;
 }
 
-std::string base64_decode(const std::string& data, const char* alphabet) {
+std::string base64_decode(std::string_view data, const char* alphabet) {
   return base64_decode(data.data(), data.size(), alphabet);
 }
 

@@ -34,10 +34,10 @@ void fwrite_fmt(FILE* f, std::format_string<ArgTs...> fmt, ArgTs&&... args) {
 
 std::unique_ptr<void, void (*)(void*)> malloc_unique(size_t size);
 
-std::string toupper(const std::string& s);
-std::string tolower(const std::string& s);
+std::string toupper(std::string_view s);
+std::string tolower(std::string_view s);
 
-std::string str_replace_all(const std::string& s, const char* target, const char* replacement);
+std::string str_replace_all(std::string_view s, const char* target, const char* replacement);
 
 template <typename StrT>
 void strip_trailing_zeroes(StrT& s) {
@@ -171,14 +171,14 @@ void strip_comments_inplace(StrT& s, uint8_t flags = StripCommentsFlag::DEFAULT)
   s.resize(write_offset);
 }
 
-std::string escape_quotes(const std::string& s);
-std::string escape_controls(const std::string& s, bool escape_non_ascii);
-std::string escape_url(const std::string& s, bool escape_slash = false);
+std::string escape_quotes(std::string_view s);
+std::string escape_controls(std::string_view s, bool escape_non_ascii);
+std::string escape_url(std::string_view s, bool escape_slash = false);
 
-inline std::string escape_controls_ascii(const std::string& s) {
+inline std::string escape_controls_ascii(std::string_view s) {
   return escape_controls(s, true);
 }
-inline std::string escape_controls_utf8(const std::string& s) {
+inline std::string escape_controls_utf8(std::string_view s) {
   return escape_controls(s, false);
 }
 
@@ -263,9 +263,9 @@ struct PrefixedLogger {
   std::string prefix;
   LogLevel min_level;
 
-  explicit PrefixedLogger(const std::string& prefix, LogLevel min_level = LogLevel::L_USE_DEFAULT);
+  explicit PrefixedLogger(std::string_view prefix, LogLevel min_level = LogLevel::L_USE_DEFAULT);
 
-  PrefixedLogger sub(const std::string& prefix, LogLevel min_level = LogLevel::L_USE_DEFAULT) const;
+  PrefixedLogger sub(std::string_view prefix, LogLevel min_level = LogLevel::L_USE_DEFAULT) const;
 
   inline LogLevel effective_level() const {
     return this->min_level == LogLevel::L_USE_DEFAULT ? log_level() : this->min_level;
@@ -305,14 +305,14 @@ struct PrefixedLogger {
   }
 };
 
-std::vector<std::string> split(const std::string& s, char delim, size_t max_splits = 0);
+std::vector<std::string> split(std::string_view s, char delim, size_t max_splits = 0);
+std::vector<std::wstring> split(std::wstring_view s, wchar_t delim, size_t max_splits = 0);
 std::vector<std::string_view> split_view(std::string_view s, char delim, size_t max_splits = 0);
-std::vector<std::wstring> split(const std::wstring& s, wchar_t delim, size_t max_splits = 0);
 std::vector<std::wstring_view> split_view(std::wstring_view s, wchar_t delim, size_t max_splits = 0);
-std::vector<std::string> split_context(const std::string& s, char delim, size_t max_splits = 0);
+std::vector<std::string> split_context(std::string_view s, char delim, size_t max_splits = 0);
 std::vector<std::string_view> split_context_view(std::string_view s, char delim, size_t max_splits = 0);
 
-std::vector<std::string> split_args(const std::string& s);
+std::vector<std::string> split_args(std::string_view s);
 
 template <typename ItemContainerT, typename DelimiterT>
 std::string join(const ItemContainerT& items, DelimiterT& delim) {
@@ -335,11 +335,11 @@ std::string join(const ItemContainerT& items) {
   return ret;
 }
 
-size_t skip_whitespace(const std::string& s, size_t offset);
+size_t skip_whitespace(std::string_view s, size_t offset);
 size_t skip_whitespace(const char* s, size_t offset);
-size_t skip_non_whitespace(const std::string& s, size_t offset);
+size_t skip_non_whitespace(std::string_view s, size_t offset);
 size_t skip_non_whitespace(const char* s, size_t offset);
-size_t skip_word(const std::string& s, size_t offset);
+size_t skip_word(std::string_view s, size_t offset);
 size_t skip_word(const char* s, size_t offset);
 
 std::string string_for_error(int error);
@@ -409,7 +409,8 @@ enum FormatDataStringFlags {
 };
 
 std::string parse_data_string(const std::string& s, std::string* mask = nullptr, uint64_t flags = 0);
-std::string format_data_string(const std::string& data, const std::string* mask = nullptr, uint64_t flags = 0);
+std::string format_data_string(std::string_view data, std::string_view mask, uint64_t flags = 0);
+std::string format_data_string(std::string_view data, uint64_t flags = 0);
 std::string format_data_string(const void* data, size_t size, const void* mask = nullptr, uint64_t flags = 0);
 
 std::string format_size(size_t size, bool include_bytes = false);
@@ -419,8 +420,8 @@ class BitReader {
 public:
   BitReader();
   explicit BitReader(std::shared_ptr<std::string> data, size_t offset = 0);
+  BitReader(std::string_view data, size_t offset = 0);
   BitReader(const void* data, size_t size, size_t offset = 0);
-  BitReader(const std::string& data, size_t offset = 0);
   virtual ~BitReader() = default;
 
   size_t where() const;
@@ -456,7 +457,10 @@ public:
 
   void write(bool v);
 
-  inline const std::string& str() {
+  inline std::string& str() {
+    return this->data;
+  }
+  inline std::string_view str() const {
     return this->data;
   }
 
@@ -485,8 +489,7 @@ public:
   StringReader();
   explicit StringReader(std::shared_ptr<std::string> data, size_t offset = 0);
   StringReader(const void* data, size_t size, size_t offset = 0);
-  StringReader(const std::string& data, size_t offset = 0);
-  StringReader(const std::string_view& data, size_t offset = 0);
+  StringReader(std::string_view data, size_t offset = 0);
   virtual ~StringReader() = default;
 
   size_t where() const;
@@ -497,7 +500,7 @@ public:
   void skip(size_t bytes);
   bool skip_if(const void* data, size_t size);
   bool eof() const;
-  std::string all() const;
+  std::string_view all() const;
 
   StringReader sub(size_t offset) const;
   StringReader sub(size_t offset, size_t size) const;
@@ -516,12 +519,12 @@ public:
 
   const char* peek(size_t size);
 
-  std::string read(size_t size, bool advance = true);
-  std::string readx(size_t size, bool advance = true);
+  std::string_view read(size_t size, bool advance = true);
+  std::string_view readx(size_t size, bool advance = true);
   size_t read(void* data, size_t size, bool advance = true);
   void readx(void* data, size_t size, bool advance = true);
-  std::string pread(size_t offset, size_t size) const;
-  std::string preadx(size_t offset, size_t size) const;
+  std::string_view pread(size_t offset, size_t size) const;
+  std::string_view preadx(size_t offset, size_t size) const;
   size_t pread(size_t offset, void* data, size_t size) const;
   void preadx(size_t offset, void* data, size_t size) const;
 
@@ -693,10 +696,10 @@ public:
   inline int64_t pget_s48b(size_t offset) const { return ext48(this->pget_u48b(offset)); }
   inline int64_t pget_s48l(size_t offset) const { return ext48(this->pget_u48l(offset)); }
 
-  std::string get_line(bool advance = true);
+  std::string_view get_line(bool advance = true);
 
-  std::string get_cstr(bool advance = true);
-  std::string pget_cstr(size_t offset) const;
+  std::string_view get_cstr(bool advance = true);
+  std::string_view pget_cstr(size_t offset) const;
 
 private:
   std::shared_ptr<std::string> owned_data;
@@ -720,7 +723,7 @@ public:
   }
 
   void write(const void* data, size_t size);
-  void write(const std::string& data);
+  void write(std::string_view data);
 
   template <typename T>
   void put(const T& v) {
@@ -823,7 +826,7 @@ public:
   inline std::string& str() {
     return this->contents;
   }
-  inline const std::string& str() const {
+  inline std::string_view str() const {
     return this->contents;
   }
 
@@ -842,7 +845,7 @@ public:
     }
     memcpy(this->buf + offset, data, size);
   }
-  inline void pwrite(size_t offset, const std::string& data) {
+  inline void pwrite(size_t offset, std::string_view data) {
     this->pwrite(offset, data.data(), data.size());
   }
 
@@ -850,7 +853,7 @@ public:
     this->pwrite(this->offset, data, size);
     this->offset += size;
   }
-  inline void write(const std::string& data) {
+  inline void write(std::string_view data) {
     this->write(data.data(), data.size());
   }
 
@@ -951,8 +954,8 @@ public:
   ~BlockStringWriter() = default;
 
   void write(const void* data, size_t size);
-  void write(const std::string& data);
-  void write(std::string&& data);
+  void write(std::string_view data);
+  void add(std::string&& data);
 
   template <typename T>
   void put(const T& v) {
@@ -1259,10 +1262,10 @@ void format_data_custom(
 template <WriteFn WriteFnT>
 void format_data_custom(
     WriteFnT& write_data,
-    const std::string& data,
+    std::string_view data,
     uint64_t start_address,
-    const std::string& prev_data,
-    const std::string& censor_data,
+    std::string_view prev_data,
+    std::string_view censor_data,
     uint64_t flags = DEFAULT_FORMAT_DATA_FLAGS) {
   format_data_custom(write_data, StringReader(data), start_address, StringReader(prev_data), StringReader(censor_data),
       flags);
@@ -1270,16 +1273,16 @@ void format_data_custom(
 template <WriteFn WriteFnT>
 void format_data_custom(
     WriteFnT& write_data,
-    const std::string& data,
+    std::string_view data,
     uint64_t start_address,
-    const std::string& prev_data,
+    std::string_view prev_data,
     uint64_t flags = DEFAULT_FORMAT_DATA_FLAGS) {
   format_data_custom(write_data, StringReader(data), start_address, StringReader(prev_data), StringReader(), flags);
 }
 template <WriteFn WriteFnT>
 void format_data_custom(
     WriteFnT& write_data,
-    const std::string& data,
+    std::string_view data,
     uint64_t start_address = 0,
     uint64_t flags = DEFAULT_FORMAT_DATA_FLAGS) {
   format_data_custom(write_data, StringReader(data), start_address, StringReader(), StringReader(), flags);
