@@ -431,7 +431,7 @@ std::string JSON::serialize(uint32_t options, size_t indent_level) const {
 
 JSON::JSON() : value(nullptr) {}
 
-JSON::JSON(nullptr_t) : value(nullptr) {}
+JSON::JSON(std::nullptr_t) : value(nullptr) {}
 
 JSON::JSON(bool x) : value(x) {}
 
@@ -546,9 +546,10 @@ std::partial_ordering JSON::operator<=>(const JSON& other) const {
   }
 }
 
-std::partial_ordering JSON::operator<=>(nullptr_t) const {
-  const nullptr_t* stored_v = get_if<0>(&this->value);
-  return (stored_v == nullptr ? std::partial_ordering::unordered : std::partial_ordering::equivalent);
+std::partial_ordering JSON::operator<=>(std::nullptr_t) const {
+  return std::holds_alternative<std::nullptr_t>(this->value)
+      ? std::partial_ordering::equivalent
+      : std::partial_ordering::unordered;
 }
 
 std::partial_ordering JSON::operator<=>(bool v) const {
