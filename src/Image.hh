@@ -532,7 +532,7 @@ public:
     ret.w = w;
     ret.h = h;
     ret.stride = ret.default_stride();
-    ret.pixels = reinterpret_cast<DataT*>(raw_data);
+    ret.pixels = reinterpret_cast<uint8_t*>(raw_data);
     return ret;
   }
 
@@ -1070,10 +1070,10 @@ public:
     return this->h;
   }
   DataT* get_data() {
-    return this->data;
+    return reinterpret_cast<DataT*>(this->pixels);
   }
   const DataT* get_data() const {
-    return this->data;
+    return reinterpret_cast<const DataT*>(this->pixels);
   }
 
   /////////////////////////////////////////////////////////////////////////////
