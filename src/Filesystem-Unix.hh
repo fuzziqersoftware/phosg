@@ -84,7 +84,14 @@ void pwritex(int fd, const T& t, off_t offset) {
   pwritex(fd, &t, sizeof(T), offset);
 }
 
-void make_fd_nonblocking(int fd);
+void set_fd_flags(int fd, int flags);
+
+inline void make_fd_nonblocking(int fd) {
+  set_fd_flags(fd, O_NONBLOCK);
+}
+inline void set_close_on_exec(int fd) {
+  set_fd_flags(fd, O_CLOEXEC);
+}
 
 std::pair<int, int> pipe();
 

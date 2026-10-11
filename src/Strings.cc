@@ -234,17 +234,21 @@ std::vector<std::string> split(std::string_view s, char delim, size_t max_splits
   return split_inner<std::string, std::string_view, char>(s, delim, max_splits);
 }
 std::vector<std::wstring> split(std::wstring_view s, wchar_t delim, size_t max_splits) {
-  return split_inner<std::wstring, std::wstring_view, char>(s, delim, max_splits);
+  return split_inner<std::wstring, std::wstring_view, wchar_t>(s, delim, max_splits);
 }
 std::vector<std::string_view> split_view(std::string_view s, char delim, size_t max_splits) {
   return split_inner<std::string_view, std::string_view, char>(s, delim, max_splits);
 }
 std::vector<std::wstring_view> split_view(std::wstring_view s, wchar_t delim, size_t max_splits) {
-  return split_inner<std::wstring_view, std::wstring_view, char>(s, delim, max_splits);
+  return split_inner<std::wstring_view, std::wstring_view, wchar_t>(s, delim, max_splits);
 }
 
 template <typename RetT, typename InT, typename CharT>
-std::vector<RetT> split_context_inner(InT s, CharT delim, size_t max_splits) {
+std::vector<RetT> split_context_inner(InT s, CharT delim, size_t max_splits, std::string_view parens) {
+  if (parens.size() & 1) {
+    throw std::logic_error("The parentheses definitions must be an even-length string");
+  }
+
   std::vector<RetT> ret;
   std::vector<CharT> paren_stack;
   bool char_is_escaped = false;
@@ -262,19 +266,15 @@ std::vector<RetT> split_context_inner(InT s, CharT delim, size_t max_splits) {
       char_is_escaped = true;
     }
     if (!in_quoted_string) {
-      if (s[z] == '(') {
-        paren_stack.push_back(')');
-      } else if (s[z] == '[') {
-        paren_stack.push_back(']');
-      } else if (s[z] == '{') {
-        paren_stack.push_back('}');
-      } else if (s[z] == '<') {
-        paren_stack.push_back('>');
-      } else if (s[z] == '\'') {
-        paren_stack.push_back('\'');
-      } else if (s[z] == '\"') {
-        paren_stack.push_back('\"');
-      } else if (paren_stack.empty() && (s[z] == delim) && (!max_splits || (ret.size() < max_splits))) {
+      bool is_paren = false;
+      for (size_t w = 0; w < parens.size(); w += 2) {
+        if (s[z] == parens[w]) {
+          paren_stack.push_back(parens[w + 1]);
+          is_paren = true;
+          break;
+        }
+      }
+      if (!is_paren && paren_stack.empty() && (s[z] == delim) && (!max_splits || (ret.size() < max_splits))) {
         ret.emplace_back(s.substr(last_start, z - last_start));
         last_start = z + 1;
       }
@@ -291,72 +291,54 @@ std::vector<RetT> split_context_inner(InT s, CharT delim, size_t max_splits) {
 
   return ret;
 }
-
-std::vector<std::string> split_context(std::string_view s, char delim, size_t max_splits) {
-  return split_context_inner<std::string, std::string_view, char>(s, delim, max_splits);
+std::vector<std::string> split_context(std::string_view s, char delim, size_t max_splits, std::string_view parens) {
+  return split_context_inner<std::string, std::string_view, char>(s, delim, max_splits, parens);
 }
-std::vector<std::string_view> split_context_view(std::string_view s, char delim, size_t max_splits) {
-  return split_context_inner<std::string_view, std::string_view, char>(s, delim, max_splits);
+std::vector<std::string_view> split_context_view(
+    std::string_view s, char delim, size_t max_splits, std::string_view parens) {
+  return split_context_inner<std::string_view, std::string_view, char>(s, delim, max_splits, parens);
 }
 
 std::vector<std::string> split_args(std::string_view s) {
-  std::vector<std::string> ret;
-  char current_quote = 0;
-  bool in_space_between_args = true;
+  std::vector<std::string> tokens;
+  bool last_ended_with_escape = false;
+  for (auto& token : split_context(s, ' ', 0, "\"\"\'\'")) {
+    // If the previous token ended with a backslash, merge the following token into it along with a space (this undoes
+    // what split_context did if the space was escaped)
+    auto& ret_token = last_ended_with_escape ? tokens.back() : tokens.emplace_back();
+    if (last_ended_with_escape) {
+      ret_token.push_back(' ');
+    }
 
-  for (size_t z = 0; z < s.size(); z++) {
-    bool can_be_space = true;
-    char to_write = 0;
-    if (current_quote) {
-      can_be_space = false;
-      if (s[z] == current_quote) {
+    // Remove top-level quotes and handle escaped characters
+    char current_quote = 0;
+    bool is_escape_char = false;
+    for (char ch : token) {
+      if (is_escape_char) {
+        ret_token.push_back(ch);
+        is_escape_char = false;
+      } else if (ch == '\\') {
+        is_escape_char = true;
+      } else if (ch == current_quote) {
         current_quote = 0;
-      } else if (s[z] == '\\') {
-        z++;
-        if (z >= s.size()) {
-          throw std::runtime_error("incomplete escape sequence");
-        }
-        to_write = s[z];
+      } else if (!current_quote && (ch == '\"' || ch == '\'')) {
+        current_quote = ch;
       } else {
-        to_write = s[z];
-      }
-    } else if ((s[z] == '\"') || (s[z] == '\'')) {
-      current_quote = s[z];
-    } else if (s[z] == '\\') {
-      can_be_space = false;
-      z++;
-      if (z >= s.size()) {
-        throw std::runtime_error("incomplete escape sequence");
-      }
-      to_write = s[z];
-    } else {
-      to_write = s[z];
-    }
-
-    if (to_write) {
-      bool is_space_between_args = can_be_space && isblank(to_write);
-      if (is_space_between_args && in_space_between_args) {
-        // Nothing
-      } else if (!is_space_between_args && in_space_between_args) {
-        // Start of another arg
-        ret.emplace_back();
-        if (to_write) {
-          ret.back().push_back(to_write);
-        }
-        in_space_between_args = false;
-      } else if (is_space_between_args && !in_space_between_args) {
-        in_space_between_args = true;
-      } else { // !is_space_between_args && !in_space_between_args
-        ret.back().push_back(to_write);
+        ret_token.push_back(ch);
       }
     }
-  }
+    last_ended_with_escape = is_escape_char;
 
-  if (current_quote) {
-    throw std::runtime_error("unterminated quoted string");
+    // If this input token and this output token are both empty, remove the output token (thereby collapsing multiple
+    // spaces between arguments into a single token break)
+    if (token.empty() && ret_token.empty()) {
+      if (last_ended_with_escape) {
+        throw std::logic_error("Input token is empty but contained an escape character");
+      }
+      tokens.pop_back();
+    }
   }
-
-  return ret;
+  return tokens;
 }
 
 size_t skip_whitespace(std::string_view s, size_t offset) {
@@ -1029,53 +1011,59 @@ size_t parse_size(const char* str) {
   return integer_part * unit_scale + static_cast<size_t>(fractional_part * unit_scale);
 }
 
-BitReader::BitReader() : owned_data(nullptr), data(nullptr), length(0), offset(0) {}
+BitReader::BitReader() : owned_data(nullptr), data(nullptr), length_bits(0), offset_bits(0) {}
 
-BitReader::BitReader(std::shared_ptr<std::string> data, size_t offset)
+BitReader::BitReader(std::shared_ptr<std::string> data, size_t offset_bits)
     : owned_data(data),
       data(reinterpret_cast<const uint8_t*>(data->data())),
-      length(data->size() * 8),
-      offset(offset) {}
+      length_bits(data->size() * 8),
+      offset_bits(offset_bits) {}
 
 BitReader::BitReader(const void* data, size_t size, size_t offset)
-    : data(reinterpret_cast<const uint8_t*>(data)), length(size), offset(offset) {}
+    : data(reinterpret_cast<const uint8_t*>(data)), length_bits(size), offset_bits(offset) {}
 
 BitReader::BitReader(std::string_view data, size_t offset) : BitReader(data.data(), data.size() * 8, offset) {}
 
 size_t BitReader::where() const {
-  return this->offset;
+  return this->offset_bits;
 }
 
 size_t BitReader::size() const {
-  return this->length;
+  return this->length_bits;
 }
 
 size_t BitReader::remaining() const {
-  return this->length - this->offset;
+  return this->length_bits - this->offset_bits;
 }
 
 void BitReader::truncate(size_t new_size) {
-  if (this->length < new_size) {
+  if (this->length_bits < new_size) {
     throw std::invalid_argument("BitReader contents cannot be extended");
   }
-  this->length = new_size;
+  this->length_bits = new_size;
 }
 
 void BitReader::go(size_t offset) {
-  this->offset = offset;
+  this->offset_bits = offset;
 }
 
 void BitReader::skip(size_t bits) {
-  this->offset += bits;
+  this->offset_bits += bits;
 }
 
 bool BitReader::eof() const {
-  return (this->offset >= this->length);
+  return (this->offset_bits >= this->length_bits);
 }
 
-uint64_t BitReader::pread(size_t start_offset, uint8_t size) {
+uint64_t BitReader::pread(size_t start_offset, uint8_t size) const {
   if (size > 64) {
     throw std::logic_error("BitReader cannot return more than 64 bits at once");
+  }
+  if (start_offset >= this->length_bits) {
+    throw std::logic_error("Requested bit range is beyond end of data");
+  }
+  if (size > this->length_bits - start_offset) {
+    throw std::logic_error("Not enough bits available in BitReader");
   }
 
   uint64_t ret = 0;
@@ -1087,9 +1075,9 @@ uint64_t BitReader::pread(size_t start_offset, uint8_t size) {
 }
 
 uint64_t BitReader::read(uint8_t size, bool advance) {
-  uint64_t ret = this->pread(this->offset, size);
+  uint64_t ret = this->pread(this->offset_bits, size);
   if (advance) {
-    this->offset += size;
+    this->offset_bits += size;
   }
   return ret;
 }
@@ -1111,8 +1099,7 @@ void BitWriter::truncate(size_t size) {
   }
   this->data.resize((size + 7) / 8);
   this->last_byte_unset_bits = (8 - (size & 7)) & 7;
-  // The if statement is important here (we can't just let the & become
-  // degenerate) because this->data could now be empty
+  // The if statement is important here (we can't let the & become degenerate) because this->data could now be empty
   if (this->last_byte_unset_bits) {
     this->data[this->data.size() - 1] &= (0xFF << this->last_byte_unset_bits);
   }
@@ -1130,9 +1117,17 @@ void BitWriter::write(bool v) {
   }
 }
 
-IOVecByteReader::IOVecByteReader(const struct iovec* iovs, size_t num_iovs) : iovs(iovs), num_iovs(num_iovs) {}
+IOVecByteReader::IOVecByteReader(const struct iovec* iovs, size_t num_iovs) : iovs(iovs), num_iovs(num_iovs) {
+  // Skip any iovecs at the beginning that are empty, since get_u8() will try to read from the current iov
+  while ((this->current_iov < this->num_iovs) && (this->iovs[this->current_iov].iov_len == 0)) {
+    this->current_iov++;
+  }
+}
 
 uint8_t IOVecByteReader::get_u8() {
+  if (this->current_iov >= this->num_iovs) {
+    throw std::out_of_range("No more data to read");
+  }
   uint8_t ret = reinterpret_cast<const uint8_t*>(this->iovs[this->current_iov].iov_base)[this->offset_within_iov];
   this->offset_within_iov++;
   while ((this->current_iov < this->num_iovs) &&
@@ -1288,14 +1283,15 @@ BitReader StringReader::extract_bits() {
 }
 
 BitReader StringReader::extract_bits(size_t size) {
+  size = std::min<size_t>(this->remaining(), size);
   auto ret = this->sub_bits(this->offset, size);
-  this->skip(ret.size());
+  this->skip(size);
   return ret;
 }
 
 BitReader StringReader::extractx_bits(size_t size) {
   auto ret = this->subx_bits(this->offset, size);
-  this->skip(ret.size());
+  this->skip(size);
   return ret;
 }
 
@@ -1384,25 +1380,28 @@ std::string_view StringReader::get_line(bool advance) {
 
   size_t start_offset = this->offset;
   size_t ret_size = 0;
+  char last_last_ch = '\0';
   char last_ch = '\0';
   for (;;) {
     size_t ch_offset = start_offset + ret_size;
     if (ch_offset >= this->length) {
       break;
     }
-    uint8_t ch = this->pget_s8(ch_offset);
-    if (ch != '\n') {
-      last_ch = ch;
-      ret_size++;
-    } else {
+    ret_size++;
+    last_last_ch = last_ch;
+    last_ch = this->pget_s8(ch_offset);
+    if (last_ch == '\n') {
       break;
     }
   }
   if (advance) {
-    this->offset += (ret_size + 1);
+    this->offset += ret_size;
   }
-  if (last_ch == '\r') {
+  if (last_ch == '\n') {
     ret_size--;
+    if (last_last_ch == '\r') {
+      ret_size--;
+    }
   }
   return std::string_view{reinterpret_cast<const char*>(this->data) + start_offset, ret_size};
 }

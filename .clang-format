@@ -26,3 +26,4 @@ AlignTrailingComments: false
 AlignAfterOpenBracket: DontAlign
 AlignOperands: DontAlign
 AlignEscapedNewlines: Left
+RequiresClausePosition: SingleLine

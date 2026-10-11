@@ -144,40 +144,36 @@ public:
   ~JSON() = default;
 
   enum SerializeOption : uint32_t {
-    // These options enable serialization behaviors, some of which don't conform
-    // to the JSON standard.
+    // These options enable serialization behaviors, some of which don't conform to the JSON standard.
 
-    // This option adds whitespace and line breaks to the output to make it
-    // easier for humans to read. The output is still standard-compliant.
+    // This option adds whitespace and line breaks to the output to make it easier for humans to read. The output is
+    // still standard-compliant.
     FORMAT = 0x04,
-    // This option makes lists and dictionaries that don't contain other lists
-    // or dictionaries render on multiple lines instead of a single line. No
-    // effect if FORMAT is not enabled.
+    // This option makes lists and dictionaries that don't contain other lists or dictionaries render on multiple lines
+    // instead of a single line. No effect if FORMAT is not enabled.
     EXPAND_LEAF_CONTAINERS = 0x40,
-    // If this is enabled, all integers are serialized in hexadecimal. This is
-    // not standard-compliant, but JSON::parse can parse output generated with
-    // this option if disable_extensions is false (the default).
+    // If this is enabled, all integers are serialized in hexadecimal. This is not standard-compliant, but JSON::parse
+    // can parse output generated with this option if disable_extensions is false (the default).
     HEX_INTEGERS = 0x01,
-    // If this is enabled, null, true, and false are serialized as single
-    // characters (n, t, and f). This is not standard-compliant, but JSON::parse
-    // can parse output generated with this option if disable_extensions is
-    // false (the default).
+    // If this is enabled, null, true, and false are serialized as single characters (n, t, and f). This is not
+    // standard-compliant, but JSON::parse can parse output generated with this option if disable_extensions is false
+    // (the default).
     ONE_CHARACTER_TRIVIAL_CONSTANTS = 0x02,
-    // If this is enabled, keys in dictionaries are sorted. If not enabled,
-    // keys are serialized in the order they're stored, which is arbitrary.
-    // Sorting takes a bit of extra time and memory, so if the resulting JSON
-    // isn't expected to be read by a human, it's often not worth it. When this
-    // is enabled, the output is still standard-compliant.
+    // If this is enabled, keys in dictionaries are sorted. If not enabled, keys are serialized in the order they're
+    // stored, which is arbitrary. Sorting takes a bit of extra time and memory, so if the resulting JSON isn't
+    // expected to be read by a human, it's often not worth it. When this is enabled, the output is still
+    // standard-compliant.
     SORT_DICT_KEYS = 0x08,
-    // If this is enabled, non-ASCII bytes in strings are encoded in a shorter
-    // form with the \x code rather than the \u code. This is not standard-
-    // compliant.
+    // If this is enabled, non-ASCII bytes in strings are encoded in a shorter form with the \x code rather than the \u
+    // code. This is not standard-compliant.
     HEX_ESCAPE_CODES = 0x10,
-    // If this is enabled, non-ASCII bytes in strings are not encoded at all;
-    // only the double-quote (") character will be escaped. This is not
-    // standard-compliant, but makes non-English UTF-8 strings easier to work
-    // with manually.
+    // If this is enabled, non-ASCII bytes in strings are not encoded at all; only the double-quote (") character will
+    // be escaped. This is not standard-compliant, but makes non-English UTF-8 strings easier to work with manually.
     ESCAPE_CONTROLS_ONLY = 0x20,
+    // If this is enabled, serializing infinity and NaN is not allowed (std::runtime_error is thrown); if not enabled,
+    // those values serialize as they do in Python (as "Infinity" or "NaN"), which is not standard-compliant.
+    // JSON::parse can parse "Infinity" and "NaN" if disable_extensions is false (the default).
+    FORBID_INFINITY_NAN = 0x80,
   };
   std::string serialize(uint32_t options = 0, size_t indent_level = 0) const;
 

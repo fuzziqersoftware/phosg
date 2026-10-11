@@ -32,6 +32,19 @@ int main(int, char**) {
     expect_eq("11:11:12", phosg::format_duration(40272222222));
     expect_eq("5:11:11:12", phosg::format_duration(472272222222));
 
+    expect_eq("0", phosg::format_duration(0, 0));
+    expect_eq("0", phosg::format_duration(222222, 0));
+    expect_eq("2", phosg::format_duration(2222222, 0));
+    expect_eq("12", phosg::format_duration(12222222, 0));
+    expect_eq("1:02", phosg::format_duration(62222222, 0));
+    expect_eq("1:10", phosg::format_duration(69999999, 0));
+    expect_eq("1:12", phosg::format_duration(72222222, 0));
+    expect_eq("11:12", phosg::format_duration(672222222, 0));
+    expect_eq("1:01:12", phosg::format_duration(3672222222, 0));
+    expect_eq("1:11:12", phosg::format_duration(4272222222, 0));
+    expect_eq("11:11:12", phosg::format_duration(40272222222, 0));
+    expect_eq("5:11:11:12", phosg::format_duration(472272222222, 0));
+
     expect_eq("0", phosg::format_duration(438294, 0));
     expect_eq("0.4", phosg::format_duration(438294, 1));
     expect_eq("0.44", phosg::format_duration(438294, 2));

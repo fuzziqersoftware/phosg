@@ -305,12 +305,16 @@ struct PrefixedLogger {
   }
 };
 
+constexpr char DEFAULT_PARENS[] = "()[]{}<>\'\'\"\"";
+
 std::vector<std::string> split(std::string_view s, char delim, size_t max_splits = 0);
 std::vector<std::wstring> split(std::wstring_view s, wchar_t delim, size_t max_splits = 0);
 std::vector<std::string_view> split_view(std::string_view s, char delim, size_t max_splits = 0);
 std::vector<std::wstring_view> split_view(std::wstring_view s, wchar_t delim, size_t max_splits = 0);
-std::vector<std::string> split_context(std::string_view s, char delim, size_t max_splits = 0);
-std::vector<std::string_view> split_context_view(std::string_view s, char delim, size_t max_splits = 0);
+std::vector<std::string> split_context(
+    std::string_view s, char delim, size_t max_splits = 0, std::string_view parens = DEFAULT_PARENS);
+std::vector<std::string_view> split_context_view(
+    std::string_view s, char delim, size_t max_splits = 0, std::string_view parens = DEFAULT_PARENS);
 
 std::vector<std::string> split_args(std::string_view s);
 
@@ -419,7 +423,7 @@ size_t parse_size(const char* str);
 class BitReader {
 public:
   BitReader();
-  explicit BitReader(std::shared_ptr<std::string> data, size_t offset = 0);
+  explicit BitReader(std::shared_ptr<std::string> data, size_t offset_bits = 0);
   BitReader(std::string_view data, size_t offset = 0);
   BitReader(const void* data, size_t size, size_t offset = 0);
   virtual ~BitReader() = default;
@@ -432,14 +436,14 @@ public:
   void skip(size_t bits);
   bool eof() const;
 
-  uint64_t pread(size_t offset, uint8_t size = 1);
+  uint64_t pread(size_t offset, uint8_t size = 1) const;
   uint64_t read(uint8_t size = 1, bool advance = true);
 
 private:
   std::shared_ptr<std::string> owned_data;
   const uint8_t* data;
-  size_t length;
-  size_t offset;
+  size_t length_bits;
+  size_t offset_bits;
 };
 
 // This class exists because apparently vector<bool> isn't required to store its
@@ -570,11 +574,11 @@ public:
 
   template <typename T>
   std::span<const T> pget_span(size_t offset, size_t count) const {
-    return {reinterpret_cast<const T*>(this->pgetv(offset, count * sizeof(T))), count};
+    return {this->pget_array<T>(offset, count), count};
   }
   template <typename T>
   std::span<const T> get_span(size_t count, bool advance = true) {
-    auto ret = this->pget_array<T>(this->offset, count);
+    auto ret = this->pget_span<T>(this->offset, count);
     if (advance) {
       this->offset += count * sizeof(T);
     }

@@ -285,7 +285,11 @@ std::unordered_map<std::string, struct sockaddr_storage> get_network_interfaces(
     if (!i->ifa_addr) {
       continue;
     }
-    ret.emplace(i->ifa_name, *reinterpret_cast<const struct sockaddr_storage*>(i->ifa_addr));
+    auto emplace_ret = ret.emplace(i->ifa_name, sockaddr_storage{});
+    memcpy(
+        &emplace_ret.first->second,
+        i->ifa_addr,
+        std::min<size_t>(i->ifa_addr->sa_len, sizeof(emplace_ret.first->second)));
   }
 
   return ret;

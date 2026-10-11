@@ -93,7 +93,7 @@ std::string base64_decode(const void* vdata, size_t size, const char* alphabet) 
         }
         ret.push_back(((c1 << 2) & 0xFC) | ((c2 >> 4) & 0x03));
       } else {
-        if ((c1 >= 0x40) || (c2 >= 0x40) || (c2 >= 0x40)) {
+        if ((c1 >= 0x40) || (c2 >= 0x40) || (c3 >= 0x40)) {
           throw std::invalid_argument("string contains non-base64 characters");
         }
         ret.push_back(((c1 << 2) & 0xFC) | ((c2 >> 4) & 0x03));

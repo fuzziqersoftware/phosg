@@ -37,8 +37,10 @@ int main(int, char** argv) {
     phosg::fwrite_fmt(stderr, "-- name_for_pid\n");
     std::string s = phosg::name_for_pid(getpid());
     expect_eq("ProcessTest", phosg::name_for_pid(getpid()));
-    expect_eq(getpid(), phosg::pid_for_name("ProcessTest"));
-    expect_eq(getpid(), phosg::pid_for_name("processtest"));
+    phosg::fwrite_fmt(stderr, "-- pid_for_name (caps)\n");
+    expect_eq(getpid(), phosg::pid_for_name("ProcessTest", true, false));
+    phosg::fwrite_fmt(stderr, "-- pid_for_name (lowercase)\n");
+    expect_eq(getpid(), phosg::pid_for_name("processtest", true, false));
   }
 
   {

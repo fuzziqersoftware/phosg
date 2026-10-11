@@ -97,19 +97,19 @@ pid_t pid_for_name(const std::string& name, bool search_commands, bool exclude_s
   pid_t self_pid = exclude_self ? getpid() : 0;
 
   pid_t pid = 0;
-  for (const auto& it : list_processes(search_commands)) {
-    std::string lower_it_name = tolower(it.second);
-    if (!strstr(lower_it_name.c_str(), lower_name.c_str())) {
+  for (const auto& [proc_pid, proc_name] : list_processes(search_commands)) {
+    std::string lower_proc_name = tolower(proc_name);
+    if (!lower_proc_name.contains(lower_name)) {
       continue;
     }
 
-    if (pid == self_pid) {
+    if (exclude_self && (proc_pid == self_pid)) {
       continue;
     }
     if (pid) {
       throw std::runtime_error("multiple processes found");
     }
-    pid = it.first;
+    pid = proc_pid;
   }
 
   if (pid) {
@@ -233,10 +233,12 @@ uint64_t this_process_start_time() {
   return cached_this_process_start_time;
 }
 
-static void replace_fd(int oldfd, int newfd) {
+static void replace_fd(int oldfd, int newfd, bool close_old) {
   if (oldfd != newfd) {
     dup2(oldfd, newfd);
-    close(oldfd);
+    if (close_old) {
+      close(oldfd);
+    }
   }
 }
 
@@ -250,18 +252,21 @@ Subprocess::Subprocess(const std::vector<std::string>& cmd, int stdin_fd, int st
     auto pipefds = pipe();
     stdin_fd = pipefds.first;
     this->stdin_write_fd = pipefds.second;
+    set_close_on_exec(this->stdin_write_fd);
     parent_fds_to_close.emplace(stdin_fd);
   }
   if (stdout_fd == -1) {
     auto pipefds = pipe();
     this->stdout_read_fd = pipefds.first;
     stdout_fd = pipefds.second;
+    set_close_on_exec(this->stdout_read_fd);
     parent_fds_to_close.emplace(stdout_fd);
   }
   if (stderr_fd == -1) {
     auto pipefds = pipe();
     this->stderr_read_fd = pipefds.first;
     stderr_fd = pipefds.second;
+    set_close_on_exec(this->stderr_read_fd);
     parent_fds_to_close.emplace(stderr_fd);
   }
 
@@ -270,15 +275,15 @@ Subprocess::Subprocess(const std::vector<std::string>& cmd, int stdin_fd, int st
     throw std::runtime_error("fork failed: " + string_for_error(errno));
   }
   if (this->child_pid == 0) { // Child process
-    replace_fd(stdin_fd, 0);
-    replace_fd(stdout_fd, 1);
-    replace_fd(stderr_fd, 2);
+    replace_fd(stdin_fd, 0, true);
+    replace_fd(stdout_fd, 1, (stdout_fd != stderr_fd)); // Don't close it yet if it's going to be dup2'd to stderr too
+    replace_fd(stderr_fd, 2, true);
     close(this->stdin_write_fd);
     close(this->stdout_read_fd);
     close(this->stderr_read_fd);
 
-    if (cwd) {
-      chdir(cwd->c_str());
+    if (cwd && (chdir(cwd->c_str()) != 0)) {
+      _exit(2);
     }
 
     std::vector<const char*> argv;
@@ -289,10 +294,14 @@ Subprocess::Subprocess(const std::vector<std::string>& cmd, int stdin_fd, int st
 
     if (env) {
       std::vector<std::string> environ;
-      std::vector<const char*> envp;
       for (const auto& it : *env) {
         environ.emplace_back(std::format("{}={}", it.first.c_str(), it.second.c_str()));
-        envp.emplace_back(environ.back().c_str());
+      }
+      // Note: It's important that these are separate loops, since technically a reallocation in environ could
+      // invalidate pointers in envp
+      std::vector<const char*> envp;
+      for (const auto& it : environ) {
+        envp.emplace_back(it.c_str());
       }
       envp.emplace_back(nullptr);
       execve(cmd[0].c_str(), (char* const*)argv.data(), (char* const*)envp.data());
@@ -300,7 +309,7 @@ Subprocess::Subprocess(const std::vector<std::string>& cmd, int stdin_fd, int st
     } else {
       execvp(cmd[0].c_str(), (char* const*)argv.data());
     }
-    // If we get here, fork() worked, but execv_() failed: exit child process without even doing cleanup
+    // If we get here, fork() succeeded but execv() failed: exit child process without even doing cleanup
     _exit(1);
   }
 
@@ -312,58 +321,54 @@ Subprocess::Subprocess(const std::vector<std::string>& cmd, int stdin_fd, int st
 Subprocess::Subprocess()
     : stdin_write_fd(-1), stdout_read_fd(-1), stderr_read_fd(-1), child_pid(-1), terminated(false), exit_status(-1) {}
 
-Subprocess::Subprocess(Subprocess&& other)
-    : stdin_write_fd(other.stdin_write_fd),
-      stdout_read_fd(other.stdout_read_fd),
-      stderr_read_fd(other.stderr_read_fd),
-      child_pid(other.child_pid),
-      terminated(other.terminated),
-      exit_status(other.exit_status) {
-  other.stdin_write_fd = -1;
-  other.stdout_read_fd = -1;
-  other.stderr_read_fd = -1;
-  other.child_pid = -1;
-  other.terminated = true;
-}
-
-Subprocess& Subprocess::operator=(Subprocess&& other) {
-  this->stdin_write_fd = other.stdin_write_fd;
-  this->stdout_read_fd = other.stdout_read_fd;
-  this->stderr_read_fd = other.stderr_read_fd;
-  this->child_pid = other.child_pid;
-  this->terminated = other.terminated;
-  this->exit_status = other.exit_status;
-  other.stdin_write_fd = -1;
-  other.stdout_read_fd = -1;
-  other.stderr_read_fd = -1;
-  other.child_pid = -1;
-  return *this;
-}
-
 Subprocess::~Subprocess() {
   if (this->child_pid >= 0 && this->wait(true) == -1) {
     this->kill(SIGKILL);
     this->wait();
+  }
+  if (this->stdin_write_fd >= 0) {
+    close(this->stdin_write_fd);
+  }
+  if (this->stdout_read_fd >= 0) {
+    close(this->stdout_read_fd);
+  }
+  if (this->stderr_read_fd >= 0) {
+    close(this->stderr_read_fd);
   }
 }
 
 int Subprocess::stdin_fd() const {
   return this->stdin_write_fd;
 }
-
 int Subprocess::stdout_fd() const {
   return this->stdout_read_fd;
 }
-
 int Subprocess::stderr_fd() const {
   return this->stderr_read_fd;
+}
+void Subprocess::close_stdin() {
+  ::close(this->stdin_write_fd);
+  this->stdin_write_fd = -1;
+}
+void Subprocess::close_stdout() {
+  ::close(this->stdout_read_fd);
+  this->stdout_read_fd = -1;
+}
+void Subprocess::close_stderr() {
+  ::close(this->stderr_read_fd);
+  this->stderr_read_fd = -1;
 }
 
 pid_t Subprocess::pid() const {
   return this->child_pid;
 }
 
-std::string Subprocess::communicate(const void* stdin_data, size_t stdin_size, uint64_t timeout_usecs) {
+std::pair<std::string, std::string> Subprocess::communicate(
+    const void* stdin_data, size_t stdin_size, uint64_t timeout_usecs) {
+  if (this->stdin_write_fd >= 0) {
+    make_fd_nonblocking(this->stdin_write_fd);
+  }
+
   uint64_t deadline_usecs = timeout_usecs ? (now() + timeout_usecs) : 0;
   Poll p;
   if (stdin_size == 0) {
@@ -372,14 +377,25 @@ std::string Subprocess::communicate(const void* stdin_data, size_t stdin_size, u
   } else {
     p.add(this->stdin_write_fd, POLLOUT);
   }
-  p.add(this->stdout_read_fd, POLLIN);
+  if (this->stdout_read_fd >= 0) {
+    p.add(this->stdout_read_fd, POLLIN);
+  }
+  if (this->stderr_read_fd >= 0) {
+    p.add(this->stderr_read_fd, POLLIN);
+  }
 
   size_t stdin_offset = 0;
-  size_t stdout_bytes = 0;
   std::deque<std::string> stdout_queue;
-  while ((this->wait(true) < 0) && (now() < deadline_usecs)) {
+  std::deque<std::string> stderr_queue;
+  while (!deadline_usecs || (now() < deadline_usecs)) {
     if (p.empty()) {
-      this->wait();
+      // Process has closed stdin, stdout, and stderr; just wait for it to exit. Annoyingly, there is no good, portable
+      // way to wait on a child process with a timeout, so we have to poll and sleep instead. This makes our wait
+      // resolution substantially worse than if we used a platform-specific method like kqueue (macOS) or pidfd
+      // (Linux), but implementing those would be much more work.
+      while (this->wait(true) < 0) {
+        usleep(500000);
+      }
       break;
     }
 
@@ -401,8 +417,13 @@ std::string Subprocess::communicate(const void* stdin_data, size_t stdin_size, u
       if (stdout_queue.back().empty()) {
         p.remove(this->stdout_read_fd, true);
         this->stdout_read_fd = -1;
-      } else {
-        stdout_bytes += stdout_queue.back().size();
+      }
+    }
+    if (events.count(this->stderr_read_fd)) {
+      stderr_queue.emplace_back(read(this->stderr_read_fd, 4096));
+      if (stderr_queue.back().empty()) {
+        p.remove(this->stderr_read_fd, true);
+        this->stderr_read_fd = -1;
       }
     }
     if (events.count(this->stdin_write_fd)) {
@@ -425,27 +446,16 @@ std::string Subprocess::communicate(const void* stdin_data, size_t stdin_size, u
     }
   }
 
-  if (now() >= deadline_usecs) {
+  if (deadline_usecs && (now() >= deadline_usecs)) {
     // TODO: we should be a bit more polite here - send SIGTERM, wait a few seconds, then send SIGKILL
     this->kill(SIGKILL);
     throw std::runtime_error("Subprocess::communicate timed out");
   }
 
-  if (stdout_queue.empty()) {
-    return "";
-  } else if (stdout_queue.size() == 1) {
-    return stdout_queue[0];
-  } else {
-    std::string ret;
-    ret.reserve(stdout_bytes);
-    for (const std::string& qi : stdout_queue) {
-      ret += qi;
-    }
-    return ret;
-  }
+  return std::make_pair(join(stdout_queue, ""), join(stderr_queue, ""));
 }
 
-std::string Subprocess::communicate(const std::string& stdin_data, uint64_t timeout_usecs) {
+std::pair<std::string, std::string> Subprocess::communicate(const std::string& stdin_data, uint64_t timeout_usecs) {
   return this->communicate(stdin_data.data(), stdin_data.size(), timeout_usecs);
 }
 
@@ -478,8 +488,11 @@ SubprocessResult::SubprocessResult() : elapsed_time(now()) {}
 
 static const size_t READ_BLOCK_SIZE = 128 * 1024;
 
-SubprocessResult run_process(const std::vector<std::string>& cmd, const std::string* stdin_data,
-    bool check, const std::string* cwd,
+SubprocessResult run_process(
+    const std::vector<std::string>& cmd,
+    const std::string* stdin_data,
+    bool check,
+    const std::string* cwd,
     const std::unordered_map<std::string, std::string>* env,
     size_t timeout_usecs) {
   SubprocessResult ret;
@@ -505,7 +518,7 @@ SubprocessResult run_process(const std::vector<std::string>& cmd, const std::str
     write_fd_to_buffer.emplace(sp.stdin_fd(), stdin_data);
     p.add(sp.stdin_fd(), POLLOUT);
   } else {
-    close(sp.stdin_fd());
+    sp.close_stdin();
   }
   read_fd_to_buffer.emplace(sp.stdout_fd(), &ret.stdout_contents);
   p.add(sp.stdout_fd(), POLLIN);
@@ -530,8 +543,13 @@ SubprocessResult run_process(const std::vector<std::string>& cmd, const std::str
           throw std::runtime_error("read failed: " + string_for_error(errno));
         } else { // bytes_read == 0; usually means the pipe is broken
           buf->resize(read_offset);
-          p.remove(pfd.first, true);
+          p.remove(pfd.first, false);
           read_fd_to_buffer.erase(pfd.first);
+          if (pfd.first == sp.stdout_fd()) {
+            sp.close_stdout();
+          } else if (pfd.first == sp.stderr_fd()) {
+            sp.close_stderr();
+          }
         }
       }
       if (pfd.second & POLLOUT) {
@@ -541,8 +559,11 @@ SubprocessResult run_process(const std::vector<std::string>& cmd, const std::str
         if (bytes_written > 0) {
           buf.offset += bytes_written;
           if (buf.offset == buf.buf->size()) {
-            p.remove(sp.stdin_fd(), true);
+            p.remove(pfd.first, false);
             write_fd_to_buffer.erase(pfd.first);
+            if (pfd.first == sp.stdin_fd()) {
+              sp.close_stdin();
+            }
           }
         } else if (bytes_written < 0) {
           if (errno == EAGAIN || errno == EINTR || errno == EWOULDBLOCK) {
@@ -550,8 +571,11 @@ SubprocessResult run_process(const std::vector<std::string>& cmd, const std::str
           }
           throw std::runtime_error("write failed: " + string_for_error(errno));
         } else { // bytes_written == 0; usually means the pipe is broken
-          p.remove(pfd.first, true);
+          p.remove(pfd.first, false);
           write_fd_to_buffer.erase(pfd.first);
+          if (pfd.first == sp.stdin_fd()) {
+            sp.close_stdin();
+          }
         }
       }
     }

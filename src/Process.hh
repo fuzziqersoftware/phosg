@@ -28,10 +28,9 @@ bool pid_exists(pid_t pid);
 bool pid_is_zombie(pid_t pid);
 #endif
 
-// returns the process' start time, in platform-dependent units. on linux, the
-// value is in nanoseconds since the epoch; on osx, it's in microseconds since
-// the epoch. if allow_zombie is true, returns the start time even if the
-// process is a zombie. allow_zombie is ignored on osx (it's always false).
+// Returns the process' start time, in platform-dependent units. on linux, the value is in nanoseconds since the epoch;
+// on macOS, it's in microseconds since the epoch. If allow_zombie is true, returns the start time even if the process
+// is a zombie. allow_zombie is ignored on macOS (it's always false).
 uint64_t start_time_for_pid(pid_t pid, bool allow_zombie = false);
 uint64_t this_process_start_time();
 
@@ -42,24 +41,23 @@ public:
       int stdout_fd = -1, int stderr_fd = -1, const std::string* cwd = nullptr,
       const std::unordered_map<std::string, std::string>* env = nullptr);
   Subprocess(const Subprocess&) = delete;
-  Subprocess(Subprocess&&);
+  Subprocess(Subprocess&&) = delete;
   Subprocess& operator=(const Subprocess&) = delete;
-  Subprocess& operator=(Subprocess&&);
+  Subprocess& operator=(Subprocess&&) = delete;
   ~Subprocess();
 
   int stdin_fd() const;
   int stdout_fd() const;
   int stderr_fd() const;
+  void close_stdin();
+  void close_stdout();
+  void close_stderr();
 
   pid_t pid() const;
 
-  std::string communicate(
-      const void* stdin_data = nullptr,
-      size_t stdin_size = 0,
-      uint64_t timeout_usecs = 0);
-  std::string communicate(
-      const std::string& stdin_data = "",
-      uint64_t timeout_usecs = 0);
+  std::pair<std::string, std::string> communicate(
+      const void* stdin_data, size_t stdin_size, uint64_t timeout_usecs = 0);
+  std::pair<std::string, std::string> communicate(const std::string& stdin_data = "", uint64_t timeout_usecs = 0);
 
   int wait(bool poll = false);
 

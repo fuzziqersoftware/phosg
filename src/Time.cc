@@ -88,7 +88,7 @@ std::string format_duration(uint64_t usecs, int8_t subsecond_precision) {
     uint64_t minutes = usecs / (60 * 1000000ULL);
     uint64_t usecs_part = usecs - (minutes * 60 * 1000000ULL);
     std::string seconds_str = std::format("{:.{}f}", static_cast<double>(usecs_part) / 1000000ULL, subsecond_precision);
-    return std::format("{}:{}", minutes, ((seconds_str.at(1) == '.') ? "0" : "")) + seconds_str;
+    return std::format("{}:{}", minutes, ((seconds_str.size() == 1 || seconds_str.at(1) == '.') ? "0" : "")) + seconds_str;
 
   } else if (usecs < 24 * 60 * 60 * 1000000ULL) {
     if (subsecond_precision < 0) {

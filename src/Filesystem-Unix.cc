@@ -181,7 +181,7 @@ std::shared_ptr<FILE> fmemopen_shared(const void* buf, size_t size) {
 }
 
 std::string read_all(int fd) {
-  static const ssize_t read_size = 16 * 1024;
+  static const ssize_t read_size = 0x4000;
 
   size_t total_size = 0;
   std::vector<std::string> buffers;
@@ -195,7 +195,9 @@ std::string read_all(int fd) {
     total_size += bytes_read;
     if (bytes_read < read_size) {
       buffers.back().resize(bytes_read);
-      break;
+      if (bytes_read == 0) {
+        break; // EOF
+      }
     }
   }
 
@@ -279,12 +281,12 @@ void pwritex(int fd, std::string_view data, off_t offset) {
   pwritex(fd, data.data(), data.size(), offset);
 }
 
-void make_fd_nonblocking(int fd) {
+void set_fd_flags(int fd, int new_flags) {
   int flags = fcntl(fd, F_GETFL, 0);
   if (flags < 0) {
     throw std::runtime_error("can\'t get socket flags: " + string_for_error(errno));
   }
-  if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+  if (fcntl(fd, F_SETFL, flags | new_flags) < 0) {
     throw std::runtime_error("can\'t set socket flags: " + string_for_error(errno));
   }
 }
@@ -305,9 +307,8 @@ void Poll::add(int fd, short events) {
   struct pollfd pfd;
   pfd.fd = fd;
   pfd.events = events;
-  auto insert_it = upper_bound(this->poll_fds.begin(), this->poll_fds.end(),
-      pfd, pred);
-  if (insert_it != this->poll_fds.end() && insert_it->fd == fd) {
+  auto insert_it = lower_bound(this->poll_fds.begin(), this->poll_fds.end(), pfd, pred);
+  if ((insert_it != this->poll_fds.end()) && (insert_it->fd == fd)) {
     insert_it->events = events;
   } else {
     this->poll_fds.insert(insert_it, pfd);
@@ -321,8 +322,7 @@ void Poll::remove(int fd, bool close_fd) {
 
   struct pollfd pfd;
   pfd.fd = fd;
-  auto erase_it = lower_bound(this->poll_fds.begin(), this->poll_fds.end(),
-      pfd, pred);
+  auto erase_it = lower_bound(this->poll_fds.begin(), this->poll_fds.end(), pfd, pred);
   if (erase_it != this->poll_fds.end() && erase_it->fd == fd) {
     this->poll_fds.erase(erase_it);
     if (close_fd) {

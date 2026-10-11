@@ -3,11 +3,16 @@
 
 # Build products
 *Test
+*Test.exe
 libphosg.a
 bindiff
+bindiff.exe
 jsonformat
+jsonformat.exe
 parse-data
+parse-data.exe
 phosg-png-conv
+phosg-png-conv.exe
 
 # CMake files
 CMakeCache.txt

@@ -283,12 +283,14 @@ public:
     return *this;
   }
   constexpr ExposedT operator++() {
-    this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) + 1);
-    return this->value;
+    ExposedT ret = OnLoadSt::fn(this->value) + 1;
+    this->value = OnStoreSt::fn(ret);
+    return ret;
   }
   constexpr ExposedT operator--() {
-    this->value = OnStoreSt::fn(OnLoadSt::fn(this->value) - 1);
-    return this->value;
+    ExposedT ret = OnLoadSt::fn(this->value) - 1;
+    this->value = OnStoreSt::fn(ret);
+    return ret;
   }
   constexpr ExposedT operator++(int) {
     ExposedT ret = OnLoadSt::fn(this->value);

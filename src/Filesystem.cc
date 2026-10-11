@@ -85,21 +85,20 @@ std::shared_ptr<FILE> fopen_shared(std::string_view filename, std::string_view m
 }
 
 std::string read_all(FILE* f) {
-  static const ssize_t read_size = 16 * 1024;
+  static const size_t read_size = 0x4000;
 
   size_t total_size = 0;
   std::vector<std::string> buffers;
-  for (;;) {
+  while (!feof(f)) {
     buffers.emplace_back(read_size, 0);
-    ssize_t bytes_read = ::fread(buffers.back().data(), 1, read_size, f);
-    if (bytes_read < 0) {
+    size_t bytes_read = ::fread(buffers.back().data(), 1, read_size, f);
+    if (ferror(f)) {
       throw io_error(fileno(f));
     }
 
     total_size += bytes_read;
     if (bytes_read < read_size) {
       buffers.back().resize(bytes_read);
-      break;
     }
   }
 
@@ -119,7 +118,7 @@ std::string read_all(FILE* f) {
 std::string fread(FILE* f, size_t size) {
   std::string data(size, '\0');
   ssize_t ret_size = ::fread(data.data(), 1, size, f);
-  if (ret_size < 0) {
+  if (ferror(f)) {
     throw io_error(fileno(f));
   } else if (ret_size != static_cast<ssize_t>(size)) {
     data.resize(ret_size);
@@ -129,7 +128,7 @@ std::string fread(FILE* f, size_t size) {
 
 void freadx(FILE* f, void* data, size_t size) {
   ssize_t ret_size = ::fread(data, 1, size, f);
-  if (ret_size < 0) {
+  if (ferror(f)) {
     throw io_error(fileno(f));
   } else if (ret_size != static_cast<ssize_t>(size)) {
     throw io_error(fileno(f), std::format("expected {} bytes, read {} bytes", size, ret_size));
@@ -172,9 +171,11 @@ uint8_t fgetcx(FILE* f) {
 }
 
 std::string fgets(FILE* f) {
+  static constexpr size_t block_size = 0x400;
+
   std::deque<std::string> blocks;
   for (;;) {
-    std::string& block = blocks.emplace_back(0x100, '\0');
+    std::string& block = blocks.emplace_back(block_size, '\0');
     if (!::fgets(block.data(), block.size(), f)) {
       blocks.pop_back();
       if (::feof(f)) {
@@ -184,8 +185,12 @@ std::string fgets(FILE* f) {
       }
     }
     size_t block_bytes = strlen(block.c_str());
-    if ((block_bytes < 0x100) || (block[0xFF] == '\n')) {
-      block.resize(block_bytes);
+    if (block_bytes > block_size - 1) {
+      // fgets should return up to one less than block.size(), according to the man page
+      throw std::logic_error("fgets returned more data than expected");
+    }
+    block.resize(block_bytes);
+    if ((block_bytes < block_size - 1) || (block[block_size - 2] == '\n')) {
       break; // The line ends at the end of this block
     }
   }

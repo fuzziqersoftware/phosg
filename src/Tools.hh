@@ -41,7 +41,7 @@ void parallel_default_progress_fn(IntT start_value, IntT end_value, IntT current
   std::string elapsed_str = format_duration(elapsed_time);
 
   std::string remaining_str;
-  if (current_value) {
+  if (current_value != start_value) {
     uint64_t total_time = (elapsed_time * (end_value - start_value)) / (current_value - start_value);
     uint64_t remaining_time = total_time - elapsed_time;
     remaining_str = format_duration(remaining_time);
@@ -217,7 +217,7 @@ template <typename IntT = uint64_t, typename RetT = std::unordered_set<IntT>, ty
   requires(
       std::is_invocable_r_v<bool, FnT, IntT, size_t> &&
       std::is_invocable_v<ProgressFnT, IntT, IntT, IntT, uint64_t>)
-std::unordered_set<IntT> parallel_blocks_multi(
+RetT parallel_blocks_multi(
     FnT&& fn,
     IntT start_value,
     IntT end_value,

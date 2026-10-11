@@ -101,7 +101,7 @@ void test_pixel_format(const char* format_name, bool save_refs) {
   }
 
   std::array<phosg::ImageFormat, 3> formats{
-      phosg::ImageFormat::COLOR_PPM, phosg::ImageFormat::WINDOWS_BITMAP, phosg::ImageFormat::PNG};
+      phosg::ImageFormat::PPM, phosg::ImageFormat::WINDOWS_BITMAP, phosg::ImageFormat::PNG};
   for (auto format : formats) {
     const char* ext = file_extension_for_image_format(format);
 

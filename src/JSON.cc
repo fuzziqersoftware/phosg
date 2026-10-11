@@ -34,10 +34,24 @@ static void skip_whitespace_and_comments(StringReader& r, bool disable_extension
 JSON JSON::parse(StringReader& r, bool disable_extensions) {
   skip_whitespace_and_comments(r, disable_extensions);
 
-  JSON ret;
+  // Check for named values first
+  if (r.skip_if("null", 4) || (!disable_extensions && r.skip_if("n", 1))) {
+    return JSON{nullptr};
+  } else if (r.skip_if("true", 4) || (!disable_extensions && r.skip_if("t", 1))) {
+    return JSON{true};
+  } else if (r.skip_if("false", 5) || (!disable_extensions && r.skip_if("f", 1))) {
+    return JSON{false};
+  } else if (!disable_extensions && (r.skip_if("Infinity", 8) || r.skip_if("infinity", 8) || r.skip_if("Inf", 3) || r.skip_if("inf", 3))) {
+    return JSON{std::numeric_limits<double>::infinity()};
+  } else if (!disable_extensions && (r.skip_if("-Infinity", 9) || r.skip_if("-infinity", 9) || r.skip_if("-Inf", 4) || r.skip_if("-inf", 4))) {
+    return JSON{-std::numeric_limits<double>::infinity()};
+  } else if (!disable_extensions && (r.skip_if("NaN", 3) || r.skip_if("nan", 3))) {
+    return JSON{std::numeric_limits<double>::quiet_NaN()};
+  }
+
   char root_type_ch = r.get_s8(false);
   if (root_type_ch == '{') {
-    ret = JSON::dict();
+    auto ret = JSON::dict();
     char expected_separator = '{';
     char separator = r.get_s8();
     while (separator != '}') {
@@ -47,7 +61,7 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
       expected_separator = ',';
 
       skip_whitespace_and_comments(r, disable_extensions);
-      if (!disable_extensions && (r.get_s8(false) == '}')) {
+      if ((ret.empty() || !disable_extensions) && (r.get_s8(false) == '}')) {
         r.get_s8();
         break;
       }
@@ -64,9 +78,10 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
       skip_whitespace_and_comments(r, disable_extensions);
       separator = r.get_s8();
     }
+    return ret;
 
   } else if (root_type_ch == '[') {
-    ret = JSON::list();
+    auto ret = JSON::list();
     char expected_separator = '[';
     char separator = r.get_s8();
     while (separator != ']') {
@@ -76,7 +91,7 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
       expected_separator = ',';
 
       skip_whitespace_and_comments(r, disable_extensions);
-      if (!disable_extensions && (r.get_s8(false) == ']')) {
+      if ((ret.empty() || !disable_extensions) && (r.get_s8(false) == ']')) {
         r.get_s8();
         break;
       }
@@ -85,6 +100,7 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
       skip_whitespace_and_comments(r, disable_extensions);
       separator = r.get_s8();
     }
+    return ret;
 
   } else if (root_type_ch == '-' || root_type_ch == '+' || isdigit(root_type_ch)) {
     int64_t int_data;
@@ -95,6 +111,9 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
     if (root_type_ch == '-') {
       negative = true;
       r.get_s8();
+      if (!isdigit(r.get_s8(false))) {
+        throw parse_error("+/- sign is not followed by numeric digit", r.where());
+      }
     }
 
     if (!disable_extensions &&
@@ -105,20 +124,29 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
 
       int_data = 0;
       while (!r.eof() && isxdigit(r.get_s8(false))) {
+        if (int_data & 0xF000000000000000ULL) {
+          throw parse_error("Integer value does not fit in 64-bit field", r.where());
+        }
         int_data = (int_data << 4) | value_for_hex_char(r.get_s8());
       }
 
     } else { // decimal
       int_data = 0;
       while (!r.eof() && isdigit(r.get_s8(false))) {
-        int_data = int_data * 10 + (r.get_s8() - '0');
+        int64_t digit = (r.get_s8() - '0');
+        if (int_data > (0x7FFFFFFFFFFFFFFFLL - digit) / 10) {
+          throw parse_error("Integer value does not fit in 64-bit field", r.where());
+        }
+        int_data = (int_data * 10) + digit;
       }
-
       double this_place = 0.1;
       float_data = int_data;
       if (!r.eof() && r.get_s8(false) == '.') {
         is_int = false;
         r.get_s8();
+        if (!isdigit(r.get_s8(false))) {
+          throw parse_error("Decimal point is not followed by numeric digit", r.where());
+        }
         while (!r.eof() && isdigit(r.get_s8(false))) {
           float_data += (r.get_s8() - '0') * this_place;
           this_place *= 0.1;
@@ -128,10 +156,14 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
       char exp_specifier = r.eof() ? '\0' : r.get_s8(false);
       if (exp_specifier == 'e' || exp_specifier == 'E') {
         r.get_s8();
+        is_int = false;
         char sign_char = r.get_s8(false);
         bool e_negative = sign_char == '-';
         if (sign_char == '-' || sign_char == '+') {
           r.get_s8();
+        }
+        if (!isdigit(r.get_s8(false))) {
+          throw parse_error("Exponent divider is not followed by numeric digit", r.where());
         }
 
         int e = 0;
@@ -157,12 +189,7 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
       int_data = -int_data;
       float_data = -float_data;
     }
-
-    if (is_int) {
-      ret = int_data;
-    } else {
-      ret = float_data;
-    }
+    return is_int ? JSON{int_data} : JSON{float_data};
 
   } else if (root_type_ch == '\"') {
     r.get_s8();
@@ -221,22 +248,10 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
     }
     r.get_s8();
 
-    ret = std::move(data);
-
-  } else if (r.skip_if("null", 4) || (!disable_extensions && r.skip_if("n", 1))) {
-    ret = nullptr;
-
-  } else if (r.skip_if("true", 4) || (!disable_extensions && r.skip_if("t", 1))) {
-    ret = true;
-
-  } else if (r.skip_if("false", 5) || (!disable_extensions && r.skip_if("f", 1))) {
-    ret = false;
-
-  } else {
-    throw parse_error("unknown root sentinel", r.where());
+    return JSON{std::move(data)};
   }
 
-  return ret;
+  throw parse_error("unknown root sentinel", r.where());
 }
 
 JSON JSON::parse(const char* s, size_t size, bool disable_extensions) {
@@ -323,11 +338,29 @@ std::string JSON::serialize(uint32_t options, size_t indent_level) const {
     }
 
     case 3: { // double
-      std::string ret = std::format("{:.17g}", this->as_float());
-      if (ret.find('.') == std::string::npos) {
-        ret += ".0";
+      double v = this->as_float();
+      if (isnan(v)) {
+        if (options & SerializeOption::FORBID_INFINITY_NAN) {
+          throw std::runtime_error("NaN cannot be serialized as JSON");
+        }
+        return "NaN";
+      } else if (isinf(v)) {
+        if (options & SerializeOption::FORBID_INFINITY_NAN) {
+          throw std::runtime_error("+/- infinity cannot be serialized as JSON");
+        }
+        return (v < 0.0) ? "-Infinity" : "Infinity";
+      } else {
+        std::string ret = std::format("{:.17g}", this->as_float());
+        if (ret.find('.') == std::string::npos) {
+          size_t e_pos = ret.find('e');
+          if (e_pos != std::string::npos) {
+            ret = std::format("{}.0e{}", ret.substr(0, e_pos), ret.substr(e_pos + 1));
+          } else {
+            ret += ".0";
+          }
+        }
+        return ret;
       }
-      return ret;
     }
 
     case 4: // string
@@ -460,37 +493,50 @@ JSON::JSON(const JSON& rhs) : value(nullptr) {
 }
 
 JSON& JSON::operator=(const JSON& rhs) {
+  if (&rhs == this) {
+    return *this;
+  }
   switch (rhs.value.index()) {
-    case 0:
+    case 0: // null
       this->value = nullptr;
       break;
-    case 1:
-      this->value = std::get<1>(rhs.value);
-      break;
-    case 2:
-      this->value = std::get<2>(rhs.value);
-      break;
-    case 3:
-      this->value = std::get<3>(rhs.value);
-      break;
-    case 4:
-      this->value = std::get<4>(rhs.value);
-      break;
-    case 5: {
-      this->value = std::vector<std::unique_ptr<JSON>>();
-      auto& v = std::get<5>(this->value);
-      v.reserve(rhs.size());
-      for (const auto& item : (std::get<5>(rhs.value))) {
-        v.emplace_back(new JSON(*item));
-      }
+    case 1: { // bool
+      // NOTE: We use a variable here in case rhs is a descendant of this->value; if we didn't do this, then it would
+      // be destroyed before this->value is actually updated (since std::get returns a reference into rhs.value).
+      bool v = std::get<1>(rhs.value);
+      this->value = v;
       break;
     }
-    case 6: {
-      this->value = std::unordered_map<std::string, std::unique_ptr<JSON>>();
-      auto& v = std::get<6>(this->value);
-      for (const auto& it : (std::get<6>(rhs.value))) {
-        v.emplace(it.first, new JSON(*it.second));
+    case 2: { // int64_t
+      int64_t v = std::get<2>(rhs.value);
+      this->value = v;
+      break;
+    }
+    case 3: { // double
+      double v = std::get<3>(rhs.value);
+      this->value = v;
+      break;
+    }
+    case 4: { // string
+      std::string v = std::move(std::get<4>(rhs.value));
+      this->value = std::move(v);
+      break;
+    }
+    case 5: { // list
+      std::vector<std::unique_ptr<JSON>> new_list;
+      new_list.reserve(rhs.size());
+      for (const auto& item : (std::get<5>(rhs.value))) {
+        new_list.emplace_back(new JSON(*item));
       }
+      this->value = std::move(new_list);
+      break;
+    }
+    case 6: { // dict
+      std::unordered_map<std::string, std::unique_ptr<JSON>> new_dict;
+      for (const auto& it : (std::get<6>(rhs.value))) {
+        new_dict.emplace(it.first, new JSON(*it.second));
+      }
+      this->value = std::move(new_dict);
       break;
     }
     default:

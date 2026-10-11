@@ -12,30 +12,20 @@ template <typename KeyT, typename ValueT>
 class LRUMap {
 protected:
   struct Item {
-    mutable Item* prev;
-    mutable Item* next;
-    const KeyT* key;
+    mutable Item* prev = nullptr;
+    mutable Item* next = nullptr;
+    const KeyT* key = nullptr;
     ValueT value;
     size_t size;
 
-    Item(const ValueT& value, size_t size)
-        : prev(nullptr),
-          next(nullptr),
-          key(nullptr),
-          value(value),
-          size(size) {}
-    Item(ValueT&& value, size_t size)
-        : prev(nullptr),
-          next(nullptr),
-          key(nullptr),
-          value(std::move(value)),
-          size(size) {}
+    Item(const ValueT& value, size_t size) : value(value), size(size) {}
+    Item(ValueT&& value, size_t size) : value(std::move(value)), size(size) {}
   };
 
-  mutable Item* head;
-  mutable Item* tail;
+  mutable Item* head = nullptr;
+  mutable Item* tail = nullptr;
   std::unordered_map<KeyT, Item> items;
-  size_t total_size;
+  size_t total_size = 0;
 
   void link_item(Item* i) const {
     i->next = this->head;
@@ -65,10 +55,10 @@ protected:
     i->next = nullptr;
   }
 
-  void touch_item(Item& item) const {
-    if (this->head != &item) {
-      this->unlink_item(&item);
-      this->link_item(&item);
+  void touch_item(Item* item) const {
+    if (this->head != item) {
+      this->unlink_item(item);
+      this->link_item(item);
     }
   }
 
@@ -78,21 +68,36 @@ protected:
   }
 
 public:
-  LRUMap() : head(nullptr),
-             tail(nullptr),
-             items(),
-             total_size(0) {}
+  LRUMap() = default;
+  LRUMap(const LRUMap& other) = delete;
+  LRUMap(LRUMap&& other)
+      : head(other.head), tail(other.tail), items(std::move(other.items)), total_size(other.total_size) {
+    other.head = nullptr;
+    other.tail = nullptr;
+    other.total_size = 0;
+  }
+  LRUMap& operator=(const LRUMap& other) = delete;
+  LRUMap& operator=(LRUMap&& other) {
+    this->head = other.head;
+    this->tail = other.tail;
+    this->items = std::move(other.items);
+    this->total_size = other.total_size;
+    other.head = nullptr;
+    other.tail = nullptr;
+    other.total_size = 0;
+    return *this;
+  }
   virtual ~LRUMap() = default;
 
   ValueT& at(const KeyT& k) {
     Item& item = this->items.at(k);
-    this->touch_item(item);
+    this->touch_item(&item);
     return item.value;
   }
 
   const ValueT& at(const KeyT& k) const {
-    Item& item = this->items.at(k);
-    this->touch_item(item);
+    const Item& item = this->items.at(k);
+    this->touch_item(const_cast<Item*>(&item));
     return item.value;
   }
 
@@ -101,54 +106,36 @@ public:
   }
 
   bool insert(const KeyT& k, const ValueT& v, size_t size = 1) {
-    bool new_item_created = false;
-    auto item_it = this->items.find(k);
-    if (item_it == this->items.end()) {
-      new_item_created = true;
-      item_it = this->items.emplace(k, size);
-    }
-
+    auto [item_it, new_item_created] = this->items.emplace(k, size);
     auto& i = item_it->second;
     i.value = v;
     if (new_item_created) {
       i.key = &item_it->first;
       i.size = size;
-      i.total_size += size;
+      this->total_size += size;
       this->link_item(&i);
-      return true;
-
     } else {
       this->change_item_size(i, size);
-      this->touch_item(i);
-      return false;
+      this->touch_item(&i);
     }
+    return new_item_created;
   }
 
   bool insert(KeyT&& k, ValueT&& v, size_t size = 1) {
-    bool new_item_created = false;
-    auto item_it = this->items.find(k);
-    if (item_it == this->items.end()) {
-      new_item_created = true;
-      item_it = this->items.emplace(std::piecewise_construct,
-                               std::forward_as_tuple(std::move(k)),
-                               std::forward_as_tuple(std::move(v), size))
-                    .first;
-    }
-
+    auto [item_it, new_item_created] = this->items.emplace(
+        std::piecewise_construct, std::forward_as_tuple(std::move(k)), std::forward_as_tuple(std::move(v), size));
     auto& i = item_it->second;
     if (new_item_created) {
       i.key = &item_it->first;
       i.size = size;
       this->total_size += size;
       this->link_item(&i);
-      return true;
-
     } else {
       i.value = std::move(v);
       this->change_item_size(i, size);
-      this->touch_item(i);
-      return false;
+      this->touch_item(&i);
     }
+    return new_item_created;
   }
 
   bool emplace(KeyT&& k, ValueT&& v, size_t size = 1) {
@@ -157,8 +144,7 @@ public:
         std::forward_as_tuple(std::move(v), size));
 
     if (emplace_ret.second) {
-      // Item was inserted; set the key pointer, link the item and update the
-      // total size appropriately.
+      // Item was inserted; set the key pointer, link the item and update the total size appropriately
       auto& i = emplace_ret.first->second;
       i.key = &emplace_ret.first->first;
       i.size = size;
@@ -194,7 +180,7 @@ public:
     try {
       Item& i = this->items.at(k);
       if (touch) {
-        this->touch_item(i);
+        this->touch_item(&i);
       }
       this->change_item_size(this->items.at(k), new_size);
       return true;
@@ -206,7 +192,7 @@ public:
   bool touch(const KeyT& k, ssize_t new_size = -1) {
     try {
       Item& i = this->items.at(k);
-      this->touch_item(i);
+      this->touch_item(&i);
       if (new_size >= 0) {
         this->change_item_size(i, new_size);
       }

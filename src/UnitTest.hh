@@ -35,18 +35,17 @@ template <typename ExcT>
 void expect_raises_fn(const char* file, uint64_t line, std::function<void()> fn) {
   try {
     fn();
-    expect_generic(false, "expected exception, but none raised", file, line);
   } catch (const ExcT&) {
     return;
   } catch (const std::exception& e) {
     std::string msg = std::format("incorrect exception type raised (what: {})", e.what());
     expect_generic(false, msg.c_str(), file, line);
   } catch (...) {
-    // TODO: It'd be nice to show SOMETHING about the thrown exception here,
-    // but it's probably pretty rare to catch something that isn't a
-    // std::exception anyway.
+    // TODO: It'd be nice to show SOMETHING about the thrown exception here, but it's probably pretty rare to catch
+    // something that isn't a std::exception anyway.
     expect_generic(false, "incorrect exception type raised", file, line);
   }
+  expect_generic(false, "expected exception, but none raised", file, line);
 }
 
 template <>

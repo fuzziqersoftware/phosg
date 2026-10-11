@@ -547,14 +547,18 @@ int main(int, char**) {
     phosg::fwrite_fmt(stderr, "-- split_args\n");
     expect_eq(std::vector<std::string>(), phosg::split_args(""));
     expect_eq(std::vector<std::string>(), phosg::split_args("      "));
+    expect_eq(std::vector<std::string>({""}), phosg::split_args("\"\""));
+    expect_eq(std::vector<std::string>({"12", ""}), phosg::split_args("12 \"\""));
+    expect_eq(std::vector<std::string>({"12", ""}), phosg::split_args("12    \"\""));
     expect_eq(std::vector<std::string>({"12", "34", "567", "abc"}), phosg::split_args("12 34 567 abc"));
     expect_eq(std::vector<std::string>({"12", "34 567", "abc"}), phosg::split_args("12 \'34 567\' abc"));
     expect_eq(std::vector<std::string>({"12", "34 567", "abc"}), phosg::split_args("12 \"34 567\" abc"));
     expect_eq(std::vector<std::string>({"12", "34 \'567", "abc"}), phosg::split_args("12 \'34 \\\'567\' abc"));
     expect_eq(std::vector<std::string>({"12", "34 \"567", "abc"}), phosg::split_args("12 \"34 \\\"567\" abc"));
     expect_eq(std::vector<std::string>({"12", "34 567", "abc"}), phosg::split_args("12 34\\ 567 abc"));
-    expect_eq(std::vector<std::string>({"12", "34 567", "abc"}), phosg::split_args("   12 34\\ 567 abc   "));
-    expect_eq(std::vector<std::string>({"12", "34 567", "abc", " "}), phosg::split_args("   12 34\\ 567 abc  \\   "));
+    expect_eq(std::vector<std::string>({"12", "34 ", "567", "abc"}), phosg::split_args("12 34\\    567 abc"));
+    expect_eq(std::vector<std::string>({"12", "34 567", "abc"}), phosg::split_args("   12   34\\ 567 abc   "));
+    expect_eq(std::vector<std::string>({"12", "34 567", "abc", " "}), phosg::split_args("   12 34\\ 567   abc  \\   "));
   }
 
   phosg::fwrite_fmt(stderr, "-- skip_whitespace/skip_non_whitespace\n");

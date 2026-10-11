@@ -24,9 +24,8 @@ constexpr std::pair<IntT, IntT> reduce_fraction(IntT a, IntT b) {
   return std::make_pair(a / denom, b / denom);
 }
 
-template <typename IntT>
-constexpr IntT log2i(IntT v) {
-  return (sizeof(IntT) << 3) - 1 - __builtin_clz(v);
+constexpr uint8_t log2i(uint64_t v) {
+  return (v == 0) ? 64 : (63 - __builtin_clzll(v));
 }
 
 } // namespace phosg

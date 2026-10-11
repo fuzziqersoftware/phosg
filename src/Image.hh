@@ -18,7 +18,7 @@
 
 namespace phosg {
 
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 constexpr uint8_t get_r(uint32_t color) {
   return (color >> 24) & 0xFF;
@@ -99,7 +99,7 @@ constexpr uint32_t invert(uint32_t color) {
   return rgba8888(0xFF - get_r(color), 0xFF - get_g(color), 0xFF - get_b(color), get_a(color));
 }
 
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct WindowsBitmapFileHeader {
   le_uint16_t magic;
@@ -148,7 +148,7 @@ struct WindowsBitmapHeader {
   WindowsBitmapInfoHeader info_header;
 } __attribute__((packed));
 
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 enum class PixelFormat {
   G1 = 0, // White and black (0=white, 1=black)
@@ -176,9 +176,11 @@ enum class PixelFormat {
   ARGB8888_BE,
 };
 
-template <typename T, size_t BitsPerPixel = sizeof(T) * 8>
+template <typename T, size_t BitsPerPixel = sizeof(T) * 8, bool HasAlpha = true>
 struct PixelBufferBase {
   using DataT = T;
+  static constexpr size_t BITS_PER_PIXEL = BitsPerPixel;
+  static constexpr bool HAS_ALPHA = HasAlpha;
 
   uint8_t* pixels;
   std::vector<uint8_t> owned_data;
@@ -217,9 +219,8 @@ template <PixelFormat Format>
 struct PixelBuffer;
 
 template <>
-struct PixelBuffer<PixelFormat::G1> : PixelBufferBase<uint8_t, 1> {
+struct PixelBuffer<PixelFormat::G1> : PixelBufferBase<uint8_t, 1, false> {
   using typename PixelBufferBase::DataT;
-  static constexpr bool HAS_ALPHA = false;
 
   uint32_t read(size_t x, size_t y) const {
     return ((this->row(y)[x >> 3] << (x & 7)) & 0x80) ? 0x000000FF : 0xFFFFFFFF;
@@ -238,7 +239,7 @@ struct PixelBuffer<PixelFormat::G1> : PixelBufferBase<uint8_t, 1> {
 };
 
 template <>
-struct PixelBuffer<PixelFormat::GA11> : PixelBufferBase<uint8_t, 2> {
+struct PixelBuffer<PixelFormat::GA11> : PixelBufferBase<uint8_t, 2, true> {
   using typename PixelBufferBase::DataT;
   static constexpr bool HAS_ALPHA = true;
 
@@ -262,7 +263,7 @@ struct PixelBuffer<PixelFormat::GA11> : PixelBufferBase<uint8_t, 2> {
 };
 
 template <>
-struct PixelBuffer<PixelFormat::G8> : PixelBufferBase<uint8_t> {
+struct PixelBuffer<PixelFormat::G8> : PixelBufferBase<uint8_t, 8, false> {
   using typename PixelBufferBase::DataT;
   static constexpr bool HAS_ALPHA = false;
 
@@ -276,8 +277,8 @@ struct PixelBuffer<PixelFormat::G8> : PixelBufferBase<uint8_t> {
 };
 
 template <typename T>
-struct PixelBufferGA88 : PixelBufferBase<T> {
-  using typename PixelBufferBase<T>::DataT;
+struct PixelBufferGA88 : PixelBufferBase<T, 16, true> {
+  using typename PixelBufferBase<T, 16, true>::DataT;
   static constexpr bool HAS_ALPHA = true;
 
   uint32_t read(size_t x, size_t y) const {
@@ -304,8 +305,8 @@ struct PixelBuffer<PixelFormat::GA88_BE> : PixelBufferGA88<be_uint16_t> {
 };
 
 template <typename T>
-struct PixelBufferXRGB1555 : PixelBufferBase<T> {
-  using typename PixelBufferBase<T>::DataT;
+struct PixelBufferXRGB1555 : PixelBufferBase<T, 16, false> {
+  using typename PixelBufferBase<T, 16, false>::DataT;
   static constexpr bool HAS_ALPHA = false;
 
   uint32_t read(size_t x, size_t y) const {
@@ -329,8 +330,8 @@ struct PixelBuffer<PixelFormat::XRGB1555_BE> : PixelBufferXRGB1555<be_uint16_t> 
 };
 
 template <typename T>
-struct PixelBufferARGB1555 : PixelBufferBase<T> {
-  using typename PixelBufferBase<T>::DataT;
+struct PixelBufferARGB1555 : PixelBufferBase<T, 16, true> {
+  using typename PixelBufferBase<T, 16, true>::DataT;
   static constexpr bool HAS_ALPHA = true;
 
   uint32_t read(size_t x, size_t y) const {
@@ -354,8 +355,8 @@ struct PixelBuffer<PixelFormat::ARGB1555_BE> : PixelBufferARGB1555<be_uint16_t> 
 };
 
 template <typename T>
-struct PixelBufferRGB565 : PixelBufferBase<T> {
-  using typename PixelBufferBase<T>::DataT;
+struct PixelBufferRGB565 : PixelBufferBase<T, 16, false> {
+  using typename PixelBufferBase<T, 16, false>::DataT;
   static constexpr bool HAS_ALPHA = false;
 
   uint32_t read(size_t x, size_t y) const {
@@ -380,8 +381,8 @@ struct PixelBuffer<PixelFormat::RGB565_BE> : PixelBufferRGB565<be_uint16_t> {
 
 template <size_t RIndex, size_t GIndex, size_t BIndex>
   requires(RIndex < 3 && GIndex < 3 && BIndex < 3)
-struct PixelBufferRGBBytes : PixelBufferBase<uint8_t, 24> {
-  using DataT = PixelBufferBase::DataT;
+struct PixelBufferRGBBytes : PixelBufferBase<uint8_t, 24, false> {
+  using DataT = PixelBufferBase<uint8_t, 24, false>::DataT;
   static constexpr bool HAS_ALPHA = false;
 
   uint32_t read(size_t x, size_t y) const {
@@ -405,8 +406,8 @@ struct PixelBuffer<PixelFormat::BGR888> : PixelBufferRGBBytes<2, 1, 0> {
 };
 
 template <typename T>
-struct PixelBufferRGBA8888 : PixelBufferBase<T> {
-  using typename PixelBufferBase<T>::DataT;
+struct PixelBufferRGBA8888 : PixelBufferBase<T, 32, true> {
+  using typename PixelBufferBase<T, 32, true>::DataT;
   static constexpr bool HAS_ALPHA = true;
 
   uint32_t read(size_t x, size_t y) const {
@@ -430,8 +431,8 @@ struct PixelBuffer<PixelFormat::RGBA8888_BE> : PixelBufferRGBA8888<be_uint32_t> 
 };
 
 template <typename T>
-struct PixelBufferARGB8888 : PixelBufferBase<T> {
-  using typename PixelBufferBase<T>::DataT;
+struct PixelBufferARGB8888 : PixelBufferBase<T, 32, true> {
+  using typename PixelBufferBase<T, 32, true>::DataT;
   static constexpr bool HAS_ALPHA = true;
 
   uint32_t read(size_t x, size_t y) const {
@@ -460,12 +461,10 @@ enum class ResizeMode {
   NONE = 0,
   TILED,
   NEAREST_NEIGHBOR,
-  LINEAR_INTERPOLATION,
 };
 
 enum class ImageFormat {
-  GRAYSCALE_PPM = 0,
-  COLOR_PPM,
+  PPM = 1,
   WINDOWS_BITMAP,
   PNG,
   PNG_DATA_URL,
@@ -473,8 +472,7 @@ enum class ImageFormat {
 
 inline const char* file_extension_for_image_format(ImageFormat format) {
   switch (format) {
-    case ImageFormat::GRAYSCALE_PPM:
-    case ImageFormat::COLOR_PPM:
+    case ImageFormat::PPM:
       return "ppm";
     case ImageFormat::WINDOWS_BITMAP:
       return "bmp";
@@ -491,6 +489,7 @@ template <PixelFormat Format>
 class Image : public PixelBuffer<Format> {
 public:
   using DataT = PixelBuffer<Format>::DataT;
+  static constexpr size_t BITS_PER_PIXEL = PixelBuffer<Format>::BITS_PER_PIXEL;
   static constexpr bool HAS_ALPHA = PixelBuffer<Format>::HAS_ALPHA;
 
 protected:
@@ -500,7 +499,7 @@ protected:
   friend class Image;
 
 public:
-  /////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Constructors
 
   // Construct an Image filled with the given color
@@ -512,21 +511,19 @@ public:
     this->clear(color);
   }
 
-  // Construct an Image with raw pixels from an external data buffer. The
-  // contents of the buffer are copied into the Image.
+  // Construct an Image with raw pixels from an external data buffer. The contents of the buffer are copied into the
+  // Image.
   static Image<Format> from_data_copy(void* raw_data, size_t w, size_t h) {
     Image<Format> ret;
     ret.w = w;
     ret.h = h;
     ret.stride = ret.default_stride();
     ret.create_owned_data();
-    memcpy(ret.pixels, raw_data, ret.get_data_size());
+    memcpy(ret.pixels, raw_data, ret.data_size());
     return ret;
   }
-  // Construct an Image with raw pixels from an external data buffer
-  // without copying the data. It is the caller's responsibility to free the
-  // data buffer and to ensure the Image isn't used after the data buffer
-  // is freed.
+  // Construct an Image with raw pixels from an external data buffer without copying the data. It is the caller's
+  // responsibility to free the data buffer and to ensure the Image isn't used after the data buffer is freed.
   static Image<Format> from_data_reference(void* raw_data, size_t w, size_t h) {
     Image<Format> ret;
     ret.w = w;
@@ -543,12 +540,10 @@ public:
 
     ImageFormat format;
     bool is_extended_ppm = false;
-    if (sig == 0x5035) { // P5
-      format = ImageFormat::GRAYSCALE_PPM;
-    } else if (sig == 0x5036) { // P6
-      format = ImageFormat::COLOR_PPM;
+    if (sig == 0x5036) { // P6
+      format = ImageFormat::PPM;
     } else if (sig == 0x5037) { // P7
-      format = ImageFormat::COLOR_PPM;
+      format = ImageFormat::PPM;
       is_extended_ppm = true;
     } else if (sig == 0x424D) { // BM
       format = ImageFormat::WINDOWS_BITMAP;
@@ -557,9 +552,10 @@ public:
     }
 
     Image<Format> ret;
-    if (format == ImageFormat::GRAYSCALE_PPM || format == ImageFormat::COLOR_PPM) {
+    if (format == ImageFormat::PPM) {
       uint64_t new_max_value = 0;
       bool file_has_alpha = false;
+      bool is_grayscale = false;
 
       if (is_extended_ppm) {
         if (r.get_line() != "P7") {
@@ -579,14 +575,13 @@ public:
           } else if (line.starts_with("TUPLTYPE ")) {
             std::string tuple_type = line.substr(9);
             if (tuple_type == "GRAYSCALE") {
-              format = ImageFormat::GRAYSCALE_PPM;
+              is_grayscale = true;
             } else if (tuple_type == "GRAYSCALE_ALPHA") {
-              format = ImageFormat::GRAYSCALE_PPM;
+              is_grayscale = true;
               file_has_alpha = true;
             } else if (tuple_type == "RGB") {
-              format = ImageFormat::COLOR_PPM;
+              // Nothing to do
             } else if (tuple_type == "RGB_ALPHA") {
-              format = ImageFormat::COLOR_PPM;
               file_has_alpha = true;
             } else {
               throw std::runtime_error("unsupported tuple type in extended PPM image");
@@ -599,9 +594,8 @@ public:
         }
 
       } else {
-        // According to the docs, the end of the header line is "usually" a
-        // newline but can technically be any whitespace character. Here we
-        // assume it's always a \n, which will probably fail in rare cases
+        // According to the docs, the end of the header line is "usually" a newline but can technically be any
+        // whitespace character. Here we assume it's always a \n, which will probably fail in rare cases
         std::vector<std::string> tokens;
         while (tokens.size() < 4) {
           auto line_tokens = split(r.get_line(), ' ');
@@ -636,7 +630,7 @@ public:
 
       for (size_t y = 0; y < ret.h; y++) {
         for (size_t x = 0; x < ret.w; x++) {
-          if (format == ImageFormat::GRAYSCALE_PPM) {
+          if (is_grayscale) {
             if (!file_has_alpha) {
               uint8_t v = r.get_u8();
               ret.write(x, y, rgba8888(v, v, v, 0xFF));
@@ -756,13 +750,22 @@ public:
 
   // Constructs a writable view into this image, which can be used to make coordinates more convenient and restrict
   // writing to a particular region. The view does not own its own data; it must not be used after the parent image is
-  // destroyed or otherwise invalidated (e.g. by resizing).
-  Image<Format> view(ssize_t x, ssize_t y, ssize_t w, ssize_t h) {
+  // destroyed or otherwise invalidated (e.g. by resizing). This cannot be used for pixel formats with more than one
+  // pixel per byte (currently G1 and GA11).
+  Image<Format> view(ssize_t x, ssize_t y, ssize_t w, ssize_t h)
+    requires(BITS_PER_PIXEL >= 8)
+  {
     if (x < 0) {
       throw std::runtime_error("Image view left boundary out of range");
     }
     if (y < 0) {
       throw std::runtime_error("Image view top boundary out of range");
+    }
+    if (w <= 0) {
+      throw std::runtime_error("Image view width is zero or negative");
+    }
+    if (h <= 0) {
+      throw std::runtime_error("Image view height is zero or negative");
     }
     if (x + w > static_cast<ssize_t>(this->get_width())) {
       throw std::runtime_error("Image view right boundary out of range");
@@ -797,9 +800,10 @@ public:
     Image<Format> ret;
     ret.w = this->w;
     ret.h = this->h;
-    ret.stride = this->stride;
+    ret.stride = this->default_stride();
     ret.create_owned_data();
-    memcpy(ret.pixels, this->pixels, this->data_size());
+    // Why not just use memcpy() here? If copying a view, we want the resulting Image to be compact
+    ret.copy_from(*this, 0, 0, this->w, this->h, 0, 0);
     return ret;
   }
   template <PixelFormat NewFormat, typename FnT>
@@ -850,17 +854,14 @@ public:
     });
   }
 
-  /////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Serialization
 
   std::string serialize(ImageFormat format) const {
     StringWriter w;
 
     switch (format) {
-      case ImageFormat::GRAYSCALE_PPM:
-        throw std::runtime_error("can\'t save grayscale ppm files");
-
-      case ImageFormat::COLOR_PPM: {
+      case ImageFormat::PPM: {
         StringWriter w;
         std::string header;
         if constexpr (Image<Format>::HAS_ALPHA) {
@@ -924,8 +925,7 @@ public:
         w.write(&header, header_size);
 
         if constexpr (HAS_ALPHA) {
-          // There's no padding and the bitmasks already specify how to read each
-          // pixel; just write each row
+          // There's no padding and the bitmasks already specify how to read each pixel; just write each row
           for (ssize_t y = this->h - 1; y >= 0; y--) {
             for (size_t x = 0; x < this->w; x++) {
               w.put_u32b(this->read(x, y));
@@ -1036,7 +1036,7 @@ public:
     }
   }
 
-  /////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Comparators & basic introspection
 
   bool check(size_t x, size_t y) const {
@@ -1076,7 +1076,7 @@ public:
     return reinterpret_cast<const DataT*>(this->pixels);
   }
 
-  /////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Manipulation functions
 
   void resize(size_t new_w, size_t new_h) {
@@ -1138,8 +1138,7 @@ public:
     }
   }
 
-  // Sets all pixels in the image whose RGB values match the given color
-  // (ignoring alpha) to fully transparent.
+  // Sets all pixels in the image whose RGB values match the given color (ignoring alpha) to fully transparent.
   void set_alpha_from_mask_color(uint32_t color) {
     color &= 0xFFFFFF00;
     for (size_t y = 0; y < this->h; y++) {
@@ -1154,7 +1153,7 @@ public:
   void invert() {
     for (size_t y = 0; y < this->h; y++) {
       for (size_t x = 0; x < this->w; x++) {
-        this->write(x, y, this->invert(this->read(x, y)));
+        this->write(x, y, phosg::invert(this->read(x, y)));
       }
     }
   }
@@ -1181,7 +1180,7 @@ public:
     }
   }
 
-  /////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Blitting functions
 
   template <PixelFormat SourceFormat, typename FnT>
@@ -1198,8 +1197,12 @@ public:
       ssize_t src_h,
       ResizeMode resize_mode,
       FnT&& per_pixel_fn) {
-    // If the copy dimensions are equal, don't bother with any resizing or
-    // tiling logic (it will be slower for the same result)
+    if (src_h <= 0 || src_w <= 0 || dst_w <= 0 || dst_h <= 0) {
+      return;
+    }
+
+    // If the copy dimensions are equal, don't bother with any resizing or tiling logic (it will be slower for the same
+    // result)
     if (src_w == dst_w && src_h == dst_h) {
       resize_mode = ResizeMode::NONE;
     }
@@ -1241,10 +1244,12 @@ public:
       case ResizeMode::NEAREST_NEIGHBOR:
         // Stretch the source image into the dest rect, using 2-D nearest-neighbor resampling
         for (ssize_t y = 0; y < dst_h; y++) {
-          size_t src_row_y = src_y + round((src_h - 1) * static_cast<double>(y) / (dst_h - 1));
+          double y_progress = (dst_h > 1) ? (static_cast<double>(y) / (dst_h - 1)) : 0;
+          size_t src_row_y = src_y + round((src_h - 1) * y_progress);
           size_t dst_row_y = dst_y + y;
           for (ssize_t x = 0; x < dst_w; x++) {
-            ssize_t src_col_x = src_x + round((src_w - 1) * static_cast<double>(x) / (dst_w - 1));
+            double x_progress = (dst_w > 1) ? (static_cast<double>(x) / (dst_w - 1)) : 0;
+            ssize_t src_col_x = src_x + round((src_w - 1) * x_progress);
             ssize_t dst_col_x = dst_x + x;
             if (this->check(dst_col_x, dst_row_y) && source.check(src_col_x, src_row_y)) {
               this->write(dst_col_x, dst_row_y,
@@ -1254,50 +1259,6 @@ public:
         }
         break;
 
-      case ResizeMode::LINEAR_INTERPOLATION:
-        // Stretch the source image into the dest rect, using 2-D linear interpolation
-        for (ssize_t y = 0; y < dst_h; y++) {
-          double y_rel_dist = static_cast<double>(y) / (dst_h - 1);
-          double source_y_progress = y_rel_dist * (src_h - 1);
-          size_t source_y1 = src_y + source_y_progress;
-          size_t source_y2 = source_y1 + 1;
-          double source_y2_factor = source_y_progress - source_y1;
-          double source_y1_factor = 1.0 - source_y2_factor;
-
-          for (ssize_t x = 0; x < dst_w; x++) {
-            double x_rel_dist = static_cast<double>(x) / (dst_w - 1);
-            double source_x_progress = x_rel_dist * (src_w - 1);
-            size_t source_x1 = src_x + source_x_progress;
-            size_t source_x2 = source_x1 + 1;
-            double source_x2_factor = source_x_progress - source_x1;
-            double source_x1_factor = 1.0 - source_x2_factor;
-
-            uint32_t s11 = source.check(source_x1, source_y1) ? source.read(source_x1, source_y1) : 0x00000000;
-            uint32_t s12 = source.check(source_x1, source_y2) ? source.read(source_x1, source_y2) : 0x00000000;
-            uint32_t s21 = source.check(source_x2, source_y1) ? source.read(source_x2, source_y1) : 0x00000000;
-            uint32_t s22 = source.check(source_x2, source_y2) ? source.read(source_x2, source_y2) : 0x00000000;
-
-            uint8_t dr = get_r(s11) * (source_x1_factor * source_y1_factor) +
-                get_r(s12) * (source_x1_factor * source_y2_factor) +
-                get_r(s21) * (source_x2_factor * source_y1_factor) +
-                get_r(s22) * (source_x2_factor * source_y2_factor);
-            uint8_t dg = get_g(s11) * (source_x1_factor * source_y1_factor) +
-                get_g(s12) * (source_x1_factor * source_y2_factor) +
-                get_g(s21) * (source_x2_factor * source_y1_factor) +
-                get_g(s22) * (source_x2_factor * source_y2_factor);
-            uint8_t db = get_b(s11) * (source_x1_factor * source_y1_factor) +
-                get_b(s12) * (source_x1_factor * source_y2_factor) +
-                get_b(s21) * (source_x2_factor * source_y1_factor) +
-                get_b(s22) * (source_x2_factor * source_y2_factor);
-            uint8_t da = get_a(s11) * (source_x1_factor * source_y1_factor) +
-                get_a(s12) * (source_x1_factor * source_y2_factor) +
-                get_a(s21) * (source_x2_factor * source_y1_factor) +
-                get_a(s22) * (source_x2_factor * source_y2_factor);
-
-            this->write(dst_x + x, dst_y + y, per_pixel_fn(this->read(dst_x + x, dst_y + y), rgba8888(dr, dg, db, da)));
-          }
-        }
-        break;
       default:
         throw std::logic_error("Invalid resize mode");
     }
@@ -1344,8 +1305,8 @@ public:
     this->copy_from(src, dst_x, dst_y, w, h, src_x, src_y, w, h, ResizeMode::NONE);
   }
 
-  // Copies pixels from another image to this one, blending with the given
-  // alpha value. If the source image has an alpha channel, it is ignored.
+  // Copies pixels from another image to this one, blending with the given alpha value. If the source image has an
+  // alpha channel, it is ignored.
   template <PixelFormat SourceFormat>
   void copy_from_with_alpha(
       const Image<SourceFormat>& source,
@@ -1383,9 +1344,8 @@ public:
     this->copy_from_with_alpha(source, dst_x, dst_y, w, h, src_x, src_y, w, h, alpha, ResizeMode::NONE);
   }
 
-  // Copies pixels from another image to this one, blending using the alpha
-  // channel from the source image. If the source has no alpha channel, this is
-  // equivalent to copy_from.
+  // Copies pixels from another image to this one, blending using the alpha channel from the source image. If the
+  // source has no alpha channel, this is equivalent to copy_from.
   template <PixelFormat SourceFormat>
   void copy_from_with_blend(
       const Image<SourceFormat>& source,
@@ -1400,8 +1360,8 @@ public:
       ResizeMode resize_mode) {
     this->copy_from_with_custom(source, dst_x, dst_y, dst_w, dst_h, src_x, src_y, src_w, src_h, resize_mode,
         [](uint32_t dest_color, uint32_t src_color) -> uint32_t {
-          // a = 0 and a = FF are common so we special-case them before doing a
-          // bunch of arithmetic operations that aren't necessary in those cases
+          // a = 0 and a = FF are common so we special-case them before doing a bunch of arithmetic operations that
+          // aren't necessary in those cases
           uint8_t a = get_a(src_color);
           if (a == 0) {
             return dest_color;
@@ -1424,8 +1384,8 @@ public:
     this->copy_from_with_blend(source, dst_x, dst_y, w, h, src_x, src_y, w, h, ResizeMode::NONE);
   }
 
-  // Copies pixels from another image to this one, but does not copy pixels
-  // whose color in the source image matches the given color.
+  // Copies pixels from another image to this one, but does not copy pixels whose color in the source image matches the
+  // given color.
   template <PixelFormat SourceFormat>
   void copy_from_with_source_color_mask(
       const Image<SourceFormat>& source,
@@ -1458,8 +1418,8 @@ public:
     this->copy_from_with_source_color_mask(source, dst_x, dst_y, w, h, src_x, src_y, w, h, transparent_color, ResizeMode::NONE);
   }
 
-  // Copies pixels from another image to this one, but does not overwrite
-  // pixels whose color in this image matches the given color.
+  // Copies pixels from another image to this one, but does not overwrite pixels whose color in this image matches the
+  // given color.
   template <PixelFormat SourceFormat>
   void copy_from_with_dest_color_mask(
       const Image<SourceFormat>& source,
@@ -1492,9 +1452,8 @@ public:
     this->copy_from_with_dest_color_mask(source, dst_x, dst_y, w, h, src_x, src_y, w, h, transparent_color, ResizeMode::NONE);
   }
 
-  // Copies pixels from another image to this one, but only copies pixels for
-  // which the corresponding pixel in the mask image is not white (FFFFFF). The
-  // mask image is indexed in source-space.
+  // Copies pixels from another image to this one, but only copies pixels for which the corresponding pixel in the mask
+  // image is not white (FFFFFF). The mask image is indexed in source-space.
   template <PixelFormat SourceFormat, PixelFormat MaskFormat>
   void copy_from_with_mask_image(
       const Image<SourceFormat>& source,
@@ -1505,9 +1464,8 @@ public:
       ssize_t src_x,
       ssize_t src_y,
       const Image<MaskFormat>& mask) {
-    // We don't use copy_from_with_custom here because we would need the pixel
-    // coordinates within the per-pixel function, and adding those would make
-    // the code ugly
+    // We don't use copy_from_with_custom here because we would need the pixel coordinates within the per-pixel
+    // function, and adding those would make the code ugly
     for (ssize_t y = 0; y < h; y++) {
       size_t src_row_y = src_y + y;
       size_t dst_row_y = dst_y + y;
@@ -1524,7 +1482,7 @@ public:
     }
   }
 
-  /////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Drawing functions
 
   void flood_fill(size_t start_x, size_t start_y, uint32_t color) {
@@ -1559,8 +1517,8 @@ public:
     }
   }
 
-  // Uses the Bresenham algorithm to draw a line between the specified points.
-  // The endpoints can be outside of the image.
+  // Uses the Bresenham algorithm to draw a line between the specified points. The endpoints can be outside of the
+  // image.
   template <typename FnT>
     requires(std::is_invocable_r_v<void, FnT, size_t, size_t>)
   void draw_line_custom(ssize_t x0, ssize_t y0, ssize_t x1, ssize_t y1, FnT&& fn) {
@@ -1575,8 +1533,7 @@ public:
       y1 = t;
     }
 
-    // If the line is backward (x0 is below or to the right of x1), then switch
-    // the points
+    // If the line is backward (x0 is below or to the right of x1), then switch the points
     if (x0 > x1) {
       ssize_t t = x1;
       x1 = x0;
@@ -1650,9 +1607,8 @@ public:
     this->draw_vertical_line(x + w - 1, y + 1, y + h - 1, 0, color);
   }
 
-  /////////////////////////////////////////////////////////////////////////////
-  // Text functions. These are generally for debugging and reverse-engineering;
-  // they use a fixed-size ASCII-only font.
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Text functions. These are generally for debugging and reverse-engineering; they use a fixed-size ASCII-only font.
 
   template <typename... ArgTs>
   void draw_text(
