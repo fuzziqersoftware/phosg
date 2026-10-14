@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <cmath>
 #include <format>
 #include <map>
 
