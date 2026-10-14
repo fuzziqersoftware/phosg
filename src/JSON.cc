@@ -339,12 +339,12 @@ std::string JSON::serialize(uint32_t options, size_t indent_level) const {
 
     case 3: { // double
       double v = this->as_float();
-      if (isnan(v)) {
+      if (std::isnan(v)) {
         if (options & SerializeOption::FORBID_INFINITY_NAN) {
           throw std::runtime_error("NaN cannot be serialized as JSON");
         }
         return "NaN";
-      } else if (isinf(v)) {
+      } else if (std::isinf(v)) {
         if (options & SerializeOption::FORBID_INFINITY_NAN) {
           throw std::runtime_error("+/- infinity cannot be serialized as JSON");
         }
