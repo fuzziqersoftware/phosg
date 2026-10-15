@@ -122,8 +122,7 @@ public:
   }
 
   bool insert(KeyT&& k, ValueT&& v, size_t size = 1) {
-    auto [item_it, new_item_created] = this->items.emplace(
-        std::piecewise_construct, std::forward_as_tuple(std::move(k)), std::forward_as_tuple(std::move(v), size));
+    auto [item_it, new_item_created] = this->items.try_emplace(std::move(k), std::move(v), size);
     auto& i = item_it->second;
     if (new_item_created) {
       i.key = &item_it->first;
@@ -139,9 +138,7 @@ public:
   }
 
   bool emplace(KeyT&& k, ValueT&& v, size_t size = 1) {
-    auto emplace_ret = this->items.emplace(std::piecewise_construct,
-        std::forward_as_tuple(std::move(k)),
-        std::forward_as_tuple(std::move(v), size));
+    auto emplace_ret = this->items.try_emplace(std::move(k), std::move(v), size);
 
     if (emplace_ret.second) {
       // Item was inserted; set the key pointer, link the item and update the total size appropriately
