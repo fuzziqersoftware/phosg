@@ -519,7 +519,7 @@ JSON& JSON::operator=(const JSON& rhs) {
       break;
     }
     case 4: { // string
-      std::string v = std::move(std::get<4>(rhs.value));
+      std::string v = std::get<4>(rhs.value);
       this->value = std::move(v);
       break;
     }
