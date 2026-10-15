@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+#include <stdexcept>
 #include <unordered_map>
 
 namespace phosg {
