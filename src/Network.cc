@@ -285,11 +285,20 @@ std::unordered_map<std::string, struct sockaddr_storage> get_network_interfaces(
     if (!i->ifa_addr) {
       continue;
     }
+
+    size_t addr_size;
+    switch (i->ifa_addr->sa_family) {
+      case AF_INET:
+        addr_size = sizeof(struct sockaddr_in);
+        break;
+      case AF_INET6:
+        addr_size = sizeof(struct sockaddr_in6);
+        break;
+      default:
+        continue;
+    }
     auto emplace_ret = ret.emplace(i->ifa_name, sockaddr_storage{});
-    memcpy(
-        &emplace_ret.first->second,
-        i->ifa_addr,
-        std::min<size_t>(i->ifa_addr->sa_len, sizeof(emplace_ret.first->second)));
+    memcpy(&emplace_ret.first->second, i->ifa_addr, addr_size);
   }
 
   return ret;

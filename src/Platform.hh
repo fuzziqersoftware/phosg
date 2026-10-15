@@ -43,8 +43,7 @@ constexpr inline bool is_macos() {
   return PLATFORM == Platform::MACOS;
 }
 
-// Try to determine endianess from GCC defines first. If they aren't available,
-// use some constants to try to figure it out
+// Try to determine endianess from GCC defines first. If they aren't available, use some constants to figure it out
 // clang-format off
 #if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
   #define PHOSG_LITTLE_ENDIAN

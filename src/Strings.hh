@@ -185,13 +185,13 @@ inline std::string escape_controls_utf8(std::string_view s) {
 uint8_t value_for_hex_char(char x);
 
 template <std::integral T>
-  requires(std::is_unsigned_v<T>)
+requires(std::is_unsigned_v<T>)
 std::string hex(T value) {
   return std::format("0x{:0{}X}", value, sizeof(T) * 2);
 }
 
 template <std::integral T>
-  requires(std::is_signed_v<T>)
+requires(std::is_signed_v<T>)
 std::string hex(T value) {
   using U = std::make_unsigned_t<T>;
   U value_u = (value < 0) ? (U{} - static_cast<U>(value)) : static_cast<U>(value);
@@ -380,7 +380,7 @@ std::string format_color_escape(TerminalFormat color, ...);
 void print_color_escape(FILE* stream, TerminalFormat color, ...);
 
 template <typename WriteFnT, TerminalFormat... Formats>
-  requires std::is_invocable_r_v<void, WriteFnT, const void*, size_t>
+requires std::is_invocable_r_v<void, WriteFnT, const void*, size_t>
 class TerminalFormatGuard {
 public:
   TerminalFormatGuard(WriteFnT& write_data, bool active = true) : write_data(write_data), active(active) {
@@ -446,9 +446,8 @@ private:
   size_t offset_bits;
 };
 
-// This class exists because apparently vector<bool> isn't required to store its
-// elements continguously, and in many reverse-engineering situations we
-// definitely want the bits to all be contiguous.
+// This class exists because apparently vector<bool> isn't required to store its elements continguously, and in many
+// reverse-engineering situations we definitely want the bits to all be contiguous.
 class BitWriter {
 public:
   BitWriter();
@@ -1311,7 +1310,7 @@ void print_data(FILE* stream, ArgTs... args) {
 }
 
 template <typename... ArgTs, size_t... Is>
-  requires(std::is_lvalue_reference_v<ArgTs> && ...)
+requires(std::is_lvalue_reference_v<ArgTs> && ...)
 void parse_positional_impl(const std::vector<std::string>& tokens, std::index_sequence<Is...>, ArgTs&&... args) {
   (
       [&tokens]<typename T>(T&& arg, size_t z) -> void {
@@ -1333,7 +1332,7 @@ void parse_positional_impl(const std::vector<std::string>& tokens, std::index_se
 }
 
 template <typename StrT, typename... ArgTs>
-  requires((std::is_lvalue_reference_v<ArgTs>) && ...)
+requires((std::is_lvalue_reference_v<ArgTs>) && ...)
 void parse_positional(const StrT& s, ArgTs&&... args) {
   auto tokens = split_context(s, ' ');
   if (tokens.size() != sizeof...(ArgTs)) {
@@ -1343,7 +1342,7 @@ void parse_positional(const StrT& s, ArgTs&&... args) {
 }
 
 template <typename StrT, typename... ArgTs>
-  requires((std::is_lvalue_reference_v<ArgTs>) && ...)
+requires((std::is_lvalue_reference_v<ArgTs>) && ...)
 bool try_parse_positional(const StrT& s, ArgTs&&... args) {
   try {
     parse_positional<StrT, ArgTs...>(s, std::forward<ArgTs>(args)...);
