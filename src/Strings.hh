@@ -472,21 +472,6 @@ private:
   uint8_t last_byte_unset_bits;
 };
 
-struct IOVecByteReader {
-  const struct iovec* iovs = nullptr;
-  size_t num_iovs = 0;
-  size_t current_iov = 0;
-  size_t offset_within_iov = 0;
-
-  IOVecByteReader() = default;
-  IOVecByteReader(const struct iovec* iovs, size_t num_iovs);
-  inline bool eof() const {
-    return (this->current_iov >= this->num_iovs);
-  }
-  uint8_t get_u8();
-  size_t size() const;
-};
-
 class StringReader {
 public:
   StringReader();
@@ -709,6 +694,89 @@ private:
   const uint8_t* data;
   size_t length;
   size_t offset;
+};
+
+struct DataSegmentReader {
+  struct DataSegment {
+    const uint8_t* data = nullptr;
+    size_t size = 0;
+    DataSegment* next_seg = nullptr;
+  };
+
+  struct Pointer {
+    // Invariant: either seg == nullptr or offset < seg->size
+    DataSegment* seg = nullptr;
+    size_t offset = 0;
+
+    Pointer() = default;
+    inline Pointer(DataSegment* seg, size_t offset) : seg(seg), offset(offset) {
+      this->advance(0); // Skip any empty segments at the beginning of the chain
+    }
+
+    inline bool eof() const {
+      return (this->seg == nullptr);
+    }
+
+    void advance(size_t distance);
+
+    // "Reads" without copying any data. Returns null if span crosses a segment boundary; caller must check for this
+    inline const void* read_fast(size_t size) const {
+      return (this->offset + size <= this->seg->size) ? (this->seg->data + this->offset) : nullptr;
+    }
+
+    // Reads by copying the data; generally only use this if read_fast returned null
+    std::string read_slow(size_t size) const;
+
+    inline uint8_t operator*() const {
+      return *reinterpret_cast<const uint8_t*>(this->seg->data + this->offset);
+    }
+    inline Pointer& operator++() {
+      this->advance(1);
+      return *this;
+    }
+    inline Pointer operator++(int) {
+      Pointer ret = *this;
+      this->advance(1);
+      return ret;
+    }
+
+    inline uint8_t get_u8() {
+      uint8_t ret = **this;
+      this->advance(1);
+      return ret;
+    }
+  };
+
+  DataSegment* first_seg = nullptr;
+  DataSegment* last_seg = nullptr;
+  size_t total_size = 0;
+
+  DataSegmentReader() = default;
+  inline DataSegmentReader(const void* data, size_t size) {
+    this->add_segment(data, size);
+  }
+  inline DataSegmentReader(std::string_view sv) : DataSegmentReader(sv.data(), sv.size()) {}
+  inline DataSegmentReader(const StringReader& r) : DataSegmentReader(r.all()) {}
+  inline DataSegmentReader(const struct iovec* iovs, size_t num_iovs) {
+    for (size_t z = 0; z < num_iovs; z++) {
+      this->add_segment(iovs[z].iov_base, iovs[z].iov_len);
+    }
+  }
+  DataSegmentReader(const DataSegmentReader& other);
+  DataSegmentReader(DataSegmentReader&& other);
+  DataSegmentReader& operator=(const DataSegmentReader& other);
+  DataSegmentReader& operator=(DataSegmentReader&& other);
+  ~DataSegmentReader();
+
+  void add_segment(const void* data, size_t size);
+  void clear_all();
+
+  inline Pointer begin() const {
+    return Pointer{this->first_seg, 0};
+  }
+  inline size_t size() const {
+    return this->total_size;
+  }
 };
 
 class StringWriter {
@@ -1027,13 +1095,13 @@ concept DataReader = requires(T r) {
 
 // Abstract cases of format_data (with arbitrary reader types)
 
-template <WriteFn WriteFnT, DataReader DataReaderT, DataReader PrevReaderT, DataReader CensorReaderT>
+template <WriteFn WriteFnT>
 void format_data_custom(
     WriteFnT& write_data,
-    DataReaderT data_r,
+    const DataSegmentReader& data_r,
     uint64_t start_address,
-    PrevReaderT prev_r,
-    CensorReaderT censor_r,
+    const DataSegmentReader& prev_r,
+    const DataSegmentReader& censor_r,
     uint64_t flags = DEFAULT_FORMAT_DATA_FLAGS) {
   union LineData {
     char c[0x10];
@@ -1056,12 +1124,14 @@ void format_data_custom(
   };
   static_assert(sizeof(LineData) == 0x10, "LineData is not 16 bytes");
 
-  size_t total_size = data_r.size();
-  if (total_size == 0) {
+  auto data_ptr = data_r.begin();
+  if (data_ptr.eof()) {
     return;
   }
+  auto prev_ptr = prev_r.begin();
+  auto censor_ptr = censor_r.begin();
 
-  uint64_t end_address = start_address + total_size;
+  uint64_t end_address = start_address + data_r.size();
 
   int addr_width_digits;
   if (flags & FormatDataFlags::OFFSET_8_BITS) {
@@ -1102,10 +1172,10 @@ void format_data_custom(
 
     // Read the data, previous, and censor for this line
     for (size_t z = 0; z < line_bytes; z++) {
-      uint8_t data_v = data_r.get_u8();
+      uint8_t data_v = data_ptr.get_u8();
       line_data.u8[z + line_invalid_start_bytes] = data_v;
-      prev_data.u8[z + line_invalid_start_bytes] = prev_r.eof() ? data_v : prev_r.get_u8();
-      censor_data.u8[z + line_invalid_start_bytes] = censor_r.eof() ? 0 : censor_r.get_u8();
+      prev_data.u8[z + line_invalid_start_bytes] = prev_ptr.eof() ? data_v : prev_ptr.get_u8();
+      censor_data.u8[z + line_invalid_start_bytes] = censor_ptr.eof() ? 0 : censor_ptr.get_u8();
     }
 
     // If the line is all zeroes, matches the previous, and is not censored, hide it
@@ -1177,15 +1247,19 @@ void format_data_custom(
   }
 }
 
-template <WriteFn WriteFnT, DataReader DataReaderT, DataReader PrevReaderT>
+template <WriteFn WriteFnT>
 void format_data_custom(
-    WriteFnT& write_data, DataReaderT data_r, uint64_t start_address, PrevReaderT prev_r, uint64_t flags) {
-  return format_data_custom(write_data, data_r, start_address, prev_r, StringReader(), flags);
+    WriteFnT& write_data,
+    const DataSegmentReader& data_r,
+    uint64_t start_address,
+    const DataSegmentReader& prev_r,
+    uint64_t flags) {
+  return format_data_custom(write_data, data_r, start_address, prev_r, DataSegmentReader(), flags);
 }
-template <WriteFn WriteFnT, DataReader DataReaderT>
+template <WriteFn WriteFnT>
 void format_data_custom(
-    WriteFnT& write_data, DataReaderT data_r, uint64_t start_address, uint64_t flags) {
-  return format_data_custom(write_data, data_r, start_address, StringReader(), StringReader(), flags);
+    WriteFnT& write_data, const DataSegmentReader& data_r, uint64_t start_address, uint64_t flags) {
+  return format_data_custom(write_data, data_r, start_address, DataSegmentReader(), DataSegmentReader(), flags);
 }
 
 // Concrete cases of format_data_custom
@@ -1201,8 +1275,8 @@ void format_data_custom(
     const struct iovec* censor_iovs,
     size_t num_censor_iovs,
     uint64_t flags = DEFAULT_FORMAT_DATA_FLAGS) {
-  format_data_custom(write_data, IOVecByteReader(iovs, num_iovs), start_address,
-      IOVecByteReader(prev_iovs, num_prev_iovs), IOVecByteReader(censor_iovs, num_censor_iovs), flags);
+  format_data_custom(write_data, DataSegmentReader(iovs, num_iovs), start_address,
+      DataSegmentReader(prev_iovs, num_prev_iovs), DataSegmentReader(censor_iovs, num_censor_iovs), flags);
 }
 template <WriteFn WriteFnT>
 void format_data_custom(
@@ -1213,8 +1287,8 @@ void format_data_custom(
     const struct iovec* prev_iovs,
     size_t num_prev_iovs,
     uint64_t flags = DEFAULT_FORMAT_DATA_FLAGS) {
-  format_data_custom(write_data, IOVecByteReader(iovs, num_iovs), start_address,
-      IOVecByteReader(prev_iovs, num_prev_iovs), StringReader(), flags);
+  format_data_custom(write_data, DataSegmentReader(iovs, num_iovs), start_address,
+      DataSegmentReader(prev_iovs, num_prev_iovs), StringReader(), flags);
 }
 template <WriteFn WriteFnT>
 void format_data_custom(
@@ -1223,7 +1297,7 @@ void format_data_custom(
     size_t num_iovs,
     uint64_t start_address = 0,
     uint64_t flags = DEFAULT_FORMAT_DATA_FLAGS) {
-  format_data_custom(write_data, IOVecByteReader(iovs, num_iovs), start_address, StringReader(), StringReader(), flags);
+  format_data_custom(write_data, DataSegmentReader(iovs, num_iovs), start_address, StringReader(), StringReader(), flags);
 }
 
 template <WriteFn WriteFnT>

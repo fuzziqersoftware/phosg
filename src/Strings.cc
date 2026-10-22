@@ -1117,33 +1117,80 @@ void BitWriter::write(bool v) {
   }
 }
 
-IOVecByteReader::IOVecByteReader(const struct iovec* iovs, size_t num_iovs) : iovs(iovs), num_iovs(num_iovs) {
-  // Skip any iovecs at the beginning that are empty, since get_u8() will try to read from the current iov
-  while ((this->current_iov < this->num_iovs) && (this->iovs[this->current_iov].iov_len == 0)) {
-    this->current_iov++;
+void DataSegmentReader::Pointer::advance(size_t distance) {
+  this->offset += distance;
+  while (this->seg && (this->offset >= this->seg->size)) {
+    this->offset -= this->seg->size;
+    this->seg = this->seg->next_seg;
   }
 }
 
-uint8_t IOVecByteReader::get_u8() {
-  if (this->current_iov >= this->num_iovs) {
-    throw std::out_of_range("No more data to read");
-  }
-  uint8_t ret = reinterpret_cast<const uint8_t*>(this->iovs[this->current_iov].iov_base)[this->offset_within_iov];
-  this->offset_within_iov++;
-  while ((this->current_iov < this->num_iovs) &&
-      (this->offset_within_iov >= this->iovs[this->current_iov].iov_len)) {
-    this->current_iov++;
-    this->offset_within_iov = 0;
+std::string DataSegmentReader::Pointer::read_slow(size_t size) const {
+  std::string ret;
+  ret.reserve(size);
+  Pointer ptr = *this;
+  for (size_t z = 0; z < size; z++) {
+    ret.push_back(ptr.get_u8());
   }
   return ret;
 }
 
-size_t IOVecByteReader::size() const {
-  size_t ret = 0;
-  for (size_t z = 0; z < this->num_iovs; z++) {
-    ret += this->iovs[z].iov_len;
+DataSegmentReader::DataSegmentReader(const DataSegmentReader& other) {
+  *this = other;
+}
+
+DataSegmentReader::DataSegmentReader(DataSegmentReader&& other) {
+  *this = std::move(other);
+}
+
+DataSegmentReader& DataSegmentReader::operator=(const DataSegmentReader& other) {
+  if (&other != this) {
+    this->clear_all();
+    for (auto* seg = other.first_seg; seg != nullptr; seg = seg->next_seg) {
+      this->add_segment(seg->data, seg->size);
+    }
+    this->total_size = other.total_size;
   }
-  return ret;
+  return *this;
+}
+
+DataSegmentReader& DataSegmentReader::operator=(DataSegmentReader&& other) {
+  if (&other != this) {
+    this->clear_all();
+    this->first_seg = other.first_seg;
+    this->last_seg = other.last_seg;
+    this->total_size = other.total_size;
+    other.first_seg = nullptr;
+    other.last_seg = nullptr;
+    other.total_size = 0;
+  }
+  return *this;
+}
+
+DataSegmentReader::~DataSegmentReader() {
+  this->clear_all();
+}
+
+void DataSegmentReader::add_segment(const void* data, size_t size) {
+  DataSegment* ds = new DataSegment{reinterpret_cast<const uint8_t*>(data), size, nullptr};
+  if (!this->last_seg) {
+    this->first_seg = ds;
+    this->last_seg = ds;
+  } else {
+    this->last_seg->next_seg = ds;
+    this->last_seg = ds;
+  }
+  this->total_size += size;
+}
+
+void DataSegmentReader::clear_all() {
+  while (this->first_seg != nullptr) {
+    auto* next_seg = this->first_seg->next_seg;
+    delete this->first_seg;
+    this->first_seg = next_seg;
+  }
+  this->last_seg = nullptr;
+  this->total_size = 0;
 }
 
 StringReader::StringReader() : owned_data(nullptr), data(nullptr), length(0), offset(0) {}
