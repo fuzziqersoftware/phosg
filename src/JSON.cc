@@ -32,7 +32,7 @@ static void skip_whitespace_and_comments(StringReader& r, bool disable_extension
   }
 }
 
-JSON JSON::parse(StringReader& r, bool disable_extensions) {
+JSON JSON::parse(StringReader& r, bool disable_extensions, ssize_t max_depth) {
   skip_whitespace_and_comments(r, disable_extensions);
 
   // Check for named values first
@@ -52,6 +52,10 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
 
   char root_type_ch = r.get_s8(false);
   if (root_type_ch == '{') {
+    if (max_depth == 0) {
+      throw parse_error("Maximum recursion depth exceeded", r.where());
+    }
+
     auto ret = JSON::dict();
     char expected_separator = '{';
     char separator = r.get_s8();
@@ -67,7 +71,7 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
         break;
       }
 
-      JSON key = JSON::parse(r, disable_extensions);
+      JSON key = JSON::parse(r, disable_extensions, (max_depth > 0) ? (max_depth - 1) : -1);
       skip_whitespace_and_comments(r, disable_extensions);
 
       if (r.get_s8() != ':') {
@@ -75,13 +79,17 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
       }
       skip_whitespace_and_comments(r, disable_extensions);
 
-      ret.emplace(std::move(key.as_string()), JSON::parse(r, disable_extensions));
+      ret.emplace(std::move(key.as_string()), JSON::parse(r, disable_extensions, (max_depth > 0) ? (max_depth - 1) : -1));
       skip_whitespace_and_comments(r, disable_extensions);
       separator = r.get_s8();
     }
     return ret;
 
   } else if (root_type_ch == '[') {
+    if (max_depth == 0) {
+      throw parse_error("Maximum recursion depth exceeded", r.where());
+    }
+
     auto ret = JSON::list();
     char expected_separator = '[';
     char separator = r.get_s8();
@@ -97,7 +105,7 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
         break;
       }
 
-      ret.emplace_back(JSON::parse(r, disable_extensions));
+      ret.emplace_back(JSON::parse(r, disable_extensions, (max_depth > 0) ? (max_depth - 1) : -1));
       skip_whitespace_and_comments(r, disable_extensions);
       separator = r.get_s8();
     }
@@ -120,7 +128,7 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
     if (!disable_extensions &&
         ((r.where() + 2) < r.size()) &&
         (r.get_s8(false) == '0') &&
-        (r.pget_s8(r.where() + 1) == 'x')) { // hex
+        (r.pget_s8(r.where() + 1) == 'x')) { // Hex
       r.go(r.where() + 2);
 
       int_data = 0;
@@ -131,7 +139,7 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
         int_data = (int_data << 4) | value_for_hex_char(r.get_s8());
       }
 
-    } else { // decimal
+    } else { // Decimal
       int_data = 0;
       while (!r.eof() && isdigit(r.get_s8(false))) {
         int64_t digit = (r.get_s8() - '0');
@@ -255,9 +263,9 @@ JSON JSON::parse(StringReader& r, bool disable_extensions) {
   throw parse_error("unknown root sentinel", r.where());
 }
 
-JSON JSON::parse(const char* s, size_t size, bool disable_extensions) {
+JSON JSON::parse(const char* s, size_t size, bool disable_extensions, ssize_t max_depth) {
   StringReader r(s, size);
-  auto ret = JSON::parse(r, disable_extensions);
+  auto ret = JSON::parse(r, disable_extensions, max_depth);
   skip_whitespace_and_comments(r, disable_extensions);
   if (!r.eof()) {
     throw parse_error("unparsed data remains after value", r.where());
@@ -265,8 +273,8 @@ JSON JSON::parse(const char* s, size_t size, bool disable_extensions) {
   return ret;
 }
 
-JSON JSON::parse(const std::string& s, bool disable_extensions) {
-  return JSON::parse(s.data(), s.size(), disable_extensions);
+JSON JSON::parse(const std::string& s, bool disable_extensions, ssize_t max_depth) {
+  return JSON::parse(s.data(), s.size(), disable_extensions, max_depth);
 }
 
 std::string JSON::escape_string(const std::string& s, StringEscapeMode mode) {

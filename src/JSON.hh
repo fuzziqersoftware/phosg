@@ -37,8 +37,8 @@ private:
   inline static constexpr bool is_non_null_primitive_v = std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_same_v<T, bool> || std::is_same_v<T, std::string>;
 
 public:
-  // Thrown when JSON can't be parsed (note that std::out_of_range may also be
-  // thrown if the JSON contains an unterminated string, list, or dict)
+  // Thrown when JSON can't be parsed (note that std::out_of_range may also be thrown if the JSON contains an
+  // unterminated string, list, or dict)
   class parse_error : public std::runtime_error {
   public:
     inline explicit parse_error(const std::string& what, size_t pos)
@@ -51,25 +51,21 @@ public:
     using runtime_error::runtime_error;
   };
 
-  // JSON text parsers. If disable_extensions is true, the following
-  // nonstandard extensions are not allowed:
+  // JSON text parsers. If disable_extensions is true, the following nonstandard extensions are not allowed:
   // - Trailing commas in lists and dictionaries
   // - Hexadecimal integers
   // - Single-character trivial constants (n/t/f for null/true/false)
   // - Comments
-  // These extensions do not make any standard-compliant JSON unparseable, so
-  // they are enabled by default. The inverse function, serialize, has the
-  // opposite behavior - it always generates standard-compilant JSON unless
-  // extensions are specifically requested.
-  // The StringReader variant of this function does not throw if there's extra
-  // data after a valid JSON object; the other variants do (unless it's only
-  // whitespace).
-  static JSON parse(StringReader& r, bool disable_extensions = false);
-  static JSON parse(const char* s, size_t size, bool disable_extensions = false);
-  static JSON parse(const std::string& s, bool disable_extensions = false);
+  // These extensions do not make any standard-compliant JSON unparseable, so they are enabled by default. The inverse
+  // function, serialize, has the opposite behavior - it always generates standard-compilant JSON unless extensions are
+  // specifically requested. The StringReader variant of this function does not throw if there's extra data after a
+  // valid JSON object; the other variants do (unless it's only whitespace).
+  static JSON parse(StringReader& r, bool disable_extensions = false, ssize_t max_depth = -1);
+  static JSON parse(const char* s, size_t size, bool disable_extensions = false, ssize_t max_depth = -1);
+  static JSON parse(const std::string& s, bool disable_extensions = false, ssize_t max_depth = -1);
 
-  // Because the statement `JSON v = {};` is ambiguous, these functions
-  // exist to explicitly construct an empty list or dictionary.
+  // Because the statement `JSON v = {};` is ambiguous, these functions exist to explicitly construct an empty list or
+  // dictionary.
   static inline JSON list() {
     return JSON(std::vector<std::unique_ptr<JSON>>());
   }
@@ -104,11 +100,11 @@ public:
   JSON(double x);
 
   template <typename T>
-    requires(std::is_integral_v<T>)
+  requires(std::is_integral_v<T>)
   JSON(T x) : JSON(static_cast<int64_t>(x)) {}
 
   template <typename T>
-    requires(std::is_enum_v<T>)
+  requires(std::is_enum_v<T>)
   JSON(T x) : JSON(name_for_enum<T>(x)) {}
 
   // List constructors
@@ -126,7 +122,7 @@ public:
   JSON(std::initializer_list<std::pair<const char*, JSON>> values);
   JSON(std::initializer_list<std::pair<const std::string, JSON>> values);
   template <typename T>
-    requires(is_primitive_v<T>)
+  requires(is_primitive_v<T>)
   JSON(const std::unordered_map<std::string, T>& x) {
     dict_type v;
     for (const auto& item : x) {
@@ -184,7 +180,7 @@ public:
   std::partial_ordering operator<=>(const char* v) const;
   std::partial_ordering operator<=>(const std::string& v) const;
   template <typename T>
-    requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
+  requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
   std::partial_ordering operator<=>(T v) const {
     const int64_t* stored_vi = std::get_if<2>(&this->value);
     if (stored_vi != nullptr) {
@@ -223,8 +219,7 @@ public:
     return (r == std::partial_ordering::equivalent) || (r == std::partial_ordering::greater);
   }
 
-  // Dict and list element accessors. These are just shorthand for e.g.
-  // obj.as_list().at() / obj.as_dict.at()
+  // Dict and list element accessors. These are just shorthand for e.g. obj.as_list().at() / obj.as_dict.at()
   JSON& at(const std::string& key);
   const JSON& at(const std::string& key) const;
   JSON& at(size_t index);
@@ -294,17 +289,17 @@ public:
   }
 
   template <typename T>
-    requires(std::is_enum_v<T>)
+  requires(std::is_enum_v<T>)
   T get_enum(const std::string& key) const {
     return enum_for_name<T>(this->at(key).as_string().c_str());
   }
   template <typename T>
-    requires(std::is_enum_v<T>)
+  requires(std::is_enum_v<T>)
   T get_enum(size_t index) const {
     return enum_for_name<T>(this->at(index).as_string().c_str());
   }
   template <typename T>
-    requires(std::is_enum_v<T>)
+  requires(std::is_enum_v<T>)
   T get_enum(const std::string& key, T default_value) const {
     try {
       return enum_for_name<T>(this->at(key).as_string().c_str());
@@ -313,7 +308,7 @@ public:
     }
   }
   template <typename T>
-    requires(std::is_enum_v<T>)
+  requires(std::is_enum_v<T>)
   T get_enum(size_t index, T default_value) const {
     try {
       return enum_for_name<T>(this->at(index).as_string().c_str());
@@ -362,16 +357,12 @@ public:
     }
   }
 
-  // Type-checking accessors. If the object is the requested type, returns the
-  // value; otherwise, throws type_error.
-  // The int and float types are "special" in that they are implicitly
-  // convertible to each other; for example, calling as_float() on an int object
-  // does not throw and instead returns a (possibly less precise) value. To know
-  // if an implicit conversion occurred, the caller can use is_int()/is_float().
-  // This is designed this way because JSON does not differentiate between
-  // integers and floating-point numbers; the separate types are an extension
-  // implemented in this library in order to support precise values for the full
-  // range of 64-bit integers.
+  // Type-checking accessors. If the object is the requested type, returns the value; otherwise, throws type_error.
+  // The int and float types are "special" in that they are implicitly convertible to each other; for example, calling
+  // as_float() on an int object does not throw and instead returns a (possibly less precise) value. To know if an
+  // implicit conversion occurred, the caller can use is_int()/is_float(). This is designed this way because JSON does
+  // not differentiate between integers and floating-point numbers; the separate types are an extension implemented in
+  // this library in order to support precise values for the full range of 64-bit integers.
   bool as_bool() const;
   int64_t as_int() const;
   double as_float() const;
@@ -405,9 +396,8 @@ public:
     return holds_alternative<dict_type>(this->value);
   }
 
-  // Container-like functions. These throw type_error if the value is not a list
-  // or dict; otherwise, they behave like the corresponding functions on
-  // std::vector or std::unordered_map.
+  // Container-like functions. These throw type_error if the value is not a list or dict; otherwise, they behave like
+  // the corresponding functions on std::vector or std::unordered_map.
   size_t size() const;
   bool empty() const;
   void clear();
@@ -473,15 +463,7 @@ private:
   JSON(list_type&& x);
   JSON(dict_type&& x);
 
-  std::variant<
-      std::nullptr_t, // We use this type for JSON null
-      bool,
-      int64_t, // This is convertible to double implicitly in as_float()
-      double, // This is convertible to int implicitly in as_int()
-      std::string,
-      list_type,
-      dict_type>
-      value;
+  std::variant<std::nullptr_t, bool, int64_t, double, std::string, list_type, dict_type> value;
 };
 
 } // namespace phosg
