@@ -98,7 +98,7 @@ if (WIN32)
   target_link_libraries(ToolsTest -static -static-libgcc -static-libstdc++)
 endif()
 
-foreach(TestName IN ITEMS ArgumentsTest EncodingTest FilesystemTest HashTest ImageTest JSONTest LRUMapTest LRUSetTest MathTest ProcessTest StringsTest TimeTest UnitTestTest)
+foreach(TestName IN ITEMS ArgumentsTest EncodingTest FilesystemTest HashTest ImageTest JSONTest LRUMapTest LRUSetTest MathTest ProcessTest StringsTest SearchableBitSetTest TimeTest UnitTestTest)
   add_executable(${TestName} src/${TestName}.cc)
   target_link_libraries(${TestName} phosg)
   if (WIN32)
