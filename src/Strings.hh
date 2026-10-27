@@ -774,6 +774,11 @@ struct DataSegmentReader {
   inline Pointer begin() const {
     return Pointer{this->first_seg, 0};
   }
+  inline Pointer ptr_for_offset(size_t offset) const {
+    Pointer ret{this->first_seg, 0};
+    ret.advance(offset);
+    return ret;
+  }
   inline size_t size() const {
     return this->total_size;
   }
