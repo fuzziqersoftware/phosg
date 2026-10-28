@@ -4,6 +4,7 @@
 #include <sys/types.h>
 
 #include <array>
+#include <memory>
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
