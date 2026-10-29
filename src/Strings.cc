@@ -188,7 +188,7 @@ void set_log_level(LogLevel new_level) {
 
 static const std::vector<char> log_level_chars{'D', 'I', 'W', 'E'};
 
-void print_log_prefix(FILE* stream, LogLevel level) {
+std::string format_log_prefix(LogLevel level) {
   char time_buffer[32];
   time_t now_secs = time(nullptr);
   struct tm now_tm;
@@ -198,8 +198,7 @@ void print_log_prefix(FILE* stream, LogLevel level) {
   localtime_s(&now_tm, &now_secs);
 #endif
   strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", &now_tm);
-  char level_char = log_level_chars.at(static_cast<int>(level));
-  fwrite_fmt(stream, "{:c} {} {} - ", level_char, getpid_cached(), &time_buffer[0]);
+  return std::format("{:c} {} {} - ", log_level_chars.at(static_cast<int>(level)), getpid_cached(), &time_buffer[0]);
 }
 
 PrefixedLogger::PrefixedLogger(std::string_view prefix, LogLevel min_level) : prefix(prefix), min_level(min_level) {}
