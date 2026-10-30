@@ -19,9 +19,22 @@ namespace phosg {
 template <size_t Count>
 struct SearchableBitSet;
 
-template <size_t Count> requires(Count <= 0x40)
+template <size_t Count> requires(Count > 0 && Count <= 0x40)
 struct SearchableBitSet<Count> {
   uint64_t data = 0;
+
+  SearchableBitSet(uint64_t data = 0) : data(data) {}
+  SearchableBitSet(const SearchableBitSet<Count>&) = default;
+  SearchableBitSet(SearchableBitSet<Count>&&) = default;
+  SearchableBitSet& operator=(const SearchableBitSet<Count>&) = default;
+  SearchableBitSet& operator=(SearchableBitSet<Count>&&) = default;
+
+  bool operator==(const SearchableBitSet<Count>& other) const {
+    return (this->data == other.data);
+  }
+  bool operator!=(const SearchableBitSet<Count>& other) const {
+    return !this->operator==(other);
+  }
 
   static constexpr uint64_t bit_for_pos(size_t pos) {
     return (1ULL << (63 - (pos & 63)));
@@ -35,7 +48,7 @@ struct SearchableBitSet<Count> {
     this->data = 0;
   }
   void set_all() {
-    this->data = 0xFFFFFFFFFFFFFFFFULL;
+    this->data = 0xFFFFFFFFFFFFFFFFULL << (0x40 - Count);
   }
   constexpr bool any_set() const {
     return (this->data != 0);
@@ -73,6 +86,19 @@ struct SearchableBitSet<Count> {
 
   SearchableBitSet<DataCount> index; // Each bit is set if the corresponding entry in this->data has any set bits
   std::array<SearchableBitSet<64>, DataCount> data = {};
+
+  SearchableBitSet() = default;
+  SearchableBitSet(const SearchableBitSet<Count>&) = default;
+  SearchableBitSet(SearchableBitSet<Count>&&) = default;
+  SearchableBitSet& operator=(const SearchableBitSet<Count>&) = default;
+  SearchableBitSet& operator=(SearchableBitSet<Count>&&) = default;
+
+  bool operator==(const SearchableBitSet<Count>& other) const {
+    return (this->data == other.data);
+  }
+  bool operator!=(const SearchableBitSet<Count>& other) const {
+    return !this->operator==(other);
+  }
 
   static consteval size_t num_levels() {
     return 1 + SearchableBitSet<DataCount>::num_levels();
@@ -153,20 +179,37 @@ struct SearchableBitVector {
       this->index = std::make_unique<SearchableBitVector>(data_count);
     }
   }
-
-  void resize(size_t bit_count) {
-    this->bit_count = bit_count;
-    size_t data_count = std::max<size_t>((this->bit_count + 63) / 64, 1);
-    this->data.resize(data_count);
-    if (data_count > 1) {
-      if (!this->index) {
-        this->index = std::make_unique<SearchableBitVector>(data_count);
-      } else {
-        this->index->resize(data_count);
-      }
-    } else if (this->index) {
+  inline SearchableBitVector(const SearchableBitVector& other)
+      : index(other.index ? std::make_unique<SearchableBitVector>(*other.index) : nullptr),
+        data(other.data),
+        bit_count(other.bit_count) {}
+  inline SearchableBitVector(SearchableBitVector&& other)
+      : index(std::move(other.index)), data(std::move(other.data)), bit_count(other.bit_count) {
+    other.bit_count = 0;
+  }
+  inline SearchableBitVector& operator=(const SearchableBitVector& other) {
+    if (other.index) {
+      this->index = std::make_unique<SearchableBitVector>(*other.index);
+    } else {
       this->index.reset();
     }
+    this->data = other.data;
+    this->bit_count = other.bit_count;
+    return *this;
+  }
+  inline SearchableBitVector& operator=(SearchableBitVector&& other) {
+    this->index = std::move(other.index);
+    this->data = std::move(other.data);
+    this->bit_count = other.bit_count;
+    other.bit_count = 0;
+    return *this;
+  }
+
+  bool operator==(const SearchableBitVector& other) const {
+    return (this->bit_count == other.bit_count) && (this->data == other.data);
+  }
+  bool operator!=(const SearchableBitVector& other) const {
+    return !this->operator==(other);
   }
 
   inline size_t num_levels() const {
@@ -185,8 +228,14 @@ struct SearchableBitVector {
     if (this->index) {
       this->index->set_all();
     }
-    for (size_t z = 0; z < this->data.size(); z++) {
+    for (size_t z = 0; z < this->data.size() - 1; z++) {
       this->data[z].set_all();
+    }
+    size_t last_data_bits = (this->bit_count & 0x3F);
+    if (last_data_bits == 0) { // Size is a multiple of 64 bits
+      this->data.back().set_all();
+    } else {
+      this->data.back().data = 0xFFFFFFFFFFFFFFFFULL << (64 - last_data_bits);
     }
   }
   inline bool any_set() const {
