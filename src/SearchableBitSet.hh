@@ -60,7 +60,7 @@ struct SearchableBitSet<Count> {
     return (left_zeroes == 64) ? Count : left_zeroes;
   }
   constexpr size_t find_set_at_or_before(size_t pos) const {
-    // Returns Count if no bits are set after the specified position
+    // Returns Count if no bits are set before the specified position
     size_t right_zeroes = std::countr_zero(this->data & ~(bit_for_pos(pos) - 1));
     return (right_zeroes == 64) ? Count : (63 - right_zeroes);
   }
