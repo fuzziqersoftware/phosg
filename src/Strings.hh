@@ -300,7 +300,8 @@ struct PrefixedLogger {
   }
 };
 
-constexpr char DEFAULT_PARENS[] = "()[]{}<>\'\'\"\"";
+constexpr char DEFAULT_PARENS[] = "()[]{}\'\'\"\"";
+constexpr char DEFAULT_PARENS_WITH_ANGLE_BRACKETS[] = "()[]{}<>\'\'\"\"";
 
 std::vector<std::string> split(std::string_view s, char delim, size_t max_splits = 0);
 std::vector<std::wstring> split(std::wstring_view s, wchar_t delim, size_t max_splits = 0);
