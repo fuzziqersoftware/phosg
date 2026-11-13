@@ -188,7 +188,7 @@ void set_log_level(LogLevel new_level) {
 
 static const std::vector<char> log_level_chars{'D', 'I', 'W', 'E'};
 
-std::string format_log_prefix(LogLevel level) {
+std::string format_log_time_prefix(LogLevel level) {
   char time_buffer[32];
   time_t now_secs = time(nullptr);
   struct tm now_tm;

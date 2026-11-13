@@ -229,14 +229,14 @@ inline bool should_log(LogLevel incoming_level) {
   return should_log(incoming_level, log_level());
 }
 
-std::string format_log_prefix(LogLevel level);
+std::string format_log_time_prefix(LogLevel level);
 
 template <LogLevel Level, typename... ArgTs>
 bool log_f(std::format_string<ArgTs...> fmt, ArgTs&&... args) {
   if (!should_log(Level, log_level())) {
     return false;
   }
-  fwrite_fmt(stderr, "{}{}\n", format_log_prefix(Level), std::format(fmt, std::forward<ArgTs>(args)...));
+  fwrite_fmt(stderr, "{}{}\n", format_log_time_prefix(Level), std::format(fmt, std::forward<ArgTs>(args)...));
   return true;
 }
 
@@ -278,7 +278,8 @@ struct PrefixedLogger {
     if (!this->should_log(Level)) {
       return false;
     }
-    fwrite_fmt(stderr, "{}{}\n", format_log_prefix(Level), std::format(fmt, std::forward<ArgTs>(args)...));
+    fwrite_fmt(stderr, "{}{}{}\n",
+        format_log_time_prefix(Level), this->prefix, std::format(fmt, std::forward<ArgTs>(args)...));
     return true;
   }
 
